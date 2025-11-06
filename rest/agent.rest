@@ -1,0 +1,7 @@
+@HOST=localhost:8081
+
+### healthz
+GET http://{{HOST}}/healthz
+
+### docker proxy info 
+GET http://{{HOST}}/docker.proxy/info
