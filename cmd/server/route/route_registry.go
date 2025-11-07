@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	route.DefaultRegistry.Add(func(router *router.Router) {
-		router.POST("/registry", handler.HandleGetRegistryWithDI)
+	route.DefaultRegistry.Add(func(h *handler.BaseHandler, router *router.Router) {
+		router.POST("/registry", h.GetRegistryHandler)
 	})
 }

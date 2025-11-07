@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	route.DefaultRegistry.Add(func(router *router.Router) {
-		router.Handle("GET", "/docker/info", handler.HandleDockerInfoWithDI)
+	route.DefaultRegistry.Add(func(h *handler.BaseHandler, router *router.Router) {
+		router.Handle("GET", "/api/docker/info", h.DockerInfo)
 	})
 }

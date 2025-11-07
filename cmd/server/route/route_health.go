@@ -7,8 +7,7 @@ import (
 )
 
 func init() {
-	route.DefaultRegistry.Add(func(router *router.Router) {
-		router.Handle("GET", "/healthz", handler.HandleHealthzWithDI)
-
+	route.DefaultRegistry.Add(func(h *handler.BaseHandler, router *router.Router) {
+		router.Handle("GET", "/healthz", h.HandleHealthz)
 	})
 }

@@ -10,7 +10,6 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/pkg/sftp v1.13.10
 	github.com/valyala/fasthttp v1.68.0
-	go.uber.org/dig v1.19.0
 	golang.org/x/crypto v0.43.0
 )
 

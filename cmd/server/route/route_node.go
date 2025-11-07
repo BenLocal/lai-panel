@@ -7,11 +7,11 @@ import (
 )
 
 func init() {
-	route.DefaultRegistry.Add(func(router *router.Router) {
-		router.Handle("POST", "/node/add", handler.HandleAddNodeWithDI)
-		router.Handle("POST", "/node/get", handler.HandleGetNodeWithDI)
-		router.Handle("POST", "/node/update", handler.HandleUpdateNodeWithDI)
-		router.Handle("POST", "/node/delete", handler.HandleDeleteNodeWithDI)
-		router.Handle("POST", "/node/list", handler.HandleGetNodeListWithDI)
+	route.DefaultRegistry.Add(func(h *handler.BaseHandler, router *router.Router) {
+		router.Handle("POST", "/api/node/add", h.AddNodeHandler)
+		router.Handle("POST", "/api/node/get", h.GetNodeHandler)
+		router.Handle("POST", "/api/node/update", h.UpdateNodeHandler)
+		router.Handle("POST", "/api/node/delete", h.DeleteNodeHandler)
+		router.Handle("POST", "/api/node/list", h.GetNodeListHandler)
 	})
 }

@@ -7,7 +7,7 @@ import (
 )
 
 func init() {
-	route.DefaultRegistry.Add(func(router *router.Router) {
-		router.ANY("/docker.proxy/{any:*}", handler.HandleDockerProxyWithDI)
+	route.DefaultRegistry.Add(func(h *handler.BaseHandler, router *router.Router) {
+		router.ANY("/docker.proxy/{any:*}", h.HandleDockerProxy)
 	})
 }

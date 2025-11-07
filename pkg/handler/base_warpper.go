@@ -4,22 +4,35 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/benlocal/lai-panel/pkg/di"
+	"github.com/benlocal/lai-panel/pkg/docker"
+	"github.com/benlocal/lai-panel/pkg/node"
+	"github.com/benlocal/lai-panel/pkg/repository"
 	"github.com/valyala/fasthttp"
 )
 
-func HandleWithDI(fn interface{}) fasthttp.RequestHandler {
-	return func(ctx *fasthttp.RequestCtx) {
-		err := di.Invoke(fn)
-		if err != nil {
-			ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-			ctx.SetBodyString(err.Error())
-		}
+type BaseHandler struct {
+	// agent
+	dockerProxy *docker.DockerProxy
+
+	// server
+	nodeManager    *node.NodeManager
+	nodeRepository *repository.NodeRepository
+}
+
+func NewServerHandler() *BaseHandler {
+	nodeRepository := repository.NewNodeRepository()
+	nodeManager := node.NewNodeManager()
+
+	return &BaseHandler{
+		nodeManager:    nodeManager,
+		nodeRepository: nodeRepository,
 	}
 }
 
-func RouteDI(handlerFn interface{}) fasthttp.RequestHandler {
-	return HandleWithDI(handlerFn)
+func NewAgentHandler(dp *docker.DockerProxy) *BaseHandler {
+	return &BaseHandler{
+		dockerProxy: dp,
+	}
 }
 
 type response struct {
