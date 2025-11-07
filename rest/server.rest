@@ -3,11 +3,19 @@
 ### healthz
 GET http://{{HOST}}/healthz
 
+### registry
+POST http://{{HOST}}/registry
+Content-Type: application/json
+
+{
+    "name": "test1"
+}
+
 ### get node list
-POST http://{{HOST}}/node/list
+POST http://{{HOST}}/api/node/list
 
 ### add node
-POST http://{{HOST}}/node/add
+POST http://{{HOST}}/api/node/add
 Content-Type: application/json
 
 {
@@ -21,18 +29,19 @@ Content-Type: application/json
 }
 
 ### update node
-POST http://{{HOST}}/node/update
+POST http://{{HOST}}/api/node/update
 Content-Type: application/json
 
 {
     "id": 1,
     "name": "test1",
     "address": "127.0.0.1",
-    "port": 8080
+    "port": 8080,
+    "is_local": true
 }
 
 ### delete node
-POST http://{{HOST}}/node/delete
+POST http://{{HOST}}/api/node/delete
 Content-Type: application/json
 
 {
@@ -40,23 +49,15 @@ Content-Type: application/json
 }
 
 ### get node
-POST http://{{HOST}}/node/get
+POST http://{{HOST}}/api/node/get
 Content-Type: application/json
 
 {
     "id": 1
 }
 
-### registry
-POST http://{{HOST}}/registry
-Content-Type: application/json
-
-{
-    "name": "test1"
-}
-
 
 ### get docker info
-GET http://{{HOST}}/docker/info
+GET http://{{HOST}}/api/docker/info
 Content-Type: application/json
-X-Node-ID: 2
+X-Node-ID: 1

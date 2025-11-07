@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS nodes (
     status TEXT DEFAULT 'active',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    is_local BOOLEAN DEFAULT FALSE
+    is_local BOOLEAN DEFAULT FALSE,
+    metadata TEXT
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_nodes_name ON nodes (name);
