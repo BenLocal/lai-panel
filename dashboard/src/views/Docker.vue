@@ -61,23 +61,29 @@ const selectedNodeId = ref<string>("");
 const fetchNodes = () => {
   nodes.value = [...mockNodes];
   if (nodes.value.length > 0) {
-    selectedNodeId.value = nodes.value[0].id.toString();
+    selectedNodeId.value = nodes.value[0]?.id.toString() || "";
   }
 };
 
 const selectedNode = ref<Node | null>(null);
 
 // Watch for selected node changes
-const onNodeChange = (value: string) => {
-  selectedNodeId.value = value;
+const onNodeChange = (value: string | number | bigint | Record<string, any> | null) => {
+  if (value === null || value === undefined) {
+    selectedNodeId.value = "";
+    selectedNode.value = null;
+    return;
+  }
+  const stringValue = typeof value === 'string' ? value : String(value);
+  selectedNodeId.value = stringValue;
   selectedNode.value =
-    nodes.value.find((n) => n.id.toString() === value) || null;
+    nodes.value.find((n) => n.id.toString() === stringValue) || null;
 };
 
 onMounted(() => {
   fetchNodes();
   if (nodes.value.length > 0) {
-    selectedNode.value = nodes.value[0];
+    selectedNode.value = nodes.value[0]!;
   }
 });
 </script>

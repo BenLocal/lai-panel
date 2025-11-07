@@ -32,6 +32,7 @@ import {
   getPaginationRowModel,
   type ColumnDef,
 } from "@tanstack/vue-table";
+import type { AcceptableValue } from "reka-ui";
 
 interface EnvironmentVariable {
   id: number;
@@ -217,9 +218,9 @@ const saveEnvVar = () => {
         (v) => v.id === editingEnvVar.value!.id
       );
       if (index !== -1) {
-        const existing = envVars.value[index];
+        const existing = envVars.value[index]!;
         envVars.value[index] = {
-          ...existing,
+          id: existing.id,
           key: formData.value.key,
           value: formData.value.value,
           scope: formData.value.scope,
@@ -230,6 +231,8 @@ const saveEnvVar = () => {
                   ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
               : undefined,
           description: formData.value.description || undefined,
+          created_at: existing.created_at,
+          updated_at: existing.updated_at,
         };
       }
     } else {
@@ -329,6 +332,15 @@ const table = useVueTable({
     },
   },
 });
+
+const handleNodeIdUpdate = (val: AcceptableValue) => {
+  if (val === null || val === undefined) {
+    formData.value.node_id = undefined;
+    return;
+  }
+  const stringVal = typeof val === 'string' ? val : String(val);
+  formData.value.node_id = stringVal ? parseInt(stringVal, 10) : undefined;
+};
 
 onMounted(() => {
   fetchEnvVars();
@@ -596,9 +608,8 @@ onMounted(() => {
           <div v-if="formData.scope === 'node'" class="space-y-2">
             <label for="env-node" class="text-sm font-medium">Node *</label>
             <Select
-              v-model="formData.node_id"
               :model-value="formData.node_id?.toString()"
-              @update:model-value="(val) => formData.node_id = val ? parseInt(val) : undefined"
+              @update:model-value="handleNodeIdUpdate"
             >
               <SelectTrigger id="env-node">
                 <SelectValue placeholder="Select a node" />
