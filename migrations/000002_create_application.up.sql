@@ -1,7 +1,11 @@
 CREATE TABLE IF NOT EXISTS apps (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    display TEXT,
+    display TEXT, -- display name
+    description TEXT, -- description
+    version TEXT NOT NULL,
+    icon TEXT,
+    qa TEXT,
     docker_compose TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,

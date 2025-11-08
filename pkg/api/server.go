@@ -30,7 +30,7 @@ func (h *ApiServer) Start(ctx context.Context) error {
 	corsHandler := func(ctx *fasthttp.RequestCtx) {
 		// 设置 CORS 头
 		ctx.Response.Header.Set("Access-Control-Allow-Origin", "*")
-		ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+		ctx.Response.Header.Set("Access-Control-Allow-Methods", "GET,POST")
 		ctx.Response.Header.Set("Access-Control-Allow-Headers", "Content-Type,Authorization")
 		ctx.Response.Header.Set("Access-Control-Allow-Credentials", "true")
 

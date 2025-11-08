@@ -17,15 +17,18 @@ type BaseHandler struct {
 	// server
 	nodeManager    *node.NodeManager
 	nodeRepository *repository.NodeRepository
+	appRepository  *repository.AppRepository
 }
 
 func NewServerHandler() *BaseHandler {
 	nodeRepository := repository.NewNodeRepository()
 	nodeManager := node.NewNodeManager()
+	appRepository := repository.NewAppRepository()
 
 	return &BaseHandler{
 		nodeManager:    nodeManager,
 		nodeRepository: nodeRepository,
+		appRepository:  appRepository,
 	}
 }
 
@@ -50,6 +53,10 @@ func JSONSuccess(ctx *fasthttp.RequestCtx, data interface{}) {
 	ctx.SetStatusCode(fasthttp.StatusOK)
 	ctx.SetContentType("application/json")
 	json.NewEncoder(ctx).Encode(resp)
+}
+
+func JSONEmptySuccess(ctx *fasthttp.RequestCtx) {
+	JSONSuccess(ctx, nil)
 }
 
 func JSONError(ctx *fasthttp.RequestCtx, message string, err error) {

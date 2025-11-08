@@ -1,5 +1,4 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+import { post, type ApiResponse } from "./base";
 
 export interface Node {
   id: number;
@@ -39,83 +38,24 @@ export interface UpdateNodeRequest {
   display_name?: string;
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
-async function request<T>(
-  url: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...options.headers,
-      },
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: data.error || "请求失败",
-      };
-    }
-
-    return {
-      success: true,
-      data: data.data || data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "网络错误",
-    };
-  }
-}
-
 export const nodeApi = {
-  // 获取节点列表
   async list(): Promise<ApiResponse<Node[]>> {
-    return request<Node[]>("/node/list", {
-      method: "POST",
-    });
+    return post<Node[]>("/node/list", null);
   },
 
-  // 获取单个节点
   async get(id: number): Promise<ApiResponse<Node>> {
-    return request<Node>("/node/get", {
-      method: "POST",
-      body: JSON.stringify({ id }),
-    });
+    return post<Node>("/node/get", { id });
   },
 
-  // 添加节点
   async create(node: CreateNodeRequest): Promise<ApiResponse<Node>> {
-    return request<Node>("/node/add", {
-      method: "POST",
-      body: JSON.stringify(node),
-    });
+    return post<Node>("/node/add", node);
   },
 
-  // 更新节点
   async update(node: UpdateNodeRequest): Promise<ApiResponse<Node>> {
-    return request<Node>("/node/update", {
-      method: "POST",
-      body: JSON.stringify(node),
-    });
+    return post<Node>("/node/update", node);
   },
 
-  // 删除节点
   async delete(id: number): Promise<ApiResponse<void>> {
-    return request<void>("/node/delete", {
-      method: "POST",
-      body: JSON.stringify({ id }),
-    });
+    return post<void>("/node/delete", { id });
   },
 };

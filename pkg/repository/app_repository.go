@@ -15,8 +15,8 @@ func NewAppRepository() *AppRepository {
 }
 
 func (r *AppRepository) Create(app *model.App) error {
-	query := `INSERT INTO apps (name, display, docker_compose) 
-	VALUES (:name, :display, :docker_compose)`
+	query := `INSERT INTO apps (name, display, version, icon, docker_compose, metadata, qa, description) 
+	VALUES (:name, :display, :version, :icon, :docker_compose, :metadata, :qa, :description)`
 
 	result, err := r.db.NamedExec(query, app)
 	if err != nil {
@@ -44,5 +44,18 @@ func (r *AppRepository) Update(app *model.App) error {
 	 docker_compose = :docker_compose,
 	  updated_at = CURRENT_TIMESTAMP WHERE id = :id`
 	_, err := r.db.NamedExec(query, app)
+	return err
+}
+
+func (r *AppRepository) List() ([]model.App, error) {
+	query := `SELECT * FROM apps ORDER BY created_at DESC`
+	var apps []model.App
+	err := r.db.Select(&apps, query)
+	return apps, err
+}
+
+func (r *AppRepository) Delete(id int64) error {
+	query := `DELETE FROM apps WHERE id = ?`
+	_, err := r.db.Exec(query, id)
 	return err
 }
