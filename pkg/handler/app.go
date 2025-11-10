@@ -7,6 +7,42 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+func (h *BaseHandler) GetApplicationPageHandler(ctx *fasthttp.RequestCtx) {
+	type getApplicationPageRequest struct {
+		Page     int `json:"page"`
+		PageSize int `json:"page_size"`
+	}
+
+	type getApplicationPageResponse struct {
+		Total       int              `json:"total"`
+		CurrentPage int              `json:"current_page"`
+		PageSize    int              `json:"page_size"`
+		Apps        []*model.AppView `json:"apps"`
+	}
+
+	var req getApplicationPageRequest
+	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
+		JSONError(ctx, "Invalid JSON", err)
+		return
+	}
+
+	total, apps, err := h.appRepository.ListPage(req.Page, req.PageSize)
+	if err != nil {
+		JSONError(ctx, "Failed to get application page", err)
+		return
+	}
+	views := []*model.AppView{}
+	for _, app := range apps {
+		views = append(views, app.ToView())
+	}
+	JSONSuccess(ctx, getApplicationPageResponse{
+		Total:       total,
+		CurrentPage: req.Page,
+		PageSize:    req.PageSize,
+		Apps:        views,
+	})
+}
+
 func (h *BaseHandler) GetApplicationListHandler(ctx *fasthttp.RequestCtx) {
 	apps, err := h.appRepository.List()
 	if err != nil {

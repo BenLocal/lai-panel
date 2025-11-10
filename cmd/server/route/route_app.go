@@ -13,5 +13,6 @@ func init() {
 		router.Handle("POST", "/api/application/update", h.UpdateApplicationHandler)
 		router.Handle("POST", "/api/application/delete", h.DeleteApplicationHandler)
 		router.Handle("POST", "/api/application/get", h.GetApplicationHandler)
+		router.Handle("POST", "/api/application/page", h.GetApplicationPageHandler)
 	})
 }

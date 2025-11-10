@@ -88,5 +88,6 @@ func (a *AppView) ToModel() *App {
 		Icon:          a.Icon,
 		QA:            qaString,
 		Metadata:      metadataString,
+		Display:       a.Display,
 	}
 }

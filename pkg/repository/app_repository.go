@@ -60,6 +60,34 @@ func (r *AppRepository) List() ([]model.App, error) {
 	return apps, err
 }
 
+func (r *AppRepository) ListPage(page int, pageSize int) (int, []model.App, error) {
+	countQuery := `SELECT COUNT(*) FROM apps`
+	var count int
+	err := r.db.Get(&count, countQuery)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if page < 1 {
+		page = 1
+	}
+
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	limit := pageSize
+	offset := (page - 1) * pageSize
+	query := `SELECT * FROM apps ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	var apps []model.App
+	err = r.db.Select(&apps, query, limit, offset)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return count, apps, nil
+}
+
 func (r *AppRepository) Delete(id int64) error {
 	query := `DELETE FROM apps WHERE id = ?`
 	_, err := r.db.Exec(query, id)
