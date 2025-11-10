@@ -23,12 +23,13 @@ func (h *BaseHandler) GetApplicationListHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func (h *BaseHandler) AddApplicationHandler(ctx *fasthttp.RequestCtx) {
-	var app model.App
+	var app model.AppView
 	if err := json.Unmarshal(ctx.PostBody(), &app); err != nil {
 		JSONError(ctx, "Invalid JSON", err)
 		return
 	}
-	if err := h.appRepository.Create(&app); err != nil {
+	appModel := app.ToModel()
+	if err := h.appRepository.Create(appModel); err != nil {
 		JSONError(ctx, "Failed to create application", err)
 		return
 	}
@@ -36,12 +37,13 @@ func (h *BaseHandler) AddApplicationHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func (h *BaseHandler) UpdateApplicationHandler(ctx *fasthttp.RequestCtx) {
-	var app model.App
+	var app model.AppView
 	if err := json.Unmarshal(ctx.PostBody(), &app); err != nil {
 		JSONError(ctx, "Invalid JSON", err)
 		return
 	}
-	if err := h.appRepository.Update(&app); err != nil {
+	appModel := app.ToModel()
+	if err := h.appRepository.Update(appModel); err != nil {
 		JSONError(ctx, "Failed to update application", err)
 		return
 	}

@@ -40,8 +40,14 @@ func (r *AppRepository) GetByID(id int64) (*model.App, error) {
 }
 
 func (r *AppRepository) Update(app *model.App) error {
-	query := `UPDATE apps SET name = :name, display = :display,
-	 docker_compose = :docker_compose,
+	query := `UPDATE apps SET name = :name, 
+		display = :display,
+		version = :version,
+		icon = :icon,
+		docker_compose = :docker_compose,
+		metadata = :metadata,
+		qa = :qa,
+		description = :description,
 	  updated_at = CURRENT_TIMESTAMP WHERE id = :id`
 	_, err := r.db.NamedExec(query, app)
 	return err

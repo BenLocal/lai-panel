@@ -61,3 +61,74 @@ Content-Type: application/json
 GET http://{{HOST}}/api/docker/info
 Content-Type: application/json
 X-Node-ID: 1
+
+### list application
+POST http://{{HOST}}/api/application/list
+Content-Type: application/json
+
+{
+  "page": 1,
+  "page_size": 10
+}
+
+### add application
+POST http://{{HOST}}/api/application/add
+Content-Type: application/json
+
+{
+  "id": 0,
+  "name": "daaaaa",
+  "display": "qwwww",
+  "description": "qwwwww",
+  "version": "qwwww",
+  "icon": "lucide:app-window",
+  "qa": [
+    {
+      "name": "wqq",
+      "value": "ddd",
+      "type": "text",
+      "default_value": "ww",
+      "required": false,
+      "description": "qwwww"
+    }
+  ],
+  "metadata": [
+    {
+      "name": "qqq",
+      "properties": {
+        "www": "eee"
+      }
+    }
+  ]
+}
+
+### update application
+POST http://{{HOST}}/api/application/update
+Content-Type: application/json
+
+{
+  "id": 1,
+  "name": "daaaaa",
+  "display": "",
+  "description": "qwwwww",
+  "version": "qwwww",
+  "icon": "lucide:app-window",
+  "qa": [
+    {
+      "name": "wqq",
+      "value": "ddd",
+      "type": "text",
+      "default_value": "ddd",
+      "required": true,
+      "description": "qwwww"
+    }
+  ],
+  "metadata": [
+    {
+      "name": "qqq",
+      "properties": {
+        "www": "eee"
+      }
+    }
+  ]
+}

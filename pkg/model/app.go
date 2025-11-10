@@ -64,3 +64,29 @@ func (a *App) ToView() *AppView {
 		Metadata:      metadata,
 	}
 }
+
+func (a *AppView) ToModel() *App {
+	var qaString *string
+	qa, _ := json.Marshal(a.QA)
+	if len(qa) > 0 {
+		s := string(qa)
+		qaString = &s
+	}
+
+	var metadataString *string
+	metadata, _ := json.Marshal(a.Metadata)
+	if len(metadata) > 0 {
+		s := string(metadata)
+		metadataString = &s
+	}
+	return &App{
+		ID:            a.ID,
+		Name:          a.Name,
+		Description:   a.Description,
+		DockerCompose: a.DockerCompose,
+		Version:       a.Version,
+		Icon:          a.Icon,
+		QA:            qaString,
+		Metadata:      metadataString,
+	}
+}
