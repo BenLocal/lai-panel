@@ -296,8 +296,8 @@ const handleSelectFieldChange = (
                 <div class="space-y-2">
                     <div class="text-sm font-medium">Required</div>
                     <div class="flex h-10 items-center space-x-3 rounded-md border px-3">
-                        <Checkbox :id="`qa-required-${index}`" :checked="qa.required ?? false" @update:checked="(checked: boolean) =>
-                            updateItemField(index, 'required', checked)" />
+                        <Checkbox :id="`qa-required-${index}`" :model-value="qa.required ?? false" @update:model-value="(checked) =>
+                            updateItemField(index, 'required', checked as ApplicationQAItem['required'])" />
                         <label :for="`qa-required-${index}`" class="text-sm text-muted-foreground">
                             Must be provided
                         </label>
