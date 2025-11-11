@@ -85,3 +85,21 @@ func (r *NodeRepository) List() ([]model.Node, error) {
 	err := r.db.Select(&nodes, "SELECT * FROM nodes ORDER BY created_at DESC")
 	return nodes, err
 }
+
+func (r *NodeRepository) Page(page int, pageSize int) (int, []model.Node, error) {
+	var total int
+	err := r.db.Get(&total, "SELECT COUNT(*) FROM nodes")
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if total == 0 {
+		return 0, nil, nil
+	}
+
+	var nodes []model.Node
+	limit := pageSize
+	offset := (page - 1) * pageSize
+	err = r.db.Select(&nodes, "SELECT * FROM nodes ORDER BY created_at DESC LIMIT ? OFFSET ?", limit, offset)
+	return total, nodes, err
+}

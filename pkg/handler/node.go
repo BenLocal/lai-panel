@@ -8,13 +8,14 @@ import (
 )
 
 func (h *BaseHandler) AddNodeHandler(ctx *fasthttp.RequestCtx) {
-	var node model.Node
+	var node model.NodeView
 	if err := json.Unmarshal(ctx.PostBody(), &node); err != nil {
 		JSONError(ctx, "Invalid JSON", err)
 		return
 	}
 
-	if err := h.nodeRepository.Create(&node); err != nil {
+	modelNode := node.ToModel()
+	if err := h.nodeRepository.Create(modelNode); err != nil {
 		JSONError(ctx, "Failed to create node", err)
 		return
 	}
@@ -48,7 +49,7 @@ func (h *BaseHandler) GetNodeHandler(ctx *fasthttp.RequestCtx) {
 }
 
 func (h *BaseHandler) UpdateNodeHandler(ctx *fasthttp.RequestCtx) {
-	var node model.Node
+	var node model.NodeView
 	if err := json.Unmarshal(ctx.PostBody(), &node); err != nil {
 		JSONError(ctx, "Invalid JSON", err)
 		return
@@ -59,7 +60,8 @@ func (h *BaseHandler) UpdateNodeHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if err := h.nodeRepository.Update(&node); err != nil {
+	modelNode := node.ToModel()
+	if err := h.nodeRepository.Update(modelNode); err != nil {
 		JSONError(ctx, "Failed to update node", err)
 		return
 	}
@@ -99,9 +101,56 @@ func (h *BaseHandler) GetNodeListHandler(ctx *fasthttp.RequestCtx) {
 		return
 	}
 
-	if nodes == nil {
-		nodes = []model.Node{}
+	var nodesView []*model.NodeView
+	for _, node := range nodes {
+		nodesView = append(nodesView, node.ToView())
 	}
 
-	JSONSuccess(ctx, nodes)
+	JSONSuccess(ctx, nodesView)
+}
+
+func (h *BaseHandler) GetNodePageHandler(ctx *fasthttp.RequestCtx) {
+	type getNodePageRequest struct {
+		Page     int `json:"page"`
+		PageSize int `json:"page_size"`
+	}
+
+	type getNodePageResponse struct {
+		Total    int               `json:"total"`
+		Page     int               `json:"page"`
+		PageSize int               `json:"page_size"`
+		Nodes    []*model.NodeView `json:"nodes"`
+	}
+
+	var req getNodePageRequest
+	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
+		JSONError(ctx, "Invalid JSON", err)
+		return
+	}
+
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+
+	if req.PageSize <= 0 {
+		req.PageSize = 10
+	}
+
+	total, nodes, err := h.nodeRepository.Page(req.Page, req.PageSize)
+	if err != nil {
+		JSONError(ctx, "Failed to get nodes", err)
+		return
+	}
+
+	nodesView := make([]*model.NodeView, len(nodes))
+	for i, node := range nodes {
+		nodesView[i] = node.ToView()
+	}
+
+	JSONSuccess(ctx, getNodePageResponse{
+		Total:    total,
+		Page:     req.Page,
+		PageSize: req.PageSize,
+		Nodes:    nodesView,
+	})
 }

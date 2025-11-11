@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/docker"
@@ -20,6 +21,7 @@ func NewRuntime() *Runtime {
 }
 
 func (r *Runtime) Start() error {
+	op := NewOptions()
 	dp, _ := docker.NewDockerProxy("/var/run/docker.sock", "/docker.proxy")
 
 	g := gracefulshutdown.New()
@@ -27,10 +29,12 @@ func (r *Runtime) Start() error {
 
 	baseHandler := handler.NewAgentHandler(dp)
 	routeRouter := r.createApiRouter(baseHandler)
-	apiServer := api.NewApiServer(":8081", routeRouter)
+
+	listenAddr := fmt.Sprintf(":%d", op.Port)
+	apiServer := api.NewApiServer(listenAddr, routeRouter)
 	g.Add(apiServer)
 
-	registryService := service.NewRemoteRegistryService()
+	registryService := service.NewRemoteRegistryService(op.MasterHost, op.MasterPort)
 	g.Add(registryService)
 
 	ctx := context.Background()

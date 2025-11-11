@@ -17,3 +17,31 @@ type Node struct {
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 	Metadata    *string   `db:"metadata" json:"metadata"`
 }
+
+type NodeView struct {
+	ID          int64   `json:"id"`
+	IsLocal     bool    `json:"is_local"`
+	Name        string  `json:"name"`
+	DisplayName *string `son:"display_name"`
+	Address     string  `json:"address"`
+}
+
+func (n *Node) ToView() *NodeView {
+	return &NodeView{
+		ID:          n.ID,
+		IsLocal:     n.IsLocal,
+		Name:        n.Name,
+		DisplayName: n.DisplayName,
+		Address:     n.Address,
+	}
+}
+
+func (v *NodeView) ToModel() *Node {
+	return &Node{
+		ID:          v.ID,
+		IsLocal:     v.IsLocal,
+		Name:        v.Name,
+		DisplayName: v.DisplayName,
+		Address:     v.Address,
+	}
+}

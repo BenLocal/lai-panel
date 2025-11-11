@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/database"
@@ -31,10 +32,12 @@ func (r *Runtime) Start() error {
 
 	baseHandler := handler.NewServerHandler()
 	routeRouter := r.createApiRouter(baseHandler)
-	apiServer := api.NewApiServer(":8080", routeRouter)
+
+	listenAddr := fmt.Sprintf(":%d", op.Port)
+	apiServer := api.NewApiServer(listenAddr, routeRouter)
 	g.Add(apiServer)
 
-	registryService := service.NewLocalRegistryService()
+	registryService := service.NewLocalRegistryService(op.Port)
 	g.Add(registryService)
 
 	ctx := context.Background()

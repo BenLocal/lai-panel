@@ -13,18 +13,23 @@ type RegistryService struct {
 
 	context context.Context
 	cancel  context.CancelFunc
+
+	masterHost string
+	masterPort int
 }
 
-func NewLocalRegistryService() *RegistryService {
+func NewLocalRegistryService(masterPort int) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &RegistryService{
-		context:  ctx,
-		cancel:   cancel,
-		is_local: true,
+		context:    ctx,
+		cancel:     cancel,
+		is_local:   true,
+		masterHost: "127.0.0.1",
+		masterPort: masterPort,
 	}
 }
 
-func NewRemoteRegistryService() *RegistryService {
+func NewRemoteRegistryService(masterHost string, masterPort int) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
 	client := &fasthttp.Client{
 		ReadTimeout:  10 * time.Second,
@@ -35,6 +40,8 @@ func NewRemoteRegistryService() *RegistryService {
 		cancel:      cancel,
 		is_local:    false,
 		http_client: client,
+		masterHost:  masterHost,
+		masterPort:  masterPort,
 	}
 }
 

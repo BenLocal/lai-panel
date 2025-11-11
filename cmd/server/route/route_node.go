@@ -13,5 +13,6 @@ func init() {
 		router.Handle("POST", "/api/node/update", h.UpdateNodeHandler)
 		router.Handle("POST", "/api/node/delete", h.DeleteNodeHandler)
 		router.Handle("POST", "/api/node/list", h.GetNodeListHandler)
+		router.Handle("POST", "/api/node/page", h.GetNodePageHandler)
 	})
 }
