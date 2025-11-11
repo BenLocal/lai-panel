@@ -1,77 +1,165 @@
 <html>
 
 <body>
-    <!-- you may want the content you send to be dynamic -->
-    <input type="text" id="message" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+        body {
+            margin: 0;
+            background: #1e1e1e;
+            color: #fafafa;
+            font-family: sans-serif;
+        }
 
-    <!-- you may need a trigger to initiate the send -->
-    <input type="button" value="Send" id="send" />
+        .toolbar {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #2d2d2d;
+            align-items: center;
+        }
 
-    <!-- you may want some container to display received messages -->
-    <ul id="messages">
-    </ul>
+        .toolbar input,
+        .toolbar button {
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            border: 1px solid #555;
+            background: #3a3a3a;
+            color: #fafafa;
+        }
 
-    <!-- 1. you need to import the signalr script which provides
-            the HubConnectionBuilder and handles the connection
-            plumbing.
-    -->
+        .toolbar button {
+            cursor: pointer;
+        }
+
+        #terminal {
+            height: calc(100vh - 60px);
+        }
+    </style>
+
+    <div class="toolbar">
+        <label>
+            Node ID:
+            <input type="number" id="nodeId" value="1" min="1" />
+        </label>
+        <button id="connect">Connect</button>
+        <button id="disconnect" disabled>Disconnect</button>
+        <span id="status">Disconnected</span>
+    </div>
+    <div id="terminal"></div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/9.0.6/signalr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
     <script>
         (async function () {
-            // 2. use the signalr.HubConnectionBuilder to build a hub connection
-            //    and point it at the baseurl which you configured in your mux
+            const Terminal = window.Terminal;
+            const FitAddon = window.FitAddon.FitAddon;
+
+            const term = new Terminal({
+                convertEol: true,
+                cursorBlink: true,
+                fontSize: 13,
+                theme: {
+                    background: '#1e1e1e',
+                },
+            });
+            const fitAddon = new FitAddon();
+            term.loadAddon(fitAddon);
+            term.open(document.getElementById('terminal'));
+            fitAddon.fit();
+
+            const statusEl = document.getElementById('status');
+            const connectBtn = document.getElementById('connect');
+            const disconnectBtn = document.getElementById('disconnect');
+
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl('/api/signalr')
                 .withAutomaticReconnect()
                 .build();
 
-            // 3. bind events:
-            //    - UI events can invoke (i.e. dispatch to) functions on the server hub
-            document.getElementById('send').addEventListener('click', sendClicked);
-            //    - connection events can handle messages received from the server hub
-            connection.on('chatMessageReceived', onChatMessageReceived);
+            connection.serverTimeoutInMilliseconds = 6000;
+            connection.keepAliveIntervalInMilliseconds = 2000;
 
-            // 4. call start to initiate the connection and start streaming events
-            //    between your server hub and your client connection
-            connection.start();
+            connection.onreconnecting(() => {
+                statusEl.textContent = 'Reconnecting...';
+            });
 
-            window.addEventListener('beforeunload', () => {
-                if (connection && connection.state === signalR.HubConnectionState.Connected) {
-                    connection.stop();
+            connection.onreconnected(() => {
+                statusEl.textContent = 'Connected';
+            });
+
+            connection.onclose(() => {
+                statusEl.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            });
+
+            connection.on('sshData', (payload) => {
+                term.write(payload);
+            });
+
+            connection.on('sshClosed', () => {
+                term.writeln('\r\n[Session closed]');
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            });
+
+            term.onData(async (data) => {
+                if (connection.state === signalR.HubConnectionState.Connected) {
+                    try {
+                        await connection.invoke('SendSshInput', data);
+                    } catch (error) {
+                        console.error('send data error', error);
+                    }
                 }
             });
 
-            // that's it! your server and client should be able to communicate
-            // through the signalr.Hub <--> connection pipeline managed by the
-            // signalr package and client-side library.
-
-            // --------------------------------------------------------------------
-
-            // example UI event handler
-            function sendClicked() {
-                // prepare your target payload
-                const msg = document.getElementById('message').value;
-                if (msg) {
-                    // call invoke on your connection object to dispatch
-                    // messages to the server hub with two arguments:
-                    // -  target: name of the hub func to invoke
-                    // - payload: the message body
-                    // 
-                    const target = 'sendChatMessage';
-                    connection.invoke(target, msg);
+            window.addEventListener('resize', () => {
+                fitAddon.fit();
+                if (connection.state === signalR.HubConnectionState.Connected) {
+                    connection.invoke('ResizeSshSession', term.cols, term.rows).catch(console.error);
                 }
-            }
+            });
 
-            // example server event handler
-            function onChatMessageReceived(payload) {
-                // the payload is whatever was passed to the inner
-                // clients' `Send(...)` method in your server-side
-                // hub function.
+            connectBtn.addEventListener('click', async () => {
+                const nodeId = parseInt(document.getElementById('nodeId').value, 10);
+                if (!Number.isInteger(nodeId)) {
+                    alert('Please provide a valid node id');
+                    return;
+                }
+                try {
+                    if (connection.state !== signalR.HubConnectionState.Connected) {
+                        await connection.start();
+                    }
+                    await connection.invoke('StartSshSession', nodeId, term.cols, term.rows);
+                    statusEl.textContent = 'Connected';
+                    connectBtn.disabled = true;
+                    disconnectBtn.disabled = false;
+                } catch (error) {
+                    console.error('connection error', error);
+                    statusEl.textContent = 'Failed to connect';
+                }
+            });
 
-                const li = document.createElement('li');
-                li.innerText = payload;
-                document.getElementById('messages').appendChild(li);
-            }
+            disconnectBtn.addEventListener('click', async () => {
+                try {
+                    await connection.invoke('StopSshSession');
+                } catch (error) {
+                    console.warn('stop session error', error);
+                }
+                if (connection.state === signalR.HubConnectionState.Connected) {
+                    await connection.stop();
+                }
+                statusEl.textContent = 'Disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            });
+
+            window.addEventListener('beforeunload', () => {
+                if (connection.state === signalR.HubConnectionState.Connected) {
+                    connection.stop();
+                }
+            });
         })();
     </script>
 </body>

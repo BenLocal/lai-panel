@@ -16,7 +16,9 @@ type SignalRServer struct {
 
 func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...func(signalr.Party) error) (*SignalRServer, error) {
 	baseOpts := []func(signalr.Party) error{
-		signalr.SimpleHubFactory(hub),
+		signalr.HubFactory(func() signalr.HubInterface {
+			return hub
+		}),
 		signalr.HTTPTransports(signalr.TransportServerSentEvents),
 		signalr.KeepAliveInterval(2 * time.Second),
 		signalr.TimeoutInterval(6 * time.Second),
