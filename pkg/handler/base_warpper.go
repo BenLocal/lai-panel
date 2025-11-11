@@ -1,10 +1,13 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
+	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/docker"
+	"github.com/benlocal/lai-panel/pkg/hub"
 	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/benlocal/lai-panel/pkg/repository"
 	"github.com/valyala/fasthttp"
@@ -18,6 +21,7 @@ type BaseHandler struct {
 	nodeManager    *node.NodeManager
 	nodeRepository *repository.NodeRepository
 	appRepository  *repository.AppRepository
+	signalrServer  *api.SignalRServer
 }
 
 func NewServerHandler() *BaseHandler {
@@ -25,11 +29,18 @@ func NewServerHandler() *BaseHandler {
 	nodeManager := node.NewNodeManager()
 	appRepository := repository.NewAppRepository()
 
+	signalrServer, _ := api.NewSignalRServer(context.Background(), &hub.SimpleHub{}, "/signalr", nil)
+
 	return &BaseHandler{
 		nodeManager:    nodeManager,
 		nodeRepository: nodeRepository,
 		appRepository:  appRepository,
+		signalrServer:  signalrServer,
 	}
+}
+
+func (h *BaseHandler) SignalRServer() *api.SignalRServer {
+	return h.signalrServer
 }
 
 func NewAgentHandler(dp *docker.DockerProxy) *BaseHandler {
