@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -63,6 +64,30 @@ func (a *App) ToView() *AppView {
 		QA:            qa,
 		Metadata:      metadata,
 	}
+}
+
+func (a *App) GetEnv() map[string]string {
+	env := map[string]string{}
+
+	metadata := []*Metadata{}
+	if a.Metadata != nil {
+		json.Unmarshal([]byte(*a.Metadata), &metadata)
+	}
+	for _, metadata := range metadata {
+		key := fmt.Sprintf("metadata_%s", a.Name)
+		for _, property := range metadata.Properties {
+			env[fmt.Sprintf("%s_%s", key, property)] = property
+		}
+	}
+
+	qa := []*AppQAItem{}
+	if a.QA != nil {
+		json.Unmarshal([]byte(*a.QA), &qa)
+	}
+	for _, qa := range qa {
+		env[a.Name] = qa.Value
+	}
+	return env
 }
 
 func (a *AppView) ToModel() *App {

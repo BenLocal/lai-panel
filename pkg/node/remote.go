@@ -1,8 +1,13 @@
 package node
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"path/filepath"
+	"sort"
+	"strings"
+	"sync"
 
 	"github.com/benlocal/lai-panel/pkg/model"
 	"github.com/pkg/sftp"
@@ -14,11 +19,6 @@ type RemoteNodeExec struct {
 
 	sftpClient *sftp.Client
 	sshClient  *ssh.Client
-}
-
-// ExecuteCommand implements NodeExec.
-func (r *RemoteNodeExec) ExecuteCommand(command string) (string, error) {
-	panic("unimplemented")
 }
 
 func NewRemoteNodeExec(node *model.Node) *RemoteNodeExec {
@@ -68,6 +68,13 @@ func (r *RemoteNodeExec) WriteFile(path string, data []byte) error {
 		return fmt.Errorf("SFTP client not initialized")
 	}
 
+	dir := filepath.Dir(path)
+	if dir != "" && dir != "." {
+		if err := r.sftpClient.MkdirAll(dir); err != nil {
+			return fmt.Errorf("failed to create remote directory: %w", err)
+		}
+	}
+
 	file, err := r.sftpClient.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
@@ -99,4 +106,89 @@ func (r *RemoteNodeExec) ReadFile(path string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (r *RemoteNodeExec) ExecuteCommand(
+	command string,
+	env map[string]string,
+	onStdout func(string),
+	onStderr func(string),
+) error {
+	if r.sshClient == nil {
+		return fmt.Errorf("SSH client not initialized")
+	}
+
+	session, err := r.sshClient.NewSession()
+	if err != nil {
+		return fmt.Errorf("failed to create SSH session: %w", err)
+	}
+	defer session.Close()
+
+	stdoutPipe, err := session.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+	stderrPipe, err := session.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	fullCommand := buildRemoteCommand(command, env)
+	if err := session.Start(fullCommand); err != nil {
+		return fmt.Errorf("failed to start remote command: %w", err)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		if err := streamLines(stdoutPipe, onStdout); err != nil && onStderr != nil {
+			onStderr(err.Error())
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if err := streamLines(stderrPipe, onStderr); err != nil && onStderr != nil {
+			onStderr(err.Error())
+		}
+	}()
+
+	wg.Wait()
+
+	if err := session.Wait(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func buildRemoteCommand(command string, env map[string]string) string {
+	if len(env) == 0 {
+		return fmt.Sprintf("bash -lc %q", command)
+	}
+
+	keys := make([]string, 0, len(env))
+	for k := range env {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var exports []string
+	for _, key := range keys {
+		value := env[key]
+		exports = append(exports, fmt.Sprintf("export %s='%s'", key, escapeSingleQuotes(value)))
+	}
+
+	var buffer bytes.Buffer
+	buffer.WriteString(strings.Join(exports, "; "))
+	buffer.WriteString("; ")
+	buffer.WriteString(command)
+
+	return fmt.Sprintf("bash -lc %q", buffer.String())
+}
+
+func escapeSingleQuotes(value string) string {
+	return strings.ReplaceAll(value, `'`, `'\''`)
 }
