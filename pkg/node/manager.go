@@ -15,18 +15,18 @@ type NodeState struct {
 }
 
 type NodeManager struct {
-	nodes map[int64]NodeState
+	nodes map[int64]*NodeState
 
 	mu sync.RWMutex
 }
 
 func NewNodeManager() *NodeManager {
 	return &NodeManager{
-		nodes: make(map[int64]NodeState),
+		nodes: make(map[int64]*NodeState),
 	}
 }
 
-func (m *NodeManager) AddOrGetNode(node *model.Node) (NodeState, error) {
+func (m *NodeManager) AddOrGetNode(node *model.Node) (*NodeState, error) {
 	m.mu.RLock()
 	if state, ok := m.nodes[node.ID]; ok {
 		m.mu.RUnlock()
@@ -47,7 +47,7 @@ func (m *NodeManager) AddOrGetNode(node *model.Node) (NodeState, error) {
 		exec = NewRemoteNodeExec(node)
 	}
 	if err := exec.Init(); err != nil {
-		return NodeState{}, err
+		return &NodeState{}, err
 	}
 
 	var dockerClient *dockerClient.Client
@@ -62,8 +62,8 @@ func (m *NodeManager) AddOrGetNode(node *model.Node) (NodeState, error) {
 		Exec:         exec,
 		DockerClient: dockerClient,
 	}
-	m.nodes[node.ID] = state
-	return state, nil
+	m.nodes[node.ID] = &state
+	return &state, nil
 }
 
 func (m *NodeManager) RemoveNode(nodeID int64) error {

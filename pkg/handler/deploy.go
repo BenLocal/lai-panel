@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/benlocal/lai-panel/pkg/tmpl"
 	"github.com/valyala/fasthttp"
+	"gopkg.in/yaml.v3"
 )
 
 func (b *BaseHandler) HandleDockerComposeConfig(ctx *fasthttp.RequestCtx) {
@@ -27,33 +29,6 @@ func (b *BaseHandler) HandleDockerComposeConfig(ctx *fasthttp.RequestCtx) {
 		return
 	}
 	config, err := tmpl.ParseDockerCompose("test", req.DockerCompose, req.Env)
-	if err != nil {
-		JSONError(ctx, "failed to parse docker compose template", err)
-		return
-	}
-	JSONSuccess(ctx, dockerComposeConfigResponse{Config: config})
-}
-
-func (b *BaseHandler) HandleDockerComposeByApp(ctx *fasthttp.RequestCtx) {
-	type dockerComposeConfigRequest struct {
-		AppId int64 `json:"app_id"`
-	}
-	type dockerComposeConfigResponse struct {
-		Config string `json:"config"`
-	}
-	var req dockerComposeConfigRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "invalid request", err)
-		return
-	}
-	app, err := b.appRepository.GetByID(req.AppId)
-	if err != nil {
-		JSONError(ctx, "app not found", err)
-		return
-	}
-
-	env := app.GetEnv()
-	config, err := tmpl.ParseDockerCompose(app.Name, *app.DockerCompose, env)
 	if err != nil {
 		JSONError(ctx, "failed to parse docker compose template", err)
 		return
@@ -149,6 +124,12 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx *fasthttp.RequestCtx) {
 			return
 		}
 
+		// images, err := extractComposeImages(config)
+		// if err != nil {
+		// 	send("error", fmt.Sprintf("Failed to parse docker compose images: %v", err))
+		// 	return
+		// }
+
 		filePath := fmt.Sprintf("/tmp/%s-%d-compose.yaml", sanitizeName(app.Name), time.Now().Unix())
 		if !send("message", fmt.Sprintf("Uploading docker compose file to node (%s)", filePath)) {
 			return
@@ -199,6 +180,37 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx *fasthttp.RequestCtx) {
 
 		send("done", "Deployment completed successfully")
 	})
+}
+
+func extractComposeImages(config string) ([]string, error) {
+	type composeService struct {
+		Image string `yaml:"image"`
+	}
+	type composeDocument struct {
+		Services map[string]composeService `yaml:"services"`
+	}
+
+	var doc composeDocument
+	if err := yaml.Unmarshal([]byte(config), &doc); err != nil {
+		return nil, err
+	}
+
+	imagesSet := make(map[string]struct{})
+	for _, service := range doc.Services {
+		image := strings.TrimSpace(service.Image)
+		if image == "" {
+			continue
+		}
+		imagesSet[image] = struct{}{}
+	}
+
+	images := make([]string, 0, len(imagesSet))
+	for image := range imagesSet {
+		images = append(images, image)
+	}
+
+	sort.Strings(images)
+	return images, nil
 }
 
 func writeSSE(writer *bufio.Writer, event, data string) error {

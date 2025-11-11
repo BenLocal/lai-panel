@@ -11,7 +11,6 @@ func init() {
 		router.Handle("GET", "/api/docker/info", h.DockerInfo)
 
 		router.Handle("POST", "/api/docker/compose/config", h.HandleDockerComposeConfig)
-		router.Handle("POST", "/api/docker/compose/config-by-app", h.HandleDockerComposeByApp)
 		router.Handle("POST", "/api/docker/compose/deploy", h.HandleDockerComposeDeploy)
 	})
 }
