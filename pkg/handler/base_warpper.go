@@ -29,7 +29,8 @@ func NewServerHandler() *BaseHandler {
 	nodeManager := node.NewNodeManager()
 	appRepository := repository.NewAppRepository()
 
-	signalrServer, _ := api.NewSignalRServer(context.Background(), &hub.SimpleHub{}, "/signalr", nil)
+	h := hub.NewSimpleHub(nodeRepository)
+	signalrServer, _ := api.NewSignalRServer(context.Background(), h)
 
 	return &BaseHandler{
 		nodeManager:    nodeManager,

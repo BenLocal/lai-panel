@@ -21,7 +21,8 @@
             // 2. use the signalr.HubConnectionBuilder to build a hub connection
             //    and point it at the baseurl which you configured in your mux
             const connection = new signalR.HubConnectionBuilder()
-                .withUrl('/signalr')
+                .withUrl('/api/signalr')
+                .withAutomaticReconnect()
                 .build();
 
             // 3. bind events:
@@ -33,6 +34,12 @@
             // 4. call start to initiate the connection and start streaming events
             //    between your server hub and your client connection
             connection.start();
+
+            window.addEventListener('beforeunload', () => {
+                if (connection && connection.state === signalR.HubConnectionState.Connected) {
+                    connection.stop();
+                }
+            });
 
             // that's it! your server and client should be able to communicate
             // through the signalr.Hub <--> connection pipeline managed by the

@@ -11,15 +11,16 @@ import (
 )
 
 type SignalRServer struct {
-	server  signalr.Server
-	handler fasthttp.RequestHandler
+	server signalr.Server
 }
 
-func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, path string, opts ...func(signalr.Party) error) (*SignalRServer, error) {
+func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...func(signalr.Party) error) (*SignalRServer, error) {
 	baseOpts := []func(signalr.Party) error{
 		signalr.SimpleHubFactory(hub),
 		signalr.HTTPTransports(signalr.TransportServerSentEvents),
 		signalr.KeepAliveInterval(2 * time.Second),
+		signalr.TimeoutInterval(6 * time.Second),
+		signalr.HandshakeTimeout(15 * time.Second),
 	}
 	opts = append(baseOpts, opts...)
 
@@ -28,23 +29,16 @@ func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, path string
 		return nil, err
 	}
 
-	mux := http.NewServeMux()
-	srv.MapHTTP(signalr.WithHTTPServeMux(mux), path)
-
-	handler := fasthttpadaptor.NewFastHTTPHandler(mux)
-
 	return &SignalRServer{
-		server:  srv,
-		handler: handler,
+		server: srv,
 	}, nil
 }
 
-func (s *SignalRServer) Handle(ctx *fasthttp.RequestCtx) {
-	if s == nil || s.handler == nil {
-		ctx.Error("signalr handler not initialized", fasthttp.StatusInternalServerError)
-		return
-	}
-	s.handler(ctx)
+func (s *SignalRServer) Handler(path string) fasthttp.RequestHandler {
+	mux := http.NewServeMux()
+	s.server.MapHTTP(signalr.WithHTTPServeMux(mux), path)
+
+	return fasthttpadaptor.NewFastHTTPHandler(mux)
 }
 
 func (s *SignalRServer) HubClients() signalr.HubClients {
