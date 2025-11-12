@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/protocol/sse"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 )
@@ -94,7 +96,7 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 		c.Error(err)
 		return
 	}
-	_, err = h.nodeManager.AddOrGetNode(dst)
+	ds, err := h.nodeManager.AddOrGetNode(dst)
 	if err != nil {
 		c.Error(err)
 		return
@@ -129,27 +131,31 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 		return
 	}
 
-	c.SetStatusCode(http.StatusOK)
-	c.Response.Header.Set("Content-Type", "text/event-stream")
-	c.Response.Header.Set("Cache-Control", "no-cache")
-	c.Response.Header.Set("Connection", "keep-alive")
+	writer := sse.NewWriter(c)
+	defer writer.Close()
+	err = node.CopyImageBetweenNodes(ctx, ss, ds, imageString, func(ctx context.Context, reader io.ReadCloser) error {
+		_, err := io.Copy(&CopyWriter{writer}, reader)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		writer.WriteEvent("", "error", []byte(err.Error()))
+		return
+	}
+	writer.WriteEvent("", "done", []byte("done"))
 
-	// c.SetBodyStream(io.Reader(func(writer *bufio.Writer) {
-	// 	err := node.CopyImageBetweenNodes(ctx, ss, ds, imageString, func(ctx context.Context, reader io.ReadCloser) error {
-	// 		_, err := io.Copy(writer, reader)
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 		writer.Flush()
-	// 		return nil
-	// 	})
-	// 	if err != nil {
-	// 		writer.WriteString("error\n")
-	// 		writer.Flush()
-	// 		return
-	// 	}
-	// 	writer.WriteString("done\n")
-	// 	writer.Flush()
-	// }, 0), 0)
+}
 
+type CopyWriter struct {
+	*sse.Writer
+}
+
+func (c *CopyWriter) Write(p []byte) (n int, err error) {
+	err = c.Writer.WriteEvent("", "data", p)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), err
 }

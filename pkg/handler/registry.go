@@ -43,5 +43,5 @@ func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestCont
 		Name: node.Name,
 	}
 
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, SuccessResponse(resp))
 }

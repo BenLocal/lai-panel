@@ -77,4 +77,4 @@ require (
 	google.golang.org/protobuf v1.36.8 // indirect
 )
 
-// replace github.com/coder/websocket => ./vendor/github.com/coder/websocket
+replace github.com/cloudwego/hertz => github.com/BenLocal/hertz v0.0.0-20251112085233-2c56b9ae8e39

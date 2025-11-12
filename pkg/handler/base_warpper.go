@@ -46,8 +46,32 @@ func NewAgentHandler(dp *docker.DockerProxy) *BaseHandler {
 	}
 }
 
-// type response struct {
-// 	Code    int         `json:"code"`
-// 	Message string      `json:"message"`
-// 	Data    interface{} `json:"data"`
-// }
+type ApiResponse struct {
+	Code    int         `json:"code"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+func NewApiResponse(code int, message string, data interface{}) *ApiResponse {
+	return &ApiResponse{
+		Code:    code,
+		Message: message,
+		Data:    data,
+	}
+}
+
+func SuccessResponse(data interface{}) *ApiResponse {
+	return NewApiResponse(0, "success", data)
+}
+
+func ErrorResponse(code int, message string) *ApiResponse {
+	return NewApiResponse(code, message, nil)
+}
+
+func FailResponse(message string) *ApiResponse {
+	return NewApiResponse(-1, message, nil)
+}
+
+func EmptyResponse() *ApiResponse {
+	return NewApiResponse(0, "success", nil)
+}

@@ -21,7 +21,7 @@ func (h *BaseHandler) AddNodeHandler(ctx context.Context, c *app.RequestContext)
 		return
 	}
 
-	c.JSON(http.StatusOK, node)
+	c.JSON(http.StatusOK, SuccessResponse(node))
 }
 
 func (h *BaseHandler) GetNodeHandler(ctx context.Context, c *app.RequestContext) {
@@ -45,7 +45,7 @@ func (h *BaseHandler) GetNodeHandler(ctx context.Context, c *app.RequestContext)
 		return
 	}
 
-	c.JSON(http.StatusOK, node)
+	c.JSON(http.StatusOK, SuccessResponse(node))
 }
 
 func (h *BaseHandler) UpdateNodeHandler(ctx context.Context, c *app.RequestContext) {
@@ -66,7 +66,7 @@ func (h *BaseHandler) UpdateNodeHandler(ctx context.Context, c *app.RequestConte
 	}
 	h.nodeManager.RemoveNode(node.ID)
 
-	c.JSON(http.StatusOK, node)
+	c.JSON(http.StatusOK, SuccessResponse(node))
 }
 
 func (h *BaseHandler) DeleteNodeHandler(ctx context.Context, c *app.RequestContext) {
@@ -90,7 +90,7 @@ func (h *BaseHandler) DeleteNodeHandler(ctx context.Context, c *app.RequestConte
 		return
 	}
 
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, EmptyResponse())
 }
 
 func (h *BaseHandler) GetNodeListHandler(ctx context.Context, c *app.RequestContext) {
@@ -105,7 +105,7 @@ func (h *BaseHandler) GetNodeListHandler(ctx context.Context, c *app.RequestCont
 		nodesView = append(nodesView, node.ToView())
 	}
 
-	c.JSON(http.StatusOK, nodesView)
+	c.JSON(http.StatusOK, SuccessResponse(nodesView))
 }
 
 func (h *BaseHandler) GetNodePageHandler(ctx context.Context, c *app.RequestContext) {
@@ -146,10 +146,12 @@ func (h *BaseHandler) GetNodePageHandler(ctx context.Context, c *app.RequestCont
 		nodesView[i] = node.ToView()
 	}
 
-	c.JSON(http.StatusOK, getNodePageResponse{
+	resp := getNodePageResponse{
 		Total:    total,
 		Page:     req.Page,
 		PageSize: req.PageSize,
 		Nodes:    nodesView,
-	})
+	}
+
+	c.JSON(http.StatusOK, SuccessResponse(resp))
 }

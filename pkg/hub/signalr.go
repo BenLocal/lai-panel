@@ -19,7 +19,7 @@ func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...fun
 		signalr.HubFactory(func() signalr.HubInterface {
 			return hub
 		}),
-		signalr.HTTPTransports(signalr.TransportWebSockets),
+		signalr.HTTPTransports(signalr.TransportWebSockets, signalr.TransportServerSentEvents),
 		signalr.KeepAliveInterval(2 * time.Second),
 		signalr.TimeoutInterval(6 * time.Second),
 		signalr.HandshakeTimeout(15 * time.Second),

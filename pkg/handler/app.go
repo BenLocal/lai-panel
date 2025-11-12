@@ -38,12 +38,12 @@ func (h *BaseHandler) GetApplicationPageHandler(ctx context.Context, c *app.Requ
 		views = append(views, app.ToView())
 	}
 
-	c.JSON(http.StatusOK, getApplicationPageResponse{
+	c.JSON(http.StatusOK, SuccessResponse(getApplicationPageResponse{
 		Total:       total,
 		CurrentPage: req.Page,
 		PageSize:    req.PageSize,
 		Apps:        views,
-	})
+	}))
 }
 
 func (h *BaseHandler) GetApplicationListHandler(ctx context.Context, c *app.RequestContext) {
@@ -58,7 +58,7 @@ func (h *BaseHandler) GetApplicationListHandler(ctx context.Context, c *app.Requ
 		views = append(views, app.ToView())
 	}
 
-	c.JSON(http.StatusOK, views)
+	c.JSON(http.StatusOK, SuccessResponse(views))
 }
 
 func (h *BaseHandler) AddApplicationHandler(ctx context.Context, c *app.RequestContext) {
@@ -72,7 +72,7 @@ func (h *BaseHandler) AddApplicationHandler(ctx context.Context, c *app.RequestC
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, app)
+	c.JSON(http.StatusOK, SuccessResponse(app))
 }
 
 func (h *BaseHandler) UpdateApplicationHandler(ctx context.Context, c *app.RequestContext) {
@@ -86,7 +86,7 @@ func (h *BaseHandler) UpdateApplicationHandler(ctx context.Context, c *app.Reque
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, app)
+	c.JSON(http.StatusOK, SuccessResponse(app))
 }
 
 func (h *BaseHandler) DeleteApplicationHandler(ctx context.Context, c *app.RequestContext) {
@@ -103,7 +103,7 @@ func (h *BaseHandler) DeleteApplicationHandler(ctx context.Context, c *app.Reque
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, nil)
+	c.JSON(http.StatusOK, EmptyResponse())
 }
 
 func (h *BaseHandler) GetApplicationHandler(ctx context.Context, c *app.RequestContext) {
@@ -126,5 +126,5 @@ func (h *BaseHandler) GetApplicationHandler(ctx context.Context, c *app.RequestC
 		c.Error(errors.New("application not found"))
 		return
 	}
-	c.JSON(http.StatusOK, app)
+	c.JSON(http.StatusOK, SuccessResponse(app))
 }
