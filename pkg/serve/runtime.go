@@ -1,4 +1,4 @@
-package server
+package serve
 
 import (
 	"context"
@@ -8,20 +8,18 @@ import (
 	"github.com/benlocal/lai-panel/pkg/database"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
-	"github.com/benlocal/lai-panel/pkg/route"
 	"github.com/benlocal/lai-panel/pkg/service"
-	"github.com/fasthttp/router"
 )
 
-type Runtime struct {
+type ServeRuntime struct {
 }
 
-func NewRuntime() *Runtime {
-	return &Runtime{}
+func NewServeRuntime() *ServeRuntime {
+	return &ServeRuntime{}
 }
 
-func (r *Runtime) Start() error {
-	op := NewOptions()
+func (r *ServeRuntime) Start() error {
+	op := NewServeOptions()
 	err := database.InitDB(op.DBPath, op.MigrationsPath)
 	if err != nil {
 		return err
@@ -31,10 +29,8 @@ func (r *Runtime) Start() error {
 	g.CatchSignals()
 
 	baseHandler := handler.NewServerHandler()
-	routeRouter := r.createApiRouter(baseHandler)
 
-	listenAddr := fmt.Sprintf(":%d", op.Port)
-	apiServer := api.NewApiServer(listenAddr, routeRouter)
+	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 
 	registryService := service.NewLocalRegistryService(op.Port)
@@ -42,14 +38,4 @@ func (r *Runtime) Start() error {
 
 	ctx := context.Background()
 	return g.Start(ctx)
-}
-
-func (r *Runtime) createApiRouter(baseHandler *handler.BaseHandler) *router.Router {
-
-	router := router.New()
-	for _, opt := range route.DefaultRegistry.Bindings() {
-		opt(baseHandler, router)
-	}
-
-	return router
 }

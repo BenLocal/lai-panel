@@ -4,12 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/valyala/fasthttp"
+	httpClient "github.com/cloudwego/hertz/pkg/app/client"
+	"github.com/cloudwego/hertz/pkg/protocol"
 )
 
 type RegistryService struct {
 	is_local    bool
-	http_client *fasthttp.Client
+	http_client *httpClient.Client
 
 	context context.Context
 	cancel  context.CancelFunc
@@ -31,10 +32,7 @@ func NewLocalRegistryService(masterPort int) *RegistryService {
 
 func NewRemoteRegistryService(masterHost string, masterPort int) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
-	client := &fasthttp.Client{
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	}
+	client, _ := httpClient.NewClient()
 	return &RegistryService{
 		context:     ctx,
 		cancel:      cancel,
@@ -74,18 +72,18 @@ func (s *RegistryService) Shutdown() error {
 }
 
 func (s *RegistryService) updateRemoteRegistry() error {
-	req := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(req)
+	req := protocol.AcquireRequest()
+	defer protocol.ReleaseRequest(req)
 
 	req.SetRequestURI("http://127.0.0.1:8080/registry")
 	req.Header.SetMethod("POST")
-	req.Header.SetContentType("application/json")
+	req.Header.SetContentTypeBytes([]byte("application/json"))
 	req.SetBodyString(`{"name":"test"}`)
 
-	resp := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(resp)
+	resp := protocol.AcquireResponse()
+	defer protocol.ReleaseResponse(resp)
 
-	if err := s.http_client.Do(req, resp); err != nil {
+	if err := s.http_client.Do(context.Background(), req, resp); err != nil {
 		return err
 	}
 

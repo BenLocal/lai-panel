@@ -1,13 +1,13 @@
-package api
+package hub
 
 import (
 	"context"
 	"net/http"
 	"time"
 
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/philippseith/signalr"
-	"github.com/valyala/fasthttp"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
 )
 
 type SignalRServer struct {
@@ -19,7 +19,7 @@ func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...fun
 		signalr.HubFactory(func() signalr.HubInterface {
 			return hub
 		}),
-		signalr.HTTPTransports(signalr.TransportServerSentEvents),
+		signalr.HTTPTransports(signalr.TransportWebSockets),
 		signalr.KeepAliveInterval(2 * time.Second),
 		signalr.TimeoutInterval(6 * time.Second),
 		signalr.HandshakeTimeout(15 * time.Second),
@@ -36,11 +36,11 @@ func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...fun
 	}, nil
 }
 
-func (s *SignalRServer) Handler(path string) fasthttp.RequestHandler {
+func (s *SignalRServer) Handler(path string) app.HandlerFunc {
 	mux := http.NewServeMux()
 	s.server.MapHTTP(signalr.WithHTTPServeMux(mux), path)
 
-	return fasthttpadaptor.NewFastHTTPHandler(mux)
+	return adaptor.HertzHandler(mux)
 }
 
 func (s *SignalRServer) HubClients() signalr.HubClients {

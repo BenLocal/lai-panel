@@ -1,10 +1,12 @@
 package handler
 
 import (
-	"github.com/valyala/fasthttp"
+	"context"
+	"net/http"
+
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
-func (h *BaseHandler) HandleHealthz(ctx *fasthttp.RequestCtx) {
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	ctx.SetBodyString("UP")
+func (h *BaseHandler) HandleHealthz(ctx context.Context, c *app.RequestContext) {
+	c.JSON(http.StatusOK, map[string]string{"status": "UP"})
 }

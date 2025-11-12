@@ -1,111 +1,109 @@
 package handler
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/benlocal/lai-panel/pkg/node"
+	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
-	"github.com/valyala/fasthttp"
 )
 
-func (h *BaseHandler) DockerInfo(ctx *fasthttp.RequestCtx) {
-	nodeId, err := h.getNodeIDFromRequest(ctx)
+func (h *BaseHandler) DockerInfo(ctx context.Context, c *app.RequestContext) {
+	nodeId, err := h.getNodeIDFromRequest(c)
 	if err != nil {
-		JSONError(ctx, "invalid node id", err)
+		c.Error(err)
 		return
 	}
 	node, err := h.nodeRepository.GetByID(nodeId)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
 	nodeState, err := h.nodeManager.AddOrGetNode(node)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
 
 	info, err := nodeState.DockerClient.Info(ctx)
 	if err != nil {
-		JSONError(ctx, "failed to get docker info", err)
+		c.Error(err)
 		return
 	}
-	JSONSuccess(ctx, info)
+	c.JSON(http.StatusOK, info)
 }
 
-func (h *BaseHandler) getNodeIDFromRequest(ctx *fasthttp.RequestCtx) (int64, error) {
-	nodeIdStr := string(ctx.Request.Header.Peek("X-Node-ID"))
+func (h *BaseHandler) getNodeIDFromRequest(c *app.RequestContext) (int64, error) {
+	nodeIdStr := string(c.Request.Header.Peek("X-Node-ID"))
 	nodeId, err := strconv.ParseInt(nodeIdStr, 10, 64)
 	if err != nil {
-		return 0, errors.New("invalid node id")
+		return 0, err
 	}
 	return nodeId, nil
 }
 
-func (h *BaseHandler) DockerList(ctx *fasthttp.RequestCtx) {
-	nodeId, err := h.getNodeIDFromRequest(ctx)
+func (h *BaseHandler) DockerList(ctx context.Context, c *app.RequestContext) {
+	nodeId, err := h.getNodeIDFromRequest(c)
 	if err != nil {
-		JSONError(ctx, "invalid node id", err)
+		c.Error(err)
 		return
 	}
 	node, err := h.nodeRepository.GetByID(nodeId)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
 	nodeState, err := h.nodeManager.AddOrGetNode(node)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
 	containers, err := nodeState.DockerClient.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
-		JSONError(ctx, "failed to get docker containers", err)
+		c.Error(err)
 		return
 	}
-	JSONSuccess(ctx, containers)
+	c.JSON(http.StatusOK, containers)
 }
 
-func (h *BaseHandler) DockerImagePullAuto(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestContext) {
 	type dockerImagePullAutoRequest struct {
 		Image string `json:"image"`
 	}
 	var req dockerImagePullAutoRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "invalid request", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 	imageString := req.Image
 	if imageString == "" {
-		JSONError(ctx, "image is required", nil)
+		c.Error(errors.New("image is required"))
 		return
 	}
-	nodeId, err := h.getNodeIDFromRequest(ctx)
+	nodeId, err := h.getNodeIDFromRequest(c)
 	if err != nil {
-		JSONError(ctx, "invalid node id", err)
+		c.Error(err)
 		return
 	}
 	dst, err := h.nodeRepository.GetByID(nodeId)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
-	ds, err := h.nodeManager.AddOrGetNode(dst)
+	_, err = h.nodeManager.AddOrGetNode(dst)
 	if err != nil {
-		JSONError(ctx, "node not found", err)
+		c.Error(err)
 		return
 	}
 
 	// select other nodes have the same image
 	nodes, err := h.nodeRepository.List()
 	if err != nil {
-		JSONError(ctx, "failed to get nodes", err)
+		c.Error(err)
 		return
 	}
 
@@ -127,31 +125,31 @@ func (h *BaseHandler) DockerImagePullAuto(ctx *fasthttp.RequestCtx) {
 	}
 
 	if ss == nil {
-		JSONError(ctx, "no node has the image", nil)
+		c.Error(errors.New("no node has the image"))
 		return
 	}
 
-	ctx.SetStatusCode(fasthttp.StatusOK)
-	ctx.Response.Header.Set("Content-Type", "text/event-stream")
-	ctx.Response.Header.Set("Cache-Control", "no-cache")
-	ctx.Response.Header.Set("Connection", "keep-alive")
+	c.SetStatusCode(http.StatusOK)
+	c.Response.Header.Set("Content-Type", "text/event-stream")
+	c.Response.Header.Set("Cache-Control", "no-cache")
+	c.Response.Header.Set("Connection", "keep-alive")
 
-	ctx.SetBodyStreamWriter(func(writer *bufio.Writer) {
-		err := node.CopyImageBetweenNodes(ctx, ss, ds, imageString, func(ctx context.Context, reader io.ReadCloser) error {
-			_, err := io.Copy(writer, reader)
-			if err != nil {
-				return err
-			}
-			writer.Flush()
-			return nil
-		})
-		if err != nil {
-			writer.WriteString("error\n")
-			writer.Flush()
-			return
-		}
-		writer.WriteString("done\n")
-		writer.Flush()
-	})
+	// c.SetBodyStream(io.Reader(func(writer *bufio.Writer) {
+	// 	err := node.CopyImageBetweenNodes(ctx, ss, ds, imageString, func(ctx context.Context, reader io.ReadCloser) error {
+	// 		_, err := io.Copy(writer, reader)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		writer.Flush()
+	// 		return nil
+	// 	})
+	// 	if err != nil {
+	// 		writer.WriteString("error\n")
+	// 		writer.Flush()
+	// 		return
+	// 	}
+	// 	writer.WriteString("done\n")
+	// 	writer.Flush()
+	// }, 0), 0)
 
 }

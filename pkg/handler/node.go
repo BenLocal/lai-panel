@@ -1,103 +1,102 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"net/http"
 
 	"github.com/benlocal/lai-panel/pkg/model"
-	"github.com/valyala/fasthttp"
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
-func (h *BaseHandler) AddNodeHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) AddNodeHandler(ctx context.Context, c *app.RequestContext) {
 	var node model.NodeView
-	if err := json.Unmarshal(ctx.PostBody(), &node); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&node); err != nil {
+		c.Error(err)
 		return
 	}
-
 	modelNode := node.ToModel()
 	if err := h.nodeRepository.Create(modelNode); err != nil {
-		JSONError(ctx, "Failed to create node", err)
+		c.Error(err)
 		return
 	}
 
-	JSONSuccess(ctx, node)
+	c.JSON(http.StatusOK, node)
 }
 
-func (h *BaseHandler) GetNodeHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetNodeHandler(ctx context.Context, c *app.RequestContext) {
 	type getNodeRequest struct {
 		ID int64 `json:"id"`
 	}
 
 	var req getNodeRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
-
 	if req.ID <= 0 {
-		JSONError(ctx, "ID is required", nil)
+		c.Error(errors.New("ID is required"))
 		return
 	}
 
 	node, err := h.nodeRepository.GetByID(req.ID)
 	if err != nil {
-		JSONError(ctx, "Node not found", err)
+		c.Error(err)
 		return
 	}
 
-	JSONSuccess(ctx, node)
+	c.JSON(http.StatusOK, node)
 }
 
-func (h *BaseHandler) UpdateNodeHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) UpdateNodeHandler(ctx context.Context, c *app.RequestContext) {
 	var node model.NodeView
-	if err := json.Unmarshal(ctx.PostBody(), &node); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&node); err != nil {
+		c.Error(err)
 		return
 	}
-
 	if node.ID <= 0 {
-		JSONError(ctx, "ID is required", nil)
+		c.Error(errors.New("ID is required"))
 		return
 	}
 
 	modelNode := node.ToModel()
 	if err := h.nodeRepository.Update(modelNode); err != nil {
-		JSONError(ctx, "Failed to update node", err)
+		c.Error(err)
 		return
 	}
 	h.nodeManager.RemoveNode(node.ID)
 
-	JSONSuccess(ctx, node)
+	c.JSON(http.StatusOK, node)
 }
 
-func (h *BaseHandler) DeleteNodeHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) DeleteNodeHandler(ctx context.Context, c *app.RequestContext) {
 	type deleteNodeRequest struct {
 		ID int64 `json:"id"`
 	}
 
 	var req deleteNodeRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	if req.ID <= 0 {
-		JSONError(ctx, "ID is required", nil)
+		c.Error(errors.New("ID is required"))
 		return
 	}
 	h.nodeManager.RemoveNode(req.ID)
 	if err := h.nodeRepository.Delete(req.ID); err != nil {
-		JSONError(ctx, "Failed to delete node", err)
+		c.Error(err)
 		return
 	}
 
-	JSONSuccess(ctx, nil)
+	c.JSON(http.StatusOK, nil)
 }
 
-func (h *BaseHandler) GetNodeListHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetNodeListHandler(ctx context.Context, c *app.RequestContext) {
 	nodes, err := h.nodeRepository.List()
 	if err != nil {
-		JSONError(ctx, "Failed to get nodes", err)
+		c.Error(err)
 		return
 	}
 
@@ -106,10 +105,10 @@ func (h *BaseHandler) GetNodeListHandler(ctx *fasthttp.RequestCtx) {
 		nodesView = append(nodesView, node.ToView())
 	}
 
-	JSONSuccess(ctx, nodesView)
+	c.JSON(http.StatusOK, nodesView)
 }
 
-func (h *BaseHandler) GetNodePageHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetNodePageHandler(ctx context.Context, c *app.RequestContext) {
 	type getNodePageRequest struct {
 		Page     int `json:"page"`
 		PageSize int `json:"page_size"`
@@ -123,8 +122,8 @@ func (h *BaseHandler) GetNodePageHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	var req getNodePageRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -138,7 +137,7 @@ func (h *BaseHandler) GetNodePageHandler(ctx *fasthttp.RequestCtx) {
 
 	total, nodes, err := h.nodeRepository.Page(req.Page, req.PageSize)
 	if err != nil {
-		JSONError(ctx, "Failed to get nodes", err)
+		c.Error(err)
 		return
 	}
 
@@ -147,7 +146,7 @@ func (h *BaseHandler) GetNodePageHandler(ctx *fasthttp.RequestCtx) {
 		nodesView[i] = node.ToView()
 	}
 
-	JSONSuccess(ctx, getNodePageResponse{
+	c.JSON(http.StatusOK, getNodePageResponse{
 		Total:    total,
 		Page:     req.Page,
 		PageSize: req.PageSize,

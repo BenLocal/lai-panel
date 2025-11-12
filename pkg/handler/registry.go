@@ -1,27 +1,29 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"net/http"
 
 	"github.com/benlocal/lai-panel/pkg/model"
-	"github.com/valyala/fasthttp"
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
-func (h *BaseHandler) GetRegistryHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestContext) {
 	var req model.RegistryRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	registry, err := h.nodeRepository.GetByNodeName(req.Name)
 	if err != nil {
-		JSONError(ctx, "Failed to get registry", err)
+		c.Error(err)
 		return
 	}
 
 	if registry == nil {
-		JSONError(ctx, "Registry not found", nil)
+		c.Error(errors.New("registry not found"))
 		return
 	}
 
@@ -32,7 +34,7 @@ func (h *BaseHandler) GetRegistryHandler(ctx *fasthttp.RequestCtx) {
 	}
 	err = h.nodeRepository.UpdateRegistry(node)
 	if err != nil {
-		JSONError(ctx, "Failed to update registry", err)
+		c.Error(err)
 		return
 	}
 
@@ -41,5 +43,5 @@ func (h *BaseHandler) GetRegistryHandler(ctx *fasthttp.RequestCtx) {
 		Name: node.Name,
 	}
 
-	JSONSuccess(ctx, resp)
+	c.JSON(http.StatusOK, resp)
 }

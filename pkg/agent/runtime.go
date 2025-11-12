@@ -8,30 +8,25 @@ import (
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
-	"github.com/benlocal/lai-panel/pkg/route"
 	"github.com/benlocal/lai-panel/pkg/service"
-	"github.com/fasthttp/router"
 )
 
-type Runtime struct {
+type AgentRuntime struct {
 }
 
-func NewRuntime() *Runtime {
-	return &Runtime{}
+func NewAgentRuntime() *AgentRuntime {
+	return &AgentRuntime{}
 }
 
-func (r *Runtime) Start() error {
-	op := NewOptions()
+func (r *AgentRuntime) Start() error {
+	op := NewAgentOptions()
 	dp, _ := docker.NewDockerProxy("/var/run/docker.sock", "/docker.proxy")
 
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
 	baseHandler := handler.NewAgentHandler(dp)
-	routeRouter := r.createApiRouter(baseHandler)
-
-	listenAddr := fmt.Sprintf(":%d", op.Port)
-	apiServer := api.NewApiServer(listenAddr, routeRouter)
+	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 
 	registryService := service.NewRemoteRegistryService(op.MasterHost, op.MasterPort)
@@ -39,14 +34,4 @@ func (r *Runtime) Start() error {
 
 	ctx := context.Background()
 	return g.Start(ctx)
-}
-
-func (r *Runtime) createApiRouter(baseHandler *handler.BaseHandler) *router.Router {
-
-	router := router.New()
-	for _, opt := range route.DefaultRegistry.Bindings() {
-		opt(baseHandler, router)
-	}
-
-	return router
 }

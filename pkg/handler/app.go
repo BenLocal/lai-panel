@@ -1,13 +1,15 @@
 package handler
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
+	"net/http"
 
 	"github.com/benlocal/lai-panel/pkg/model"
-	"github.com/valyala/fasthttp"
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
-func (h *BaseHandler) GetApplicationPageHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetApplicationPageHandler(ctx context.Context, c *app.RequestContext) {
 	type getApplicationPageRequest struct {
 		Page     int `json:"page"`
 		PageSize int `json:"page_size"`
@@ -21,21 +23,22 @@ func (h *BaseHandler) GetApplicationPageHandler(ctx *fasthttp.RequestCtx) {
 	}
 
 	var req getApplicationPageRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	total, apps, err := h.appRepository.ListPage(req.Page, req.PageSize)
 	if err != nil {
-		JSONError(ctx, "Failed to get application page", err)
+		c.Error(err)
 		return
 	}
 	views := []*model.AppView{}
 	for _, app := range apps {
 		views = append(views, app.ToView())
 	}
-	JSONSuccess(ctx, getApplicationPageResponse{
+
+	c.JSON(http.StatusOK, getApplicationPageResponse{
 		Total:       total,
 		CurrentPage: req.Page,
 		PageSize:    req.PageSize,
@@ -43,10 +46,10 @@ func (h *BaseHandler) GetApplicationPageHandler(ctx *fasthttp.RequestCtx) {
 	})
 }
 
-func (h *BaseHandler) GetApplicationListHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetApplicationListHandler(ctx context.Context, c *app.RequestContext) {
 	apps, err := h.appRepository.List()
 	if err != nil {
-		JSONError(ctx, "Failed to get application list", err)
+		c.Error(err)
 		return
 	}
 
@@ -55,73 +58,73 @@ func (h *BaseHandler) GetApplicationListHandler(ctx *fasthttp.RequestCtx) {
 		views = append(views, app.ToView())
 	}
 
-	JSONSuccess(ctx, views)
+	c.JSON(http.StatusOK, views)
 }
 
-func (h *BaseHandler) AddApplicationHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) AddApplicationHandler(ctx context.Context, c *app.RequestContext) {
 	var app model.AppView
-	if err := json.Unmarshal(ctx.PostBody(), &app); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&app); err != nil {
+		c.Error(err)
 		return
 	}
 	appModel := app.ToModel()
 	if err := h.appRepository.Create(appModel); err != nil {
-		JSONError(ctx, "Failed to create application", err)
+		c.Error(err)
 		return
 	}
-	JSONSuccess(ctx, app)
+	c.JSON(http.StatusOK, app)
 }
 
-func (h *BaseHandler) UpdateApplicationHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) UpdateApplicationHandler(ctx context.Context, c *app.RequestContext) {
 	var app model.AppView
-	if err := json.Unmarshal(ctx.PostBody(), &app); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&app); err != nil {
+		c.Error(err)
 		return
 	}
 	appModel := app.ToModel()
 	if err := h.appRepository.Update(appModel); err != nil {
-		JSONError(ctx, "Failed to update application", err)
+		c.Error(err)
 		return
 	}
-	JSONSuccess(ctx, app)
+	c.JSON(http.StatusOK, app)
 }
 
-func (h *BaseHandler) DeleteApplicationHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) DeleteApplicationHandler(ctx context.Context, c *app.RequestContext) {
 	type deleteApplicationRequest struct {
 		ID int64 `json:"id"`
 	}
 
 	var req deleteApplicationRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 	if err := h.appRepository.Delete(req.ID); err != nil {
-		JSONError(ctx, "Failed to delete application", err)
+		c.Error(err)
 		return
 	}
-	JSONEmptySuccess(ctx)
+	c.JSON(http.StatusOK, nil)
 }
 
-func (h *BaseHandler) GetApplicationHandler(ctx *fasthttp.RequestCtx) {
+func (h *BaseHandler) GetApplicationHandler(ctx context.Context, c *app.RequestContext) {
 	type getApplicationRequest struct {
 		ID int64 `json:"id"`
 	}
 
 	var req getApplicationRequest
-	if err := json.Unmarshal(ctx.PostBody(), &req); err != nil {
-		JSONError(ctx, "Invalid JSON", err)
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
 	app, err := h.appRepository.GetByID(req.ID)
 	if err != nil {
-		JSONError(ctx, "Failed to get application", err)
+		c.Error(err)
 		return
 	}
 	if app == nil {
-		JSONError(ctx, "Application not found", nil)
+		c.Error(errors.New("application not found"))
 		return
 	}
-	JSONSuccess(ctx, app)
+	c.JSON(http.StatusOK, app)
 }
