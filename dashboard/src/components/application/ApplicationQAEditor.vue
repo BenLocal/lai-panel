@@ -30,7 +30,6 @@ const qaItems = ref<ApplicationQAItem[]>([]);
 const normalizeQAItem = (item: ApplicationQAItem): ApplicationQAItem => {
     const normalized: ApplicationQAItem = {
         name: item.name ?? "",
-        value: item.value ?? "",
         type: item.type ?? "text",
         default_value: item.default_value ?? "",
         options: item.options,
@@ -44,14 +43,10 @@ const normalizeQAItem = (item: ApplicationQAItem): ApplicationQAItem => {
                 ? normalized.options
                 : ["Option 1", "Option 2"];
         normalized.options = options;
-        if (!options.includes(normalized.value)) {
-            normalized.value = options[0] ?? "";
-        }
         if (normalized.default_value && !options.includes(normalized.default_value)) {
             normalized.default_value = options[0] ?? "";
         }
     } else if (normalized.type === "boolean") {
-        normalized.value = normalized.value === "true" ? "true" : "false";
         normalized.default_value =
             normalized.default_value === "true" ? "true" : "false";
         normalized.options = undefined;
@@ -87,7 +82,6 @@ const emitChange = () => {
 
 const createEmptyItem = (): ApplicationQAItem => ({
     name: "",
-    value: "",
     type: "text",
     default_value: "",
     required: false,
@@ -128,13 +122,10 @@ const updateItemField = <K extends keyof ApplicationQAItem>(
                     ? current.options
                     : ["Option 1", "Option 2"];
             nextItem.options = options;
-            nextItem.value = options[0] ?? "";
             nextItem.default_value = options[0] ?? "";
         } else if (newType === "boolean") {
             nextItem.options = undefined;
-            nextItem.value = current.value === "true" ? "true" : "false";
-            nextItem.default_value =
-                current.default_value === "true" ? "true" : nextItem.value;
+            nextItem.default_value = current.default_value ?? "false";
         } else {
             nextItem.options = undefined;
         }
@@ -145,9 +136,6 @@ const updateItemField = <K extends keyof ApplicationQAItem>(
             (itemOption) => itemOption.trim().length
         );
         nextItem.options = options;
-        if (!options.includes(nextItem.value)) {
-            nextItem.value = options[0] ?? "";
-        }
         if (
             nextItem.default_value &&
             !options.includes(nextItem.default_value ?? "")
@@ -177,7 +165,7 @@ const typeOptions: Array<{ label: string; value: QAType }> = [
     { label: "Textarea", value: "textarea" },
 ];
 
-type QAStringField = "name" | "default_value" | "value" | "description";
+type QAStringField = "name" | "default_value" | "description";
 
 const handleStringFieldInput = (
     index: number,
@@ -200,7 +188,7 @@ const handleTypeChange = (index: number, value: unknown) => {
 
 const handleSelectFieldChange = (
     index: number,
-    key: "default_value" | "value",
+    key: "default_value",
     value: unknown
 ) => {
     if (typeof value !== "string") {
@@ -313,46 +301,6 @@ const handleSelectFieldChange = (
                         handleStringFieldInput(
                             index,
                             'description',
-                            (event.target as HTMLTextAreaElement).value
-                        )"></textarea>
-            </div>
-
-            <div class="space-y-2">
-                <div class="text-sm font-medium">Current Value</div>
-                <Input v-if="qa.type === 'text' || qa.type === 'number'"
-                    :type="qa.type === 'number' ? 'number' : 'text'" :model-value="qa.value ?? ''"
-                    placeholder="User-provided value" @update:model-value="(value) =>
-                        handleStringFieldInput(index, 'value', value ?? '')
-                    " />
-                <Select v-else-if="qa.type === 'boolean'" :model-value="qa.value" @update:model-value="
-                    (value) => handleSelectFieldChange(index, 'value', value)
-                ">
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a value" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="true">True</SelectItem>
-                        <SelectItem value="false">False</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select v-else-if="qa.type === 'select'" :model-value="qa.value" @update:model-value="
-                    (value) => handleSelectFieldChange(index, 'value', value)
-                ">
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a value" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="option in qa.options ?? []" :key="option" :value="option">
-                            {{ option }}
-                        </SelectItem>
-                    </SelectContent>
-                </Select>
-                <textarea v-else
-                    class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                    :value="qa.value" placeholder="User-provided value" @input="(event) =>
-                        updateItemField(
-                            index,
-                            'value',
                             (event.target as HTMLTextAreaElement).value
                         )"></textarea>
             </div>

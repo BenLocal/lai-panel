@@ -22,7 +22,6 @@ type App struct {
 
 type AppQAItem struct {
 	Name         string   `json:"name"`
-	Value        string   `json:"value"`
 	Type         string   `json:"type"`
 	DefaultValue string   `json:"default_value"`
 	Options      []string `json:"options"`
@@ -66,7 +65,7 @@ func (a *App) ToView() *AppView {
 	}
 }
 
-func (a *App) GetEnv() map[string]string {
+func (a *App) GetDefaultEnv() map[string]string {
 	env := map[string]string{}
 
 	metadata := []*Metadata{}
@@ -85,7 +84,7 @@ func (a *App) GetEnv() map[string]string {
 		json.Unmarshal([]byte(*a.QA), &qa)
 	}
 	for _, qa := range qa {
-		env[a.Name] = qa.Value
+		env[a.Name] = qa.DefaultValue
 	}
 	return env
 }

@@ -96,7 +96,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 		return
 	}
 
-	env := app.GetEnv()
+	env := app.GetDefaultEnv()
 	if env == nil {
 		env = make(map[string]string)
 	}
