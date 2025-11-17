@@ -12,6 +12,16 @@ import {
     SheetTitle,
 } from "@/components/ui/sheet";
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -60,6 +70,10 @@ const error = ref<string | null>(null);
 const isSheetOpen = ref(false);
 const isEditMode = ref(false);
 const editingNode = ref<Node | null>(null);
+
+// 删除确认对话框状态
+const isDeleteDialogOpen = ref(false);
+const nodeToDelete = ref<Node | null>(null);
 
 // 表单数据
 const formData = ref<CreateNodeRequest>({
@@ -170,23 +184,30 @@ const saveNode = async () => {
 
 };
 
-// 删除节点
-const deleteNode = (node: Node) => {
-    if (!confirm(`Are you sure you want to delete node "${node.name}"?`)) {
+// 打开删除确认对话框
+const openDeleteDialog = (node: Node) => {
+    nodeToDelete.value = node;
+    isDeleteDialogOpen.value = true;
+};
+
+// 确认删除节点
+const confirmDeleteNode = async () => {
+    if (!nodeToDelete.value) {
         return;
     }
 
     loading.value = true;
     error.value = null;
 
-    // Simulate API delay
-    setTimeout(() => {
-        const index = nodes.value.findIndex((n) => n.id === node.id);
-        if (index !== -1) {
-            nodes.value.splice(index, 1);
-        }
-        loading.value = false;
-    }, 300);
+    const response = await nodeApi.delete(nodeToDelete.value.id);
+    if (response.success) {
+        fetchNodes();
+    } else {
+        error.value = response.error ?? null;
+    }
+    loading.value = false;
+    isDeleteDialogOpen.value = false;
+    nodeToDelete.value = null;
 };
 
 const getStatusColor = (status?: string) => {
@@ -241,27 +262,14 @@ const columns: ColumnDef<Node>[] = [
     {
         accessorKey: "is_local",
         header: "Type",
-        cell: (info) => {
-            const isLocal = info.getValue() as boolean;
-            return {
-                isLocal,
-            };
-        },
     },
     {
         accessorKey: "status",
         header: "Status",
-        cell: (info) => {
-            const status = (info.getValue() as string) || "offline";
-            return { status };
-        },
     },
     {
         id: "actions",
         header: "Actions",
-        cell: (info) => {
-            return { node: info.row.original };
-        },
     },
 ];
 
@@ -333,12 +341,12 @@ onMounted(() => {
                             <template v-if="cell.column.id === 'is_local'">
                                 <span :class="[
                                     'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-                                    (cell.getValue() as { isLocal: boolean }).isLocal
+                                    (cell.getValue() as boolean)
                                         ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                         : 'bg-gray-500/10 text-gray-500 border-gray-500/20',
                                 ]">
                                     {{
-                                        (cell.getValue() as { isLocal: boolean }).isLocal
+                                        (cell.getValue() as boolean)
                                             ? "Local"
                                             : "Remote"
                                     }}
@@ -347,24 +355,24 @@ onMounted(() => {
                             <template v-else-if="cell.column.id === 'status'">
                                 <span :class="[
                                     'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                                    getStatusColor((cell.getValue() as { status: string }).status),
+                                    getStatusColor(cell.getValue() as string),
                                 ]">
                                     <span :class="[
                                         'h-1.5 w-1.5 rounded-full',
-                                        getStatusDot((cell.getValue() as { status: string }).status),
+                                        getStatusDot(cell.getValue() as string),
                                     ]"></span>
-                                    {{ (cell.getValue() as { status: string }).status }}
+                                    {{ cell.getValue() }}
                                 </span>
                             </template>
                             <template v-else-if="cell.column.id === 'actions'">
                                 <div class="flex items-center gap-2">
                                     <Button variant="ghost" size="sm" @click="
-                                        openEditDialog((cell.getValue() as { node: Node }).node)
+                                        openEditDialog(cell.row.original as Node)
                                         " class="h-8 px-2">
                                         <Icon icon="lucide:edit" class="h-4 w-4" />
                                     </Button>
                                     <Button variant="ghost" size="sm" @click="
-                                        deleteNode((cell.getValue() as { node: Node }).node)
+                                        openDeleteDialog(cell.row.original as Node)
                                         " class="h-8 px-2 text-red-500 hover:text-red-600">
                                         <Icon icon="lucide:trash-2" class="h-4 w-4" />
                                     </Button>
@@ -506,5 +514,24 @@ onMounted(() => {
                 </SheetFooter>
             </SheetContent>
         </Sheet>
+
+        <!-- Delete Confirmation Dialog -->
+        <AlertDialog v-model:open="isDeleteDialogOpen">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Are you sure you want to delete node "{{ nodeToDelete?.name || nodeToDelete?.display_name }}"?
+                        This action cannot be undone.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction @click="confirmDeleteNode" :disabled="loading">
+                        {{ loading ? "Deleting..." : "Delete" }}
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
     </div>
 </template>

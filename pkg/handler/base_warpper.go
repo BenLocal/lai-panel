@@ -40,6 +40,10 @@ func (h *BaseHandler) SignalRServer() *hub.SignalRServer {
 	return h.signalrServer
 }
 
+func (h *BaseHandler) NodeRepository() *repository.NodeRepository {
+	return h.nodeRepository
+}
+
 func NewAgentHandler(dp *docker.DockerProxy) *BaseHandler {
 	return &BaseHandler{
 		dockerProxy: dp,

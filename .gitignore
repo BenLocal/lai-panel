@@ -32,3 +32,5 @@ go.work.sum
 # .vscode/
 
 lai-panel.db*
+
+__debug_*

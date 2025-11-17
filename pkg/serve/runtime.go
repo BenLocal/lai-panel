@@ -33,7 +33,7 @@ func (r *ServeRuntime) Start() error {
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 
-	registryService := service.NewLocalRegistryService(op.Port)
+	registryService := service.NewLocalRegistryService(op.Port, baseHandler)
 	g.Add(registryService)
 
 	ctx := context.Background()

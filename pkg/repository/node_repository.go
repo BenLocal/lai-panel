@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"database/sql"
+
 	"github.com/benlocal/lai-panel/pkg/database"
 	"github.com/benlocal/lai-panel/pkg/model"
 	"github.com/jmoiron/sqlx"
@@ -47,6 +49,9 @@ func (r *NodeRepository) GetByNodeName(name string) (*model.Node, error) {
 	var node model.Node
 	err := r.db.Get(&node, "SELECT * FROM nodes WHERE name = ?", name)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &node, nil

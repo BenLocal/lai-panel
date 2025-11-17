@@ -2,44 +2,57 @@ package service
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"log"
 	"time"
 
+	"github.com/benlocal/lai-panel/pkg/handler"
+	"github.com/benlocal/lai-panel/pkg/model"
 	httpClient "github.com/cloudwego/hertz/pkg/app/client"
 	"github.com/cloudwego/hertz/pkg/protocol"
 )
 
 type RegistryService struct {
-	is_local    bool
-	http_client *httpClient.Client
+	context    context.Context
+	cancel     context.CancelFunc
+	httpClient *httpClient.Client
 
-	context context.Context
-	cancel  context.CancelFunc
+	baseHandler *handler.BaseHandler
 
 	masterHost string
 	masterPort int
+	name       string
+	agentPort  int
+	is_local   bool
 }
 
-func NewLocalRegistryService(masterPort int) *RegistryService {
+func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &RegistryService{
-		context:    ctx,
-		cancel:     cancel,
-		is_local:   true,
-		masterHost: "127.0.0.1",
-		masterPort: masterPort,
-	}
-}
-
-func NewRemoteRegistryService(masterHost string, masterPort int) *RegistryService {
-	ctx, cancel := context.WithCancel(context.Background())
-	client, _ := httpClient.NewClient()
+	httpClient, _ := httpClient.NewClient()
 	return &RegistryService{
 		context:     ctx,
 		cancel:      cancel,
-		is_local:    false,
-		http_client: client,
-		masterHost:  masterHost,
+		httpClient:  httpClient,
+		is_local:    true,
 		masterPort:  masterPort,
+		name:        "local",
+		masterHost:  "127.0.0.1",
+		baseHandler: baseHandler,
+	}
+}
+
+func NewRemoteRegistryService(name string, masterHost string, masterPort int, agentPort int) *RegistryService {
+	ctx, cancel := context.WithCancel(context.Background())
+	httpClient, _ := httpClient.NewClient()
+	return &RegistryService{
+		context:    ctx,
+		cancel:     cancel,
+		is_local:   false,
+		masterHost: masterHost,
+		masterPort: masterPort,
+		name:       name,
+		httpClient: httpClient,
 	}
 }
 
@@ -49,7 +62,9 @@ func (s *RegistryService) Name() string {
 
 func (s *RegistryService) Start(ctx context.Context) error {
 	if s.is_local {
-		return s.updateLocalRegistry()
+		if err := s.tryAddLocalRegistry(); err != nil {
+			log.Println("try add local registry failed", err)
+		}
 	}
 
 	ticker := time.NewTicker(30 * time.Second)
@@ -61,7 +76,9 @@ func (s *RegistryService) Start(ctx context.Context) error {
 		case <-s.context.Done():
 			return nil
 		case <-ticker.C:
-			s.updateRemoteRegistry()
+			if err := s.updateRegistry(); err != nil {
+				log.Println("update registry failed", err)
+			}
 		}
 	}
 }
@@ -71,19 +88,59 @@ func (s *RegistryService) Shutdown() error {
 	return nil
 }
 
-func (s *RegistryService) updateRemoteRegistry() error {
+func (s *RegistryService) tryAddLocalRegistry() error {
+	node, err := s.baseHandler.NodeRepository().GetByNodeName(s.name)
+	if err != nil {
+		return err
+	}
+	if node != nil {
+		return nil
+	}
+
+	// create local node
+	node = &model.Node{
+		Name:        s.name,
+		DisplayName: &s.name,
+		Address:     "127.0.0.1",
+		SSHPort:     s.masterPort,
+		SSHUser:     "root",
+		AgentPort:   0,
+		IsLocal:     true,
+		Status:      "online",
+	}
+	if err := s.baseHandler.NodeRepository().Create(node); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *RegistryService) updateRegistry() error {
 	req := protocol.AcquireRequest()
 	defer protocol.ReleaseRequest(req)
 
-	req.SetRequestURI("http://127.0.0.1:8080/registry")
+	url := fmt.Sprintf("http://%s:%d/registry", s.masterHost, s.masterPort)
+
+	req.SetRequestURI(url)
 	req.Header.SetMethod("POST")
 	req.Header.SetContentTypeBytes([]byte("application/json"))
-	req.SetBodyString(`{"name":"test"}`)
+
+	reqBody := model.RegistryRequest{
+		Name:      s.name,
+		AgentPort: s.agentPort,
+		IsLocal:   s.is_local,
+		Status:    "online",
+	}
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return err
+	}
+
+	req.SetBody(jsonBody)
 
 	resp := protocol.AcquireResponse()
 	defer protocol.ReleaseResponse(resp)
 
-	if err := s.http_client.Do(context.Background(), req, resp); err != nil {
+	if err := s.httpClient.Do(context.Background(), req, resp); err != nil {
 		return err
 	}
 
@@ -91,9 +148,5 @@ func (s *RegistryService) updateRemoteRegistry() error {
 	// 处理响应
 	_ = body
 
-	return nil
-}
-
-func (s *RegistryService) updateLocalRegistry() error {
 	return nil
 }

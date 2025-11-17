@@ -33,7 +33,13 @@ func init() {
 		router.Handle("POST", "/api/application/delete", h.DeleteApplicationHandler)
 		router.Handle("POST", "/api/application/get", h.GetApplicationHandler)
 		router.Handle("POST", "/api/application/page", h.GetApplicationPageHandler)
-		router.Handle("GET", "/api/docker/info", h.DockerInfo)
+
+		router.Handle("POST", "/api/docker/info", h.DockerInfo)
+		router.Handle("POST", "/api/docker/containers", h.DockerContainers)
+		router.Handle("POST", "/api/docker/images", h.DockerImages)
+		router.Handle("POST", "/api/docker/volumes", h.DockerVolumes)
+		router.Handle("POST", "/api/docker/networks", h.DockerNetworks)
+
 		router.Handle("POST", "/api/docker/compose/config", h.HandleDockerComposeConfig)
 		router.Handle("POST", "/api/docker/compose/deploy", h.HandleDockerComposeDeploy)
 		router.Handle("POST", "/api/node/add", h.AddNodeHandler)

@@ -23,7 +23,7 @@ func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestCont
 	}
 
 	if registry == nil {
-		c.Error(errors.New("registry not found"))
+		c.Error(errors.New("node not found"))
 		return
 	}
 

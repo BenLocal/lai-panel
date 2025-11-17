@@ -22,8 +22,9 @@ type NodeView struct {
 	ID          int64   `json:"id"`
 	IsLocal     bool    `json:"is_local"`
 	Name        string  `json:"name"`
-	DisplayName *string `son:"display_name"`
+	DisplayName *string `json:"display_name"`
 	Address     string  `json:"address"`
+	Status      string  `json:"status"`
 }
 
 func (n *Node) ToView() *NodeView {
@@ -33,6 +34,7 @@ func (n *Node) ToView() *NodeView {
 		Name:        n.Name,
 		DisplayName: n.DisplayName,
 		Address:     n.Address,
+		Status:      n.Status,
 	}
 }
 
