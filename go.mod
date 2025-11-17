@@ -3,10 +3,11 @@ module github.com/benlocal/lai-panel
 go 1.25.4
 
 require (
-	github.com/cloudwego/hertz v0.10.3
+	github.com/cloudwego/hertz v0.10.4-0.20251117065419-f73789b8a5d8
 	github.com/creack/pty v1.1.23
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/golang-migrate/migrate/v4 v4.19.0
+	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/ngrok/sqlmw v0.0.0-20220520173518-97c9c04efc79
@@ -39,16 +40,13 @@ require (
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
-	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
-	github.com/nyaruka/phonenumbers v1.0.55 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -77,5 +75,3 @@ require (
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 )
-
-replace github.com/cloudwego/hertz => github.com/BenLocal/hertz v0.0.0-20251112085233-2c56b9ae8e39
