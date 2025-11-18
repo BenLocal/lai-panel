@@ -1,12 +1,17 @@
-package agent
+package options
 
-import "github.com/google/uuid"
+import (
+	"path"
+
+	"github.com/google/uuid"
+)
 
 type AgentOptions struct {
 	Name       string
 	Port       int
 	MasterHost string
 	MasterPort int
+	dataPath   string
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -17,10 +22,11 @@ func NewAgentOptions() *AgentOptions {
 		MasterHost: "127.0.0.1",
 		MasterPort: 8080,
 		Name:       uuid,
+		dataPath:   "/var/lai-panel/agent/data/",
 	}
 }
 
-func WithPort(port int) func(o *AgentOptions) {
+func WithAgentPort(port int) func(o *AgentOptions) {
 	return func(o *AgentOptions) {
 		o.Port = port
 	}
@@ -36,4 +42,20 @@ func WithMasterPort(masterPort int) func(o *AgentOptions) {
 	return func(o *AgentOptions) {
 		o.MasterPort = masterPort
 	}
+}
+
+func (o *AgentOptions) DataPath() string {
+	return o.dataPath
+}
+
+func (o *AgentOptions) Agent() bool {
+	return true
+}
+
+func (o *AgentOptions) StaticDataPath() string {
+	return path.Join(o.dataPath, "static")
+}
+
+func (o *AgentOptions) LogDataPath() string {
+	return path.Join(o.dataPath, "logs")
 }

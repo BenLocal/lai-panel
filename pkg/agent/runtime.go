@@ -9,6 +9,7 @@ import (
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
+	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/service"
 )
 
@@ -20,18 +21,17 @@ func NewAgentRuntime() *AgentRuntime {
 }
 
 func (r *AgentRuntime) Start() error {
-	op := NewAgentOptions()
-
-	// dockerClient, err := docker.LocalDockerClient()
-	// if err != nil {
-	// 	return err
-	// }
+	op := options.NewAgentOptions()
+	err := options.InitOptions(op)
+	if err != nil {
+		return err
+	}
 
 	dp, _ := docker.NewDockerProxy("/var/run/docker.sock", "/docker.proxy")
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
-	baseHandler := handler.NewAgentHandler(dp)
+	baseHandler := handler.NewAgentHandler(op, dp)
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 

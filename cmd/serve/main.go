@@ -48,6 +48,7 @@ func init() {
 		api.POST("/node/list", h.GetNodeListHandler)
 		api.POST("/node/page", h.GetNodePageHandler)
 		api.POST("/service/page", h.GetServicePageHandler)
+		api.POST("/dashboard/stats", h.DashboardStatsHandler)
 
 		// hub
 		handler := h.SignalRServer().Handler("/api/signalr")
@@ -57,5 +58,8 @@ func init() {
 			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
 			c.Response.SetBodyString(string(signalrHTML))
 		})
+
+		// static file
+		router.Static("/static", "/var/lai-panel/serve/static")
 	})
 }

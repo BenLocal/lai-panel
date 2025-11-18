@@ -8,6 +8,7 @@ import (
 	"github.com/benlocal/lai-panel/pkg/database"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
+	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/service"
 )
 
@@ -19,8 +20,13 @@ func NewServeRuntime() *ServeRuntime {
 }
 
 func (r *ServeRuntime) Start() error {
-	op := NewServeOptions()
+	op := options.NewServeOptions()
 	err := database.InitDB(op.DBPath, op.MigrationsPath)
+	if err != nil {
+		return err
+	}
+
+	err = options.InitOptions(op)
 	if err != nil {
 		return err
 	}
@@ -28,7 +34,7 @@ func (r *ServeRuntime) Start() error {
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
-	baseHandler := handler.NewServerHandler()
+	baseHandler := handler.NewServerHandler(op)
 
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)

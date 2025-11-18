@@ -6,10 +6,13 @@ import (
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/hub"
 	"github.com/benlocal/lai-panel/pkg/node"
+	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/repository"
 )
 
 type BaseHandler struct {
+	options options.IOptions
+
 	// agent
 	dockerProxy *docker.DockerProxy
 
@@ -21,7 +24,7 @@ type BaseHandler struct {
 	signalrServer     *hub.SignalRServer
 }
 
-func NewServerHandler() *BaseHandler {
+func NewServerHandler(options options.IOptions) *BaseHandler {
 	nodeRepository := repository.NewNodeRepository()
 	nodeManager := node.NewNodeManager()
 	appRepository := repository.NewAppRepository()
@@ -35,6 +38,7 @@ func NewServerHandler() *BaseHandler {
 		appRepository:     appRepository,
 		signalrServer:     signalrServer,
 		serviceRepository: serviceRepository,
+		options:           options,
 	}
 }
 
@@ -46,9 +50,10 @@ func (h *BaseHandler) NodeRepository() *repository.NodeRepository {
 	return h.nodeRepository
 }
 
-func NewAgentHandler(dp *docker.DockerProxy) *BaseHandler {
+func NewAgentHandler(options options.IOptions, dp *docker.DockerProxy) *BaseHandler {
 	return &BaseHandler{
 		dockerProxy: dp,
+		options:     options,
 	}
 }
 
