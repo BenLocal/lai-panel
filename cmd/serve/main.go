@@ -26,6 +26,8 @@ func init() {
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
 		router.GET("/healthz", h.HandleHealthz)
 		router.POST("/registry", h.GetRegistryHandler)
+		// static file
+		router.Static("/static", h.StaticDataPath())
 
 		api := router.Group("/api")
 		api.POST("/application/list", h.GetApplicationListHandler)
@@ -58,8 +60,5 @@ func init() {
 			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
 			c.Response.SetBodyString(string(signalrHTML))
 		})
-
-		// static file
-		router.Static("/static", "/var/lai-panel/serve/static")
 	})
 }
