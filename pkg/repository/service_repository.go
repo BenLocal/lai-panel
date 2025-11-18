@@ -42,3 +42,22 @@ func (r *ServiceRepository) Delete(id int64) error {
 	_, err := r.db.Exec(query, id)
 	return err
 }
+
+func (r *ServiceRepository) GetPage(page, pageSize int) (int, []*model.Service, error) {
+	var total int
+	err := r.db.Get(&total, "SELECT COUNT(*) FROM services")
+	if err != nil {
+		return 0, nil, err
+	}
+
+	if total == 0 {
+		return 0, nil, nil
+	}
+
+	query := `SELECT * FROM services ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	var services []*model.Service
+	limit := pageSize
+	offset := (page - 1) * pageSize
+	err = r.db.Select(&services, query, limit, offset)
+	return total, services, err
+}

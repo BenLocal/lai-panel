@@ -24,35 +24,35 @@ var signalrHTML []byte
 
 func init() {
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
-		router.Handle("GET", "/healthz", h.HandleHealthz)
+		router.GET("/healthz", h.HandleHealthz)
 		router.POST("/registry", h.GetRegistryHandler)
 
-		router.Handle("POST", "/api/application/list", h.GetApplicationListHandler)
-		router.Handle("POST", "/api/application/add", h.AddApplicationHandler)
-		router.Handle("POST", "/api/application/update", h.UpdateApplicationHandler)
-		router.Handle("POST", "/api/application/delete", h.DeleteApplicationHandler)
-		router.Handle("POST", "/api/application/get", h.GetApplicationHandler)
-		router.Handle("POST", "/api/application/page", h.GetApplicationPageHandler)
+		api := router.Group("/api")
+		api.POST("/application/list", h.GetApplicationListHandler)
+		api.POST("/application/add", h.AddApplicationHandler)
+		api.POST("/application/update", h.UpdateApplicationHandler)
+		api.POST("/application/delete", h.DeleteApplicationHandler)
+		api.POST("/application/get", h.GetApplicationHandler)
+		api.POST("/application/page", h.GetApplicationPageHandler)
+		api.POST("/docker/info", h.DockerInfo)
+		api.POST("/docker/containers", h.DockerContainers)
+		api.POST("/docker/images", h.DockerImages)
+		api.POST("/docker/volumes", h.DockerVolumes)
+		api.POST("/docker/networks", h.DockerNetworks)
+		api.POST("/docker/compose/config", h.HandleDockerComposeConfig)
+		api.POST("/docker/compose/deploy", h.HandleDockerComposeDeploy)
+		api.POST("/node/add", h.AddNodeHandler)
+		api.POST("/node/get", h.GetNodeHandler)
+		api.POST("/node/update", h.UpdateNodeHandler)
+		api.POST("/node/delete", h.DeleteNodeHandler)
+		api.POST("/node/list", h.GetNodeListHandler)
+		api.POST("/node/page", h.GetNodePageHandler)
+		api.POST("/service/page", h.GetServicePageHandler)
 
-		router.Handle("POST", "/api/docker/info", h.DockerInfo)
-		router.Handle("POST", "/api/docker/containers", h.DockerContainers)
-		router.Handle("POST", "/api/docker/images", h.DockerImages)
-		router.Handle("POST", "/api/docker/volumes", h.DockerVolumes)
-		router.Handle("POST", "/api/docker/networks", h.DockerNetworks)
-
-		router.Handle("POST", "/api/docker/compose/config", h.HandleDockerComposeConfig)
-		router.Handle("POST", "/api/docker/compose/deploy", h.HandleDockerComposeDeploy)
-		router.Handle("POST", "/api/node/add", h.AddNodeHandler)
-		router.Handle("POST", "/api/node/get", h.GetNodeHandler)
-		router.Handle("POST", "/api/node/update", h.UpdateNodeHandler)
-		router.Handle("POST", "/api/node/delete", h.DeleteNodeHandler)
-		router.Handle("POST", "/api/node/list", h.GetNodeListHandler)
-		router.Handle("POST", "/api/node/page", h.GetNodePageHandler)
-
+		// hub
 		handler := h.SignalRServer().Handler("/api/signalr")
 		router.Any("/api/signalr", handler)
 		router.Any("/api/signalr/*wsPath", handler)
-
 		router.Handle("GET", "/signalr.html", func(ctx context.Context, c *app.RequestContext) {
 			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
 			c.Response.SetBodyString(string(signalrHTML))

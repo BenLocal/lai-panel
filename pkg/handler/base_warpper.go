@@ -14,25 +14,27 @@ type BaseHandler struct {
 	dockerProxy *docker.DockerProxy
 
 	// server
-	nodeManager    *node.NodeManager
-	nodeRepository *repository.NodeRepository
-	appRepository  *repository.AppRepository
-	signalrServer  *hub.SignalRServer
+	nodeManager       *node.NodeManager
+	nodeRepository    *repository.NodeRepository
+	appRepository     *repository.AppRepository
+	serviceRepository *repository.ServiceRepository
+	signalrServer     *hub.SignalRServer
 }
 
 func NewServerHandler() *BaseHandler {
 	nodeRepository := repository.NewNodeRepository()
 	nodeManager := node.NewNodeManager()
 	appRepository := repository.NewAppRepository()
-
+	serviceRepository := repository.NewServiceRepository()
 	h := hub.NewSimpleHub(nodeRepository)
 	signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
 
 	return &BaseHandler{
-		nodeManager:    nodeManager,
-		nodeRepository: nodeRepository,
-		appRepository:  appRepository,
-		signalrServer:  signalrServer,
+		nodeManager:       nodeManager,
+		nodeRepository:    nodeRepository,
+		appRepository:     appRepository,
+		signalrServer:     signalrServer,
+		serviceRepository: serviceRepository,
 	}
 }
 

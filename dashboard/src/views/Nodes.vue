@@ -506,7 +506,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <SheetFooter class="px-3 sm:px-5">
+                <SheetFooter class="flex flex-row items-center justify-end gap-2 px-3 sm:px-5">
                     <Button variant="outline" @click="isSheetOpen = false">Cancel</Button>
                     <Button @click="saveNode" :disabled="loading">
                         {{ loading ? "Saving..." : isEditMode ? "Update" : "Add" }}

@@ -316,7 +316,7 @@ onMounted(() => {
                 <SheetHeader class="px-3 sm:px-5">
                     <SheetTitle>{{
                         isEditMode ? "Edit Application" : "Add Application"
-                        }}</SheetTitle>
+                    }}</SheetTitle>
                     <SheetDescription>
                         {{
                             isEditMode
@@ -406,7 +406,7 @@ onMounted(() => {
                     </div>
                 </div>
 
-                <SheetFooter class="px-3 sm:px-5">
+                <SheetFooter class="flex flex-row items-center justify-end gap-2 px-3 sm:px-5">
                     <Button variant="outline" @click="handleCancel" :disabled="loading">
                         Cancel
                     </Button>
