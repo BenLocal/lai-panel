@@ -1,10 +1,11 @@
-package serve
+package main
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/benlocal/lai-panel/pkg/api"
+	"github.com/benlocal/lai-panel/pkg/ctx"
 	"github.com/benlocal/lai-panel/pkg/database"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
@@ -34,7 +35,9 @@ func (r *ServeRuntime) Start() error {
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
-	baseHandler := handler.NewServerHandler(op)
+	appCtx := ctx.NewAppCtx(op, nil)
+
+	baseHandler := handler.NewBaseHandler(appCtx)
 
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)

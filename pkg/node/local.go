@@ -38,6 +38,17 @@ func (l *LocalNodeExec) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
+func (l *LocalNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {
+	stdout := ""
+	stderr := ""
+	err := l.ExecuteCommand(command, env, func(line string) {
+		stdout += line + "\n"
+	}, func(line string) {
+		stderr += line + "\n"
+	})
+	return stdout, stderr, err
+}
+
 func (l *LocalNodeExec) ExecuteCommand(
 	command string,
 	env map[string]string,

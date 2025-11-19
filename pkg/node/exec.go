@@ -5,6 +5,7 @@ type NodeExec interface {
 	Close() error
 	WriteFile(path string, data []byte) error
 	ReadFile(path string) ([]byte, error)
+	ExecuteOutput(command string, env map[string]string) (string, string, error)
 	ExecuteCommand(
 		command string,
 		env map[string]string,

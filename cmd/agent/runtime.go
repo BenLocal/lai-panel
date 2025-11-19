@@ -1,4 +1,4 @@
-package agent
+package main
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/benlocal/lai-panel/pkg/api"
+	"github.com/benlocal/lai-panel/pkg/ctx"
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
@@ -32,8 +33,8 @@ func (r *AgentRuntime) Start() error {
 	dp, _ := docker.NewDockerProxy(dh, "/docker.proxy")
 	g := gracefulshutdown.New()
 	g.CatchSignals()
-
-	baseHandler := handler.NewAgentHandler(op, dp)
+	appCtx := ctx.NewAppCtx(op, dp)
+	baseHandler := handler.NewBaseHandler(appCtx)
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 

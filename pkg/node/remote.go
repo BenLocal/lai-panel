@@ -108,6 +108,17 @@ func (r *RemoteNodeExec) ReadFile(path string) ([]byte, error) {
 	return data, nil
 }
 
+func (r *RemoteNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {
+	stdout := ""
+	stderr := ""
+	err := r.ExecuteCommand(command, env, func(line string) {
+		stdout += line + "\n"
+	}, func(line string) {
+		stderr += line + "\n"
+	})
+	return stdout, stderr, err
+}
+
 func (r *RemoteNodeExec) ExecuteCommand(
 	command string,
 	env map[string]string,

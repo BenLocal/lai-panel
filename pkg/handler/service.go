@@ -20,7 +20,7 @@ func (h *BaseHandler) GetServicePageHandler(ctx context.Context, c *app.RequestC
 		return
 	}
 
-	total, services, err := h.serviceRepository.GetPage(req.Page, req.PageSize)
+	total, services, err := h.ServiceRepository().GetPage(req.Page, req.PageSize)
 	if err != nil {
 		c.Error(err)
 		return

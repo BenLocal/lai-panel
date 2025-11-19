@@ -28,7 +28,7 @@ func (h *BaseHandler) GetApplicationPageHandler(ctx context.Context, c *app.Requ
 		return
 	}
 
-	total, apps, err := h.appRepository.ListPage(req.Page, req.PageSize)
+	total, apps, err := h.AppRepository().ListPage(req.Page, req.PageSize)
 	if err != nil {
 		c.Error(err)
 		return
@@ -47,7 +47,7 @@ func (h *BaseHandler) GetApplicationPageHandler(ctx context.Context, c *app.Requ
 }
 
 func (h *BaseHandler) GetApplicationListHandler(ctx context.Context, c *app.RequestContext) {
-	apps, err := h.appRepository.List()
+	apps, err := h.AppRepository().List()
 	if err != nil {
 		c.Error(err)
 		return
@@ -68,7 +68,7 @@ func (h *BaseHandler) AddApplicationHandler(ctx context.Context, c *app.RequestC
 		return
 	}
 	appModel := app.ToModel()
-	if err := h.appRepository.Create(appModel); err != nil {
+	if err := h.AppRepository().Create(appModel); err != nil {
 		c.Error(err)
 		return
 	}
@@ -82,7 +82,7 @@ func (h *BaseHandler) UpdateApplicationHandler(ctx context.Context, c *app.Reque
 		return
 	}
 	appModel := app.ToModel()
-	if err := h.appRepository.Update(appModel); err != nil {
+	if err := h.AppRepository().Update(appModel); err != nil {
 		c.Error(err)
 		return
 	}
@@ -99,7 +99,7 @@ func (h *BaseHandler) DeleteApplicationHandler(ctx context.Context, c *app.Reque
 		c.Error(err)
 		return
 	}
-	if err := h.appRepository.Delete(req.ID); err != nil {
+	if err := h.AppRepository().Delete(req.ID); err != nil {
 		c.Error(err)
 		return
 	}
@@ -117,7 +117,7 @@ func (h *BaseHandler) GetApplicationHandler(ctx context.Context, c *app.RequestC
 		return
 	}
 
-	app, err := h.appRepository.GetByID(req.ID)
+	app, err := h.AppRepository().GetByID(req.ID)
 	if err != nil {
 		c.Error(err)
 		return

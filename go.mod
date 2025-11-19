@@ -5,6 +5,7 @@ go 1.25.4
 require (
 	github.com/cloudwego/hertz v0.10.4-0.20251117065419-f73789b8a5d8
 	github.com/creack/pty v1.1.23
+	github.com/deliveryhero/pipeline/v2 v2.2.0
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/google/uuid v1.6.0

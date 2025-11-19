@@ -1,8 +1,7 @@
 package handler
 
 import (
-	"context"
-
+	"github.com/benlocal/lai-panel/pkg/ctx"
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/hub"
 	"github.com/benlocal/lai-panel/pkg/node"
@@ -12,52 +11,42 @@ import (
 
 type BaseHandler struct {
 	options options.IOptions
-
-	// agent
-	dockerProxy *docker.DockerProxy
-
-	// server
-	nodeManager       *node.NodeManager
-	nodeRepository    *repository.NodeRepository
-	appRepository     *repository.AppRepository
-	serviceRepository *repository.ServiceRepository
-	signalrServer     *hub.SignalRServer
-	kvRepository      *repository.KvRepository
+	appCtx  *ctx.AppCtx
 }
 
-func NewServerHandler(options options.IOptions) *BaseHandler {
-	nodeRepository := repository.NewNodeRepository()
-	nodeManager := node.NewNodeManager()
-	appRepository := repository.NewAppRepository()
-	serviceRepository := repository.NewServiceRepository()
-	kvRepository := repository.NewKvRepository()
-	h := hub.NewSimpleHub(nodeRepository)
-	signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
-
+func NewBaseHandler(appCtx *ctx.AppCtx) *BaseHandler {
 	return &BaseHandler{
-		kvRepository:      kvRepository,
-		nodeManager:       nodeManager,
-		nodeRepository:    nodeRepository,
-		appRepository:     appRepository,
-		signalrServer:     signalrServer,
-		serviceRepository: serviceRepository,
-		options:           options,
+		appCtx:  appCtx,
+		options: appCtx.Options(),
 	}
 }
 
 func (h *BaseHandler) SignalRServer() *hub.SignalRServer {
-	return h.signalrServer
+	return h.appCtx.SignalRServer()
 }
 
 func (h *BaseHandler) NodeRepository() *repository.NodeRepository {
-	return h.nodeRepository
+	return h.appCtx.NodeRepository()
 }
 
-func NewAgentHandler(options options.IOptions, dp *docker.DockerProxy) *BaseHandler {
-	return &BaseHandler{
-		dockerProxy: dp,
-		options:     options,
-	}
+func (h *BaseHandler) AppRepository() *repository.AppRepository {
+	return h.appCtx.AppRepository()
+}
+
+func (h *BaseHandler) ServiceRepository() *repository.ServiceRepository {
+	return h.appCtx.ServiceRepository()
+}
+
+func (h *BaseHandler) KvRepository() *repository.KvRepository {
+	return h.appCtx.KvRepository()
+}
+
+func (h *BaseHandler) DockerProxy() *docker.DockerProxy {
+	return h.appCtx.DockerProxy()
+}
+
+func (h *BaseHandler) NodeManager() *node.NodeManager {
+	return h.appCtx.NodeManager()
 }
 
 type ApiResponse struct {

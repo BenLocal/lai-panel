@@ -16,7 +16,7 @@ func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestCont
 		return
 	}
 
-	registry, err := h.nodeRepository.GetByNodeName(req.Name)
+	registry, err := h.NodeRepository().GetByNodeName(req.Name)
 	if err != nil {
 		c.Error(err)
 		return
@@ -32,7 +32,7 @@ func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestCont
 		Name:   registry.Name,
 		Status: req.Status,
 	}
-	err = h.nodeRepository.UpdateRegistry(node)
+	err = h.NodeRepository().UpdateRegistry(node)
 	if err != nil {
 		c.Error(err)
 		return

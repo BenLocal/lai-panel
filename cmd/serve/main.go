@@ -6,13 +6,12 @@ import (
 
 	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/handler"
-	"github.com/benlocal/lai-panel/pkg/serve"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/route"
 )
 
 func main() {
-	runtime := serve.NewServeRuntime()
+	runtime := NewServeRuntime()
 
 	if err := runtime.Start(); err != nil {
 		panic(err)

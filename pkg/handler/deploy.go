@@ -68,7 +68,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 		return
 	}
 
-	app, err := b.appRepository.GetByID(req.AppId)
+	app, err := b.AppRepository().GetByID(req.AppId)
 	if err != nil {
 		send("error", fmt.Sprintf("Failed to fetch application: %v", err))
 		return
@@ -86,7 +86,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 		return
 	}
 
-	node, err := b.nodeRepository.GetByID(req.NodeId)
+	node, err := b.NodeRepository().GetByID(req.NodeId)
 	if err != nil {
 		send("error", fmt.Sprintf("Failed to fetch node: %v", err))
 		return
@@ -114,7 +114,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 		return
 	}
 
-	state, err := b.nodeManager.AddOrGetNode(node)
+	state, err := b.NodeManager().AddOrGetNode(node)
 	if err != nil {
 		send("error", fmt.Sprintf("Failed to initialize node executor: %v", err))
 		return

@@ -16,7 +16,7 @@ func (h *BaseHandler) AddNodeHandler(ctx context.Context, c *app.RequestContext)
 		return
 	}
 	modelNode := node.ToModel()
-	if err := h.nodeRepository.Create(modelNode); err != nil {
+	if err := h.NodeRepository().Create(modelNode); err != nil {
 		c.Error(err)
 		return
 	}
@@ -39,7 +39,7 @@ func (h *BaseHandler) GetNodeHandler(ctx context.Context, c *app.RequestContext)
 		return
 	}
 
-	node, err := h.nodeRepository.GetByID(req.ID)
+	node, err := h.NodeRepository().GetByID(req.ID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -60,11 +60,11 @@ func (h *BaseHandler) UpdateNodeHandler(ctx context.Context, c *app.RequestConte
 	}
 
 	modelNode := node.ToModel()
-	if err := h.nodeRepository.Update(modelNode); err != nil {
+	if err := h.NodeRepository().Update(modelNode); err != nil {
 		c.Error(err)
 		return
 	}
-	h.nodeManager.RemoveNode(node.ID)
+	h.NodeManager().RemoveNode(node.ID)
 
 	c.JSON(http.StatusOK, SuccessResponse(node))
 }
@@ -84,8 +84,8 @@ func (h *BaseHandler) DeleteNodeHandler(ctx context.Context, c *app.RequestConte
 		c.Error(errors.New("ID is required"))
 		return
 	}
-	h.nodeManager.RemoveNode(req.ID)
-	if err := h.nodeRepository.Delete(req.ID); err != nil {
+	h.NodeManager().RemoveNode(req.ID)
+	if err := h.NodeRepository().Delete(req.ID); err != nil {
 		c.Error(err)
 		return
 	}
@@ -94,7 +94,7 @@ func (h *BaseHandler) DeleteNodeHandler(ctx context.Context, c *app.RequestConte
 }
 
 func (h *BaseHandler) GetNodeListHandler(ctx context.Context, c *app.RequestContext) {
-	nodes, err := h.nodeRepository.List()
+	nodes, err := h.NodeRepository().List()
 	if err != nil {
 		c.Error(err)
 		return
@@ -135,7 +135,7 @@ func (h *BaseHandler) GetNodePageHandler(ctx context.Context, c *app.RequestCont
 		req.PageSize = 10
 	}
 
-	total, nodes, err := h.nodeRepository.Page(req.Page, req.PageSize)
+	total, nodes, err := h.NodeRepository().Page(req.Page, req.PageSize)
 	if err != nil {
 		c.Error(err)
 		return
