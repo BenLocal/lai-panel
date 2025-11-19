@@ -26,8 +26,12 @@ func init() {
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
 		router.GET("/healthz", h.HandleHealthz)
 		router.POST("/registry", h.GetRegistryHandler)
+
+		openApi := router.Group("/open")
 		// static file
-		router.Static("/static", h.StaticDataPath())
+		openApi.Static("/static", h.StaticDataPath())
+		// file upload
+		openApi.POST("/file/upload", h.HandleFileUpload)
 
 		api := router.Group("/api")
 		api.POST("/application/list", h.GetApplicationListHandler)

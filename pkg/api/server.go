@@ -34,7 +34,10 @@ func (h *ApiServer) registryRouter() {
 
 func (h *ApiServer) Start(ctx context.Context) error {
 	log.Printf("Starting API server on %s", h.listenAddr)
-	h.server = hertzServer.Default(hertzServer.WithHostPorts(h.listenAddr))
+	h.server = hertzServer.Default(
+		hertzServer.WithHostPorts(h.listenAddr),
+		hertzServer.WithMaxRequestBodySize(1*1024*1024*1024), // 1GB
+	)
 	h.registryRouter()
 	h.server.Spin()
 	return nil

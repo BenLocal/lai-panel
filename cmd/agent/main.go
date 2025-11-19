@@ -19,7 +19,11 @@ func init() {
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
 		router.Handle("GET", "/healthz", h.HandleHealthz)
 		router.Any("/docker.proxy/*path", h.HandleDockerProxy)
+
+		api := router.Group("/open")
 		// static file
-		router.Static("/static", h.StaticDataPath())
+		api.Static("/static", h.StaticDataPath())
+		// file upload
+		api.POST("/file/upload", h.HandleFileUpload)
 	})
 }
