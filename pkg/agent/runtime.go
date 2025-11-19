@@ -11,6 +11,7 @@ import (
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/service"
+	"github.com/docker/docker/client"
 )
 
 type AgentRuntime struct {
@@ -27,7 +28,8 @@ func (r *AgentRuntime) Start() error {
 		return err
 	}
 
-	dp, _ := docker.NewDockerProxy("/var/run/docker.sock", "/docker.proxy")
+	dh := client.DefaultDockerHost
+	dp, _ := docker.NewDockerProxy(dh, "/docker.proxy")
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
