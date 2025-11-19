@@ -16,13 +16,14 @@ type AgentOptions struct {
 
 func NewAgentOptions() *AgentOptions {
 	uuid := uuid.New().String()[:8]
+	dataPath := getDefaultDataPath("agent")
 
 	return &AgentOptions{
 		Port:       8081,
 		MasterHost: "127.0.0.1",
 		MasterPort: 8080,
 		Name:       uuid,
-		dataPath:   "/var/lai-panel/agent/data/",
+		dataPath:   dataPath,
 	}
 }
 

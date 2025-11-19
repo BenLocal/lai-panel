@@ -1,6 +1,8 @@
 package options
 
-import "path"
+import (
+	"path"
+)
 
 type ServeOptions struct {
 	DBPath         string
@@ -10,11 +12,12 @@ type ServeOptions struct {
 }
 
 func NewServeOptions() *ServeOptions {
+	dataPath := getDefaultDataPath("serve")
 	return &ServeOptions{
 		DBPath:         "lai-panel.db",
 		MigrationsPath: "migrations",
 		Port:           8080,
-		dataPath:       "/var/lai-panel/serve/data/",
+		dataPath:       dataPath,
 	}
 }
 

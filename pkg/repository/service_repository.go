@@ -15,8 +15,8 @@ func NewServiceRepository() *ServiceRepository {
 }
 
 func (r *ServiceRepository) Create(service *model.Service) error {
-	query := `INSERT INTO services (name, app_id, node_id, status) 
-	VALUES (:name, :app_id, :node_id, :status)`
+	query := `INSERT INTO services (name, app_id, node_id, status, metadata) 
+	VALUES (:name, :app_id, :node_id, :status, :metadata)`
 	_, err := r.db.NamedExec(query, service)
 	return err
 }
@@ -30,7 +30,8 @@ func (r *ServiceRepository) GetByID(id int64) (*model.Service, error) {
 
 func (r *ServiceRepository) Update(service *model.Service) error {
 	query := `UPDATE services SET name = :name, app_id = :app_id, 
-	node_id = :node_id, status = :status, 
+	node_id = :node_id,
+	metadata = :metadata,
 	updated_at = CURRENT_TIMESTAMP
 	WHERE id = :id`
 	_, err := r.db.NamedExec(query, service)

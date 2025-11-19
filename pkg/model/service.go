@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Service struct {
 	ID        int64     `db:"id" json:"id"`
@@ -14,32 +17,55 @@ type Service struct {
 }
 
 type ServiceView struct {
-	ID       int64   `json:"id"`
-	Name     string  `json:"name"`
-	AppID    int64   `json:"app_id"`
-	NodeID   int64   `json:"node_id"`
-	Status   string  `json:"status"`
-	Metadata *string `json:"metadata"`
+	ID       int64             `json:"id"`
+	Name     string            `json:"name"`
+	AppID    int64             `json:"app_id"`
+	NodeID   int64             `json:"node_id"`
+	Status   string            `json:"status,omitempty"`
+	QAValues map[string]string `json:"qa_values"`
 }
 
 func (s *Service) ToView() *ServiceView {
+	metadata := []*Metadata{}
+	if s.Metadata != nil {
+		json.Unmarshal([]byte(*s.Metadata), &metadata)
+	}
+	qa, ok := ToMetadataMap(metadata, "qa")
+	if !ok {
+		qa = make(map[string]string)
+	}
+
 	return &ServiceView{
 		ID:       s.ID,
 		Name:     s.Name,
 		AppID:    s.AppID,
 		NodeID:   s.NodeID,
 		Status:   s.Status,
-		Metadata: s.Metadata,
+		QAValues: qa,
 	}
 }
 
 func (v *ServiceView) ToModel() *Service {
+	metadata := []*Metadata{
+		{
+			MetadataBase: MetadataBase{
+				Name:       "qa",
+				Properties: v.QAValues,
+			},
+		},
+	}
+	var metadataString *string
+	metadataJson, _ := json.Marshal(metadata)
+	if len(metadataJson) > 0 {
+		s := string(metadataJson)
+		metadataString = &s
+	}
 	return &Service{
 		ID:       v.ID,
 		Name:     v.Name,
 		AppID:    v.AppID,
 		NodeID:   v.NodeID,
 		Status:   v.Status,
-		Metadata: v.Metadata,
+		Metadata: metadataString,
 	}
 }

@@ -38,6 +38,7 @@ func (h *ApiServer) Start(ctx context.Context) error {
 		hertzServer.WithHostPorts(h.listenAddr),
 		hertzServer.WithMaxRequestBodySize(1*1024*1024*1024), // 1GB
 	)
+	h.server.Use(handler.ErrorHandlerMiddleware())
 	h.registryRouter()
 	h.server.Spin()
 	return nil

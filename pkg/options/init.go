@@ -2,6 +2,7 @@ package options
 
 import (
 	"os"
+	"path"
 )
 
 func InitOptions(options IOptions) error {
@@ -37,4 +38,28 @@ type IOptions interface {
 	LogDataPath() string
 
 	Agent() bool
+}
+
+func getDefaultDataPath(p string) string {
+	d := DefaultDataPath
+
+	if d == "" {
+		home := os.Getenv("HOME")
+		if home != "" {
+			d = path.Join(os.Getenv("HOME"), ".lai-panel")
+		}
+	}
+
+	if d == "" {
+		tmp := os.TempDir()
+		if tmp != "" {
+			d = path.Join(tmp, "lai-panel")
+		}
+	}
+
+	if d == "" {
+		return p
+	}
+
+	return path.Join(d, p)
 }

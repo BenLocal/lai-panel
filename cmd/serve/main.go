@@ -53,6 +53,7 @@ func init() {
 		api.POST("/node/list", h.GetNodeListHandler)
 		api.POST("/node/page", h.GetNodePageHandler)
 		api.POST("/service/page", h.GetServicePageHandler)
+		api.POST("/service/save", h.SaveServiceHandler)
 		api.POST("/dashboard/stats", h.DashboardStatsHandler)
 
 		// hub

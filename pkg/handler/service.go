@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/benlocal/lai-panel/pkg/model"
@@ -44,4 +45,36 @@ func (h *BaseHandler) GetServicePageHandler(ctx context.Context, c *app.RequestC
 		PageSize: req.PageSize,
 		Services: servicesView,
 	}))
+}
+
+func (h *BaseHandler) SaveServiceHandler(ctx context.Context, c *app.RequestContext) {
+	var req model.ServiceView
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	if req.ID < 0 {
+		c.Error(errors.New("ID is required"))
+		return
+	}
+
+	service := req.ToModel()
+	if req.ID == 0 {
+		// add new service
+		err := h.ServiceRepository().Create(service)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+	} else {
+		// update existing service
+		err := h.ServiceRepository().Update(service)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, SuccessResponse(nil))
 }
