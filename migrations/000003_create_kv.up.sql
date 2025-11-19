@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS kv (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    key TEXT NOT NULL,
+    sub_key TEXT NOT NULL,
+    value TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_kv_key ON kv (key);
+CREATE INDEX IF NOT EXISTS idx_kv_sub_key ON kv (sub_key);
+CREATE INDEX IF NOT EXISTS idx_kv_key_sub_key ON kv (key, sub_key);

@@ -22,6 +22,7 @@ type BaseHandler struct {
 	appRepository     *repository.AppRepository
 	serviceRepository *repository.ServiceRepository
 	signalrServer     *hub.SignalRServer
+	kvRepository      *repository.KvRepository
 }
 
 func NewServerHandler(options options.IOptions) *BaseHandler {
@@ -29,10 +30,12 @@ func NewServerHandler(options options.IOptions) *BaseHandler {
 	nodeManager := node.NewNodeManager()
 	appRepository := repository.NewAppRepository()
 	serviceRepository := repository.NewServiceRepository()
+	kvRepository := repository.NewKvRepository()
 	h := hub.NewSimpleHub(nodeRepository)
 	signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
 
 	return &BaseHandler{
+		kvRepository:      kvRepository,
 		nodeManager:       nodeManager,
 		nodeRepository:    nodeRepository,
 		appRepository:     appRepository,

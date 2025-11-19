@@ -8,6 +8,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/google/uuid v1.6.0
+	github.com/hertz-contrib/cache v0.0.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/ngrok/sqlmw v0.0.0-20220520173518-97c9c04efc79
@@ -24,6 +25,7 @@ require (
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/cloudwego/gopkg v0.1.4 // indirect
 	github.com/cloudwego/netpoll v0.7.0 // indirect
@@ -31,6 +33,7 @@ require (
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -40,9 +43,11 @@ require (
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jellydator/ttlcache/v2 v2.11.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
@@ -71,6 +76,7 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.0.0-20210923205945-b76863e36670 // indirect
 	golang.org/x/net v0.46.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.30.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
