@@ -15,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
 	dockerClient "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 )
 
 func (h *BaseHandler) DockerInfo(ctx context.Context, c *app.RequestContext) {
@@ -222,8 +223,9 @@ func (h *BaseHandler) DockerContainerLog(ctx context.Context, c *app.RequestCont
 
 	writer := sse.NewWriter(c)
 	defer writer.Close()
-	_, err = io.Copy(&CopyWriter{writer}, logs)
-	if err != nil {
+	logWriter := &CopyWriter{Writer: writer}
+	_, err = stdcopy.StdCopy(logWriter, logWriter, logs)
+	if err != nil && err != io.EOF {
 		writer.WriteEvent("", "error", []byte(err.Error()))
 		return
 	}

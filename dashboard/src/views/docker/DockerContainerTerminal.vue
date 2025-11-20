@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { ref, onUnmounted, watch, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import XTermTerminal from "@/components/application/XTermTerminal.vue";
 import { showToast } from "@/lib/toast";
 import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
@@ -15,13 +24,19 @@ const router = useRouter();
 // 从路由参数获取 nodeId 和 containerId
 const nodeId = ref<number>(Number(route.query.nodeId) || 0);
 const containerId = ref<string>((route.query.containerId as string) || "");
-const containerName = ref<string>((route.query.containerName as string) || "Unknown");
+const containerName = ref<string>(
+  (route.query.containerName as string) || "Unknown"
+);
 
 const terminalRef = ref<InstanceType<typeof XTermTerminal> | null>(null);
 const connection = ref<HubConnection | null>(null);
 const isConnected = ref(false);
 const isConnecting = ref(false);
-const connectionStatus = ref<"disconnected" | "connecting" | "connected" | "reconnecting">("disconnected");
+const connectionStatus = ref<
+  "disconnected" | "connecting" | "connected" | "reconnecting"
+>("disconnected");
+const selectedShell = ref<"sh" | "bash" | "custom">("sh");
+const customShell = ref<string>("");
 
 // 初始化 SignalR 连接
 const initConnection = () => {
@@ -100,27 +115,36 @@ const connect = async () => {
       console.log("Connection started successfully");
     }
 
-    // 获取终端尺寸
     const size = terminalRef.value?.getSize();
     const cols = size?.cols || 80;
     const rows = size?.rows || 24;
-
-    // 启动 docker exec 会话
-    // 注意：后端需要实现以下 SignalR Hub 方法：
-    // - StartDockerExec(nodeId int64, containerId string, cols int, rows int)
-    // - SendDockerExecInput(data string)
-    // - ResizeDockerExec(cols int, rows int)
-    // - StopDockerExec()
-    // 以及事件：
-    // - dockerExecData (payload string)
-    // - dockerExecClosed ()
-    await connection.value?.invoke("StartDockerExec", nodeId.value, containerId.value, cols, rows);
+    const shellToUse =
+      selectedShell.value === "custom"
+        ? customShell.value
+        : selectedShell.value;
+    if (!shellToUse || shellToUse.trim() === "") {
+      showToast("Please enter a valid shell command", "error");
+      return;
+    }
+    await connection.value?.invoke(
+      "StartDockerExec",
+      nodeId.value,
+      containerId.value,
+      cols,
+      rows,
+      shellToUse
+    );
 
     isConnected.value = true;
     connectionStatus.value = "connected";
     showToast("Connected to container", "success");
   } catch (error) {
-    showToast(`Failed to connect: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
+    showToast(
+      `Failed to connect: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+      "error"
+    );
     connectionStatus.value = "disconnected";
     isConnected.value = false;
 
@@ -180,7 +204,19 @@ const handleTerminalResize = async (cols: number, rows: number) => {
 };
 
 // 处理终端就绪
-const handleTerminalReady = () => {
+const handleTerminalReady = async () => {
+  // 终端就绪后，确保终端大小正确
+  await nextTick();
+  if (terminalRef.value) {
+    terminalRef.value.fit();
+    // 自动聚焦到终端
+    setTimeout(() => {
+      if (terminalRef.value) {
+        terminalRef.value.focus();
+      }
+    }, 100);
+  }
+
   // 终端就绪后可以自动连接
   if (nodeId.value && containerId.value) {
     connect();
@@ -193,6 +229,17 @@ const reconnect = async () => {
   await nextTick();
   await connect();
 };
+
+// 页面挂载后尝试聚焦终端
+onMounted(async () => {
+  await nextTick();
+  // 等待终端初始化完成后再聚焦
+  setTimeout(() => {
+    if (terminalRef.value) {
+      terminalRef.value.focus();
+    }
+  }, 200);
+});
 
 // 清理资源
 onUnmounted(async () => {
@@ -208,7 +255,11 @@ const back = () => {
 
 // 监听路由参数变化
 watch(
-  () => [route.query.nodeId, route.query.containerId, route.query.containerName],
+  () => [
+    route.query.nodeId,
+    route.query.containerId,
+    route.query.containerName,
+  ],
   ([newNodeId, newContainerId, newContainerName]) => {
     nodeId.value = Number(newNodeId) || 0;
     containerId.value = (newContainerId as string) || "";
@@ -226,8 +277,8 @@ watch(
     <!-- Header -->
     <Card class="rounded-none border-b shrink-0">
       <CardHeader class="pb-3">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-4">
+        <div class="flex items-center justify-between gap-4 flex-wrap">
+          <div class="flex items-center gap-4 flex-wrap">
             <Button variant="ghost" size="sm" @click="back">
               <Icon icon="lucide:arrow-left" class="h-4 w-4 mr-2" />
               Back
@@ -235,39 +286,91 @@ watch(
             <div>
               <CardTitle>Container Terminal - {{ containerName }}</CardTitle>
               <p class="text-sm text-muted-foreground mt-1">
-                Node ID: {{ nodeId }} | Container: {{ containerId.substring(0, 12) }}
+                Node ID: {{ nodeId }} | Container:
+                {{ containerId.substring(0, 12) }}
               </p>
             </div>
+            <div class="flex items-center gap-2">
+              <Label for="shell-select" class="text-sm text-muted-foreground">
+                Shell:
+              </Label>
+              <Select
+                v-model="selectedShell"
+                :disabled="isConnected || isConnecting"
+              >
+                <SelectTrigger id="shell-select" class="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sh">sh</SelectItem>
+                  <SelectItem value="bash">bash</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                v-if="selectedShell === 'custom'"
+                v-model="customShell"
+                placeholder="Enter shell command"
+                class="w-[150px]"
+                :disabled="isConnected || isConnecting"
+              />
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <span :class="[
-              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-              connectionStatus === 'connected'
-                ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
+          <div class="flex items-center gap-2 flex-wrap">
+            <span
+              :class="[
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                connectionStatus === 'connected'
+                  ? 'bg-green-500/10 text-green-500 border-green-500/20'
+                  : connectionStatus === 'connecting' ||
+                    connectionStatus === 'reconnecting'
                   ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                   : 'bg-red-500/10 text-red-500 border-red-500/20',
-            ]">
-              <span :class="[
-                'h-1.5 w-1.5 rounded-full',
-                connectionStatus === 'connected'
-                  ? 'bg-green-500'
-                  : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
+              ]"
+            >
+              <span
+                :class="[
+                  'h-1.5 w-1.5 rounded-full',
+                  connectionStatus === 'connected'
+                    ? 'bg-green-500'
+                    : connectionStatus === 'connecting' ||
+                      connectionStatus === 'reconnecting'
                     ? 'bg-yellow-500 animate-pulse'
                     : 'bg-red-500',
-              ]"></span>
-              {{ connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Connecting...' :
-                connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected' }}
+                ]"
+              ></span>
+              {{
+                connectionStatus === "connected"
+                  ? "Connected"
+                  : connectionStatus === "connecting"
+                  ? "Connecting..."
+                  : connectionStatus === "reconnecting"
+                  ? "Reconnecting..."
+                  : "Disconnected"
+              }}
             </span>
-            <Button v-if="!isConnected && !isConnecting" @click="connect" :disabled="!nodeId || !containerId">
+            <Button
+              v-if="!isConnected && !isConnecting"
+              @click="connect"
+              :disabled="!nodeId || !containerId"
+            >
               <Icon icon="lucide:plug" class="h-4 w-4 mr-2" />
               Connect
             </Button>
-            <Button v-else-if="isConnected" variant="destructive" @click="disconnect">
+            <Button
+              v-else-if="isConnected"
+              variant="destructive"
+              @click="disconnect"
+            >
               <Icon icon="lucide:plug-zap" class="h-4 w-4 mr-2" />
               Disconnect
             </Button>
-            <Button v-else variant="outline" @click="disconnect" :disabled="true">
+            <Button
+              v-else
+              variant="outline"
+              @click="disconnect"
+              :disabled="true"
+            >
               <Icon icon="lucide:loader-2" class="h-4 w-4 mr-2 animate-spin" />
               Connecting...
             </Button>
@@ -281,10 +384,17 @@ watch(
     </Card>
 
     <!-- Terminal -->
-    <CardContent class="flex-1 p-0 overflow-hidden">
-      <div class="h-full w-full">
-        <XTermTerminal ref="terminalRef" :auto-fit="true" :font-size="13" :readonly="false" @data="handleTerminalData"
-          @ready="handleTerminalReady" @resize="handleTerminalResize" />
+    <CardContent class="flex-1 p-0 overflow-hidden flex flex-col">
+      <div class="flex-1 min-h-0 w-full" style="background-color: #1e1e1e">
+        <XTermTerminal
+          ref="terminalRef"
+          :auto-fit="true"
+          :font-size="13"
+          :readonly="false"
+          @data="handleTerminalData"
+          @ready="handleTerminalReady"
+          @resize="handleTerminalResize"
+        />
       </div>
     </CardContent>
   </div>
@@ -293,5 +403,6 @@ watch(
 <style scoped>
 :deep(.xterm-terminal-container) {
   height: 100%;
+  min-height: 200px;
 }
 </style>

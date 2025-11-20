@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
   convertEol: true,
   readonly: false,
   theme: () => ({
-    background: "#000000",
+    background: "#1e1e1e",
     foreground: "#ffffff",
   }),
 });
@@ -51,7 +51,13 @@ const isTerminalInitialized = ref(false);
 
 // 初始化终端
 onMounted(async () => {
-  if (!terminalRef.value) return;
+  // 等待 DOM 完全渲染
+  await nextTick();
+
+  if (!terminalRef.value) {
+    console.warn("Terminal container ref is not available");
+    return;
+  }
 
   // 创建终端实例
   terminal.value = new Terminal({
@@ -72,10 +78,21 @@ onMounted(async () => {
   terminal.value.open(terminalRef.value);
   isTerminalInitialized.value = true;
 
-  // 自动调整大小
+  // 自动调整大小 - 需要等待容器有实际尺寸
   if (props.autoFit && fitAddon.value) {
-    await nextTick();
-    fitAddon.value.fit();
+    // 使用 requestAnimationFrame 确保 DOM 已渲染
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        if (fitAddon.value && terminal.value) {
+          try {
+            fitAddon.value.fit();
+            emit("resize", terminal.value.cols, terminal.value.rows);
+          } catch (error) {
+            console.warn("Failed to fit terminal:", error);
+          }
+        }
+      }, 100);
+    });
   }
 
   // 监听数据输入
@@ -89,8 +106,12 @@ onMounted(async () => {
   if (props.autoFit && fitAddon.value) {
     const handleResize = () => {
       if (fitAddon.value && terminal.value) {
-        fitAddon.value.fit();
-        emit("resize", terminal.value.cols, terminal.value.rows);
+        try {
+          fitAddon.value.fit();
+          emit("resize", terminal.value.cols, terminal.value.rows);
+        } catch (error) {
+          console.warn("Failed to fit terminal on resize:", error);
+        }
       }
     };
     window.addEventListener("resize", handleResize);
@@ -162,10 +183,12 @@ const getSize = () => {
 
 // 调整大小
 const fit = () => {
-  if (fitAddon.value) {
-    fitAddon.value.fit();
-    if (terminal.value) {
+  if (fitAddon.value && terminal.value) {
+    try {
+      fitAddon.value.fit();
       emit("resize", terminal.value.cols, terminal.value.rows);
+    } catch (error) {
+      console.warn("Failed to fit terminal:", error);
     }
   }
 };
@@ -177,6 +200,13 @@ const reset = () => {
   }
 };
 
+// 聚焦终端
+const focus = () => {
+  if (terminal.value) {
+    terminal.value.focus();
+  }
+};
+
 // 暴露方法给父组件
 defineExpose({
   write,
@@ -185,7 +215,10 @@ defineExpose({
   getSize,
   fit,
   reset,
-  terminal: terminal.value,
+  focus,
+  get terminal() {
+    return terminal.value;
+  },
 });
 </script>
 
@@ -197,11 +230,16 @@ defineExpose({
 .xterm-terminal-container {
   width: 100%;
   height: 100%;
+  min-height: 200px;
   padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .xterm-terminal-container :deep(.xterm) {
+  width: 100%;
   height: 100%;
+  min-height: 200px;
 }
 
 .xterm-terminal-container :deep(.xterm-viewport) {

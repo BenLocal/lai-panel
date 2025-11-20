@@ -40,6 +40,7 @@ func (h *SimpleHub) OnConnected(connectionID string) {
 func (h *SimpleHub) OnDisconnected(connectionID string) {
 	log.Printf("signalr connection disconnected: %s\n", connectionID)
 	h.stopSshSessionByID(connectionID)
+	h.stopDockerExecByID(connectionID)
 }
 
 func (h *SimpleHub) SendChatMessage(message string) {
@@ -73,7 +74,24 @@ func (h *SimpleHub) StopSshSession() {
 	}
 }
 
-func (h *SimpleHub) StartDockerExec(nodeID int64, containerID string, cols int, rows int) error {
+func (h *SimpleHub) StartDockerExec(nodeID int64, containerID string, cols int, rows int, shell string) error {
 	connectionID := h.ConnectionID()
-	return h.startDockerExec(connectionID, nodeID, containerID, cols, rows)
+	return h.startDockerExec(connectionID, nodeID, containerID, cols, rows, shell)
+}
+
+func (h *SimpleHub) SendDockerExecInput(data string) {
+	connectionID := h.ConnectionID()
+	h.sendDockerExecInput(connectionID, data)
+}
+
+func (h *SimpleHub) ResizeDockerExec(cols int, rows int) {
+	connectionID := h.ConnectionID()
+	h.resizeDockerExec(connectionID, cols, rows)
+}
+
+func (h *SimpleHub) StopDockerExec() {
+	connectionID := h.ConnectionID()
+	if h.stopDockerExecByID(connectionID) {
+		h.Clients().Caller().Send("dockerExecClosed", "")
+	}
 }
