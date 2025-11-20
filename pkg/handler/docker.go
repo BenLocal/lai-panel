@@ -232,6 +232,20 @@ func (h *BaseHandler) DockerContainerLog(ctx context.Context, c *app.RequestCont
 	writer.WriteEvent("", "done", []byte("done"))
 }
 
+func (h *BaseHandler) DockerContainerInspect(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	container, err := client.ContainerInspect(ctx, r.ContainerId)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(container))
+}
+
 func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestContext) {
 	type dockerImagePullAutoRequest struct {
 		Image string `json:"image"`
@@ -308,6 +322,68 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 
 }
 
+func (h *BaseHandler) DockerImagePushTo(ctx context.Context, c *app.RequestContext) {
+	type imageActionRequest struct {
+		ImageId      string `json:"image_id"`
+		PushToNodeID int64  `json:"push_to_node_id"`
+	}
+	var req imageActionRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	srcNode, err := h.NodeRepository().GetByID(req.PushToNodeID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	srcNodeState, err := h.NodeManager().AddOrGetNode(srcNode)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	dstNode, err := h.NodeRepository().GetByID(req.PushToNodeID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	dstNodeState, err := h.NodeManager().AddOrGetNode(dstNode)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	writer := sse.NewWriter(c)
+	defer writer.Close()
+	err = node.CopyImageBetweenNodes(ctx, srcNodeState, dstNodeState, req.ImageId, func(ctx context.Context, reader io.ReadCloser) error {
+		_, err := io.Copy(&CopyWriter{writer}, reader)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		writer.WriteEvent("", "error", []byte(err.Error()))
+		return
+	}
+	writer.WriteEvent("", "done", []byte("done"))
+}
+
+func (h *BaseHandler) DockerImageInspect(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getImageRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	image, err := client.ImageInspect(ctx, r.ImageId)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(image))
+}
+
 type CopyWriter struct {
 	*sse.Writer
 }
@@ -326,6 +402,30 @@ type containerActionRequest struct {
 
 func (h *BaseHandler) getContainerRequest(c *app.RequestContext) (*dockerClient.Client, *containerActionRequest, error) {
 	var req containerActionRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		return nil, nil, err
+	}
+	nodeId, err := h.getNodeIDFromRequest(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	node, err := h.NodeRepository().GetByID(nodeId)
+	if err != nil {
+		return nil, nil, err
+	}
+	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	if err != nil {
+		return nil, nil, err
+	}
+	return nodeState.DockerClient, &req, nil
+}
+
+type imageActionRequest struct {
+	ImageId string `json:"image_id"`
+}
+
+func (h *BaseHandler) getImageRequest(c *app.RequestContext) (*dockerClient.Client, *imageActionRequest, error) {
+	var req imageActionRequest
 	if err := c.BindAndValidate(&req); err != nil {
 		return nil, nil, err
 	}

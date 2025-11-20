@@ -99,7 +99,14 @@ const closeLogDialog = () => {
 };
 
 const handleContainerAction = async (
-  action: "start" | "stop" | "restart" | "remove" | "log" | "terminal",
+  action:
+    | "start"
+    | "stop"
+    | "restart"
+    | "remove"
+    | "log"
+    | "terminal"
+    | "inspect",
   container: Container
 ) => {
   const nodeId = Number(props.nodeId);
@@ -122,6 +129,9 @@ const handleContainerAction = async (
         break;
       case "remove":
         response = await dockerApi.containerRemove(nodeId, container.id);
+        break;
+      case "inspect":
+        response = await dockerApi.containerInspect(nodeId, container.id);
         break;
       case "log":
         // Open dialog and start log stream
@@ -293,6 +303,12 @@ watch(
                         Restart
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        @click="handleContainerAction('inspect', container)"
+                      >
+                        <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
+                        Inspect
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         @click="handleContainerAction('log', container)"
                       >

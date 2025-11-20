@@ -71,6 +71,15 @@ export interface Network {
   }[];
 }
 
+export interface ContainerInspectResponse {
+  Id: string;
+  Name: string;
+  Image: string;
+  State: string;
+  Created: number;
+  Ports: ContainerPort[];
+}
+
 const getHeaders = (nodeId: number) => {
   return {
     "X-Node-ID": nodeId.toString(),
@@ -88,24 +97,64 @@ export const dockerApi = {
     return post<Container[]>("/api/docker/containers", null, header);
   },
 
-  async containerStart(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+  async containerStart(
+    nodeId: number,
+    containerId: string
+  ): Promise<ApiResponse<void>> {
     const header = getHeaders(nodeId);
-    return post<void>("/api/docker/container/start", { container_id: containerId }, header);
+    return post<void>(
+      "/api/docker/container/start",
+      { container_id: containerId },
+      header
+    );
   },
 
-  async containerStop(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+  async containerStop(
+    nodeId: number,
+    containerId: string
+  ): Promise<ApiResponse<void>> {
     const header = getHeaders(nodeId);
-    return post<void>("/api/docker/container/stop", { container_id: containerId }, header);
+    return post<void>(
+      "/api/docker/container/stop",
+      { container_id: containerId },
+      header
+    );
   },
 
-  async containerRestart(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+  async containerRestart(
+    nodeId: number,
+    containerId: string
+  ): Promise<ApiResponse<void>> {
     const header = getHeaders(nodeId);
-    return post<void>("/api/docker/container/restart", { container_id: containerId }, header);
+    return post<void>(
+      "/api/docker/container/restart",
+      { container_id: containerId },
+      header
+    );
   },
 
-  async containerRemove(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+  async containerRemove(
+    nodeId: number,
+    containerId: string
+  ): Promise<ApiResponse<void>> {
     const header = getHeaders(nodeId);
-    return post<void>("/api/docker/container/remove", { container_id: containerId }, header);
+    return post<void>(
+      "/api/docker/container/remove",
+      { container_id: containerId },
+      header
+    );
+  },
+
+  async containerInspect(
+    nodeId: number,
+    containerId: string
+  ): Promise<ApiResponse<ContainerInspectResponse>> {
+    const header = getHeaders(nodeId);
+    return post<ContainerInspectResponse>(
+      "/api/docker/container/inspect",
+      { container_id: containerId },
+      header
+    );
   },
 
   async containerLogStream(
@@ -116,8 +165,14 @@ export const dockerApi = {
     onEnd?: () => void
   ): Promise<AbortController> {
     const header = getHeaders(nodeId);
-    return stream("/api/docker/container/log", { container_id: containerId },
-      onMessage, onError, onEnd, header);
+    return stream(
+      "/api/docker/container/log",
+      { container_id: containerId },
+      onMessage,
+      onError,
+      onEnd,
+      header
+    );
   },
 
   async images(nodeId: number): Promise<ApiResponse<Image[]>> {
