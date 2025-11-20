@@ -14,11 +14,16 @@ func NewServiceRepository() *ServiceRepository {
 	return &ServiceRepository{db: database.GetDB()}
 }
 
-func (r *ServiceRepository) Create(service *model.Service) error {
+func (r *ServiceRepository) Create(service *model.Service) (int64, error) {
 	query := `INSERT INTO services (name, app_id, node_id, status, metadata) 
 	VALUES (:name, :app_id, :node_id, :status, :metadata)`
 	_, err := r.db.NamedExec(query, service)
-	return err
+	if err != nil {
+		return 0, err
+	}
+	var id int64
+	err = r.db.Get(&id, "SELECT LAST_INSERT_ID()")
+	return id, err
 }
 
 func (r *ServiceRepository) GetByID(id int64) (*model.Service, error) {

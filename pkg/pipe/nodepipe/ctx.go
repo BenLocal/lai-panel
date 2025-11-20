@@ -1,4 +1,4 @@
-package pipe
+package nodepipe
 
 import (
 	"github.com/benlocal/lai-panel/pkg/model"

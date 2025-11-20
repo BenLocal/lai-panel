@@ -48,6 +48,10 @@ func (h *BaseHandler) GetServicePageHandler(ctx context.Context, c *app.RequestC
 }
 
 func (h *BaseHandler) SaveServiceHandler(ctx context.Context, c *app.RequestContext) {
+	type saveServiceResponse struct {
+		ID int64 `json:"id"`
+	}
+
 	var req model.ServiceView
 	if err := c.BindAndValidate(&req); err != nil {
 		c.Error(err)
@@ -60,13 +64,15 @@ func (h *BaseHandler) SaveServiceHandler(ctx context.Context, c *app.RequestCont
 	}
 
 	service := req.ToModel()
+	var id int64
 	if req.ID == 0 {
 		// add new service
-		err := h.ServiceRepository().Create(service)
+		i, err := h.ServiceRepository().Create(service)
 		if err != nil {
 			c.Error(err)
 			return
 		}
+		id = i
 	} else {
 		// update existing service
 		err := h.ServiceRepository().Update(service)
@@ -74,7 +80,11 @@ func (h *BaseHandler) SaveServiceHandler(ctx context.Context, c *app.RequestCont
 			c.Error(err)
 			return
 		}
+
+		id = service.ID
 	}
 
-	c.JSON(http.StatusOK, SuccessResponse(nil))
+	c.JSON(http.StatusOK, SuccessResponse(saveServiceResponse{
+		ID: id,
+	}))
 }

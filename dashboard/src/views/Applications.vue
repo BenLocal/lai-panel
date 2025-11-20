@@ -28,6 +28,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { ApiResponseHelper } from "@/api/base";
 
 interface ApplicationForm {
     name: string;
@@ -70,7 +71,7 @@ const goToPage = (page: number) => {
 
 const fetchApplications = async () => {
     const response = await applicationApi.page(currentPage.value, pageSize.value);
-    if (!response.success) {
+    if (!ApiResponseHelper.isSuccess(response)) {
         return;
     }
     const data = response.data;
@@ -316,7 +317,7 @@ onMounted(() => {
                 <SheetHeader class="px-3 sm:px-5">
                     <SheetTitle>{{
                         isEditMode ? "Edit Application" : "Add Application"
-                    }}</SheetTitle>
+                        }}</SheetTitle>
                     <SheetDescription>
                         {{
                             isEditMode

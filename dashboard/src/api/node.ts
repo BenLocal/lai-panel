@@ -60,6 +60,6 @@ export const nodeApi = {
     },
 
     async page(page: number, pageSize: number): Promise<ApiResponse<NodePageResponse>> {
-        return post<NodePageResponse>("/api/node/page", { page, pageSize });
+        return post<NodePageResponse>("/api/node/page", { page: page, page_size: pageSize });
     },
 };

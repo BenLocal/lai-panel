@@ -56,8 +56,8 @@ export const applicationApi = {
         pageSize: number
     ): Promise<ApiResponse<ApplicationPageResponse>> {
         return post<ApplicationPageResponse>("/api/application/page", {
-            page,
-            pageSize,
+            page: page,
+            page_size: pageSize,
         });
     },
 };
