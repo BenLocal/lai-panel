@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,24 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { dockerApi, DockerUtils } from "@/api/docker";
+import { showToast } from "@/lib/toast";
+import { ApiResponseHelper } from "@/api/base";
+import { nextTick } from "vue";
 
 interface Container {
   id: string;
@@ -27,9 +45,15 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+const router = useRouter();
 
 const containers = ref<Container[]>([]);
 const loading = ref(false);
+const isLogDialogOpen = ref(false);
+const logContent = ref<string[]>([]);
+const logController = ref<AbortController | null>(null);
+const logContainerName = ref<string>("");
+const logContentRef = ref<HTMLDivElement | null>(null);
 
 const fetchContainers = async () => {
   loading.value = true;
@@ -55,6 +79,100 @@ const getStatusColor = (status: string) => {
   return status === "running"
     ? "bg-green-500/10 text-green-500 border-green-500/20"
     : "bg-red-500/10 text-red-500 border-red-500/20";
+};
+
+const scrollLogToBottom = () => {
+  if (logContentRef.value) {
+    logContentRef.value.scrollTop = logContentRef.value.scrollHeight;
+  }
+};
+
+const closeLogDialog = () => {
+  // Abort the controller when closing dialog
+  if (logController.value) {
+    logController.value.abort();
+    logController.value = null;
+  }
+  isLogDialogOpen.value = false;
+  logContent.value = [];
+  logContainerName.value = "";
+};
+
+const handleContainerAction = async (
+  action: "start" | "stop" | "restart" | "remove" | "log" | "terminal",
+  container: Container
+) => {
+  const nodeId = Number(props.nodeId);
+  if (Number.isNaN(nodeId)) {
+    showToast("Invalid node ID", "error");
+    return;
+  }
+
+  try {
+    let response;
+    switch (action) {
+      case "start":
+        response = await dockerApi.containerStart(nodeId, container.id);
+        break;
+      case "stop":
+        response = await dockerApi.containerStop(nodeId, container.id);
+        break;
+      case "restart":
+        response = await dockerApi.containerRestart(nodeId, container.id);
+        break;
+      case "remove":
+        response = await dockerApi.containerRemove(nodeId, container.id);
+        break;
+      case "log":
+        // Open dialog and start log stream
+        logContent.value = [];
+        logContainerName.value = container.name;
+        isLogDialogOpen.value = true;
+
+        logController.value = await dockerApi.containerLogStream(
+          nodeId,
+          container.id,
+          (data) => {
+            logContent.value.push(data);
+            // Auto scroll to bottom
+            nextTick(() => {
+              scrollLogToBottom();
+            });
+          },
+          (error) => {
+            showToast(`Log stream error: ${error.message}`, "error");
+            console.error("Log stream error:", error);
+          },
+          () => {
+            showToast("Log stream ended", "info");
+          }
+        );
+        return;
+      case "terminal":
+        // 跳转到终端页面
+        router.push({
+          name: "DockerContainerTerminal",
+          query: {
+            nodeId: nodeId.toString(),
+            containerId: container.id,
+            containerName: container.name,
+          },
+        });
+        return;
+      default:
+        return;
+    }
+
+    if (ApiResponseHelper.isSuccess(response)) {
+      showToast(`Container ${action}ed successfully`, "success");
+      await fetchContainers();
+    } else {
+      showToast(response.message ?? `Failed to ${action} container`, "error");
+    }
+  } catch (error) {
+    showToast(`Failed to ${action} container`, "error");
+    console.error(`Failed to ${action} container:`, error);
+  }
 };
 
 onMounted(() => {
@@ -111,21 +229,58 @@ watch(
               </TableCell>
               <TableCell class="font-mono text-xs">{{
                 container.ports
-                }}</TableCell>
+              }}</TableCell>
               <TableCell class="text-muted-foreground">{{
                 container.created
-                }}</TableCell>
+              }}</TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" class="h-8 px-2">
+                  <Button variant="ghost" size="sm" class="h-8 px-2" :disabled="container.status === 'running'"
+                    @click="handleContainerAction('start', container)">
                     <Icon icon="lucide:play" class="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" class="h-8 px-2">
+                  <Button variant="ghost" size="sm" class="h-8 px-2" :disabled="container.status !== 'running'"
+                    @click="handleContainerAction('stop', container)">
                     <Icon icon="lucide:square" class="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" class="h-8 px-2">
-                    <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
+                  <Button variant="ghost" size="sm" class="h-8 px-2" :disabled="container.status !== 'running'"
+                    @click="handleContainerAction('terminal', container)">
+                    <Icon icon="lucide:terminal" class="h-4 w-4" />
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                      <Button variant="ghost" size="sm" class="h-8 px-2">
+                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem :disabled="container.status === 'running'"
+                        @click="handleContainerAction('start', container)">
+                        <Icon icon="lucide:play" class="h-4 w-4 mr-2" />
+                        Start
+                      </DropdownMenuItem>
+                      <DropdownMenuItem :disabled="container.status !== 'running'"
+                        @click="handleContainerAction('stop', container)">
+                        <Icon icon="lucide:square" class="h-4 w-4 mr-2" />
+                        Stop
+                      </DropdownMenuItem>
+                      <DropdownMenuItem :disabled="container.status !== 'running'"
+                        @click="handleContainerAction('restart', container)">
+                        <Icon icon="lucide:rotate-cw" class="h-4 w-4 mr-2" />
+                        Restart
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem @click="handleContainerAction('log', container)">
+                        <Icon icon="lucide:file-text" class="h-4 w-4 mr-2" />
+                        Log
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" @click="handleContainerAction('remove', container)">
+                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </TableCell>
             </TableRow>
@@ -138,4 +293,26 @@ watch(
       </div>
     </CardContent>
   </Card>
+
+  <!-- Log Dialog -->
+  <Dialog v-model:open="isLogDialogOpen" @update:open="(open) => !open && closeLogDialog()">
+    <DialogContent
+      class="!max-w-none !w-screen !h-screen !max-h-screen flex flex-col p-0 gap-0 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 !right-0 !bottom-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b shrink-0">
+        <DialogTitle>Container Logs - {{ logContainerName }}</DialogTitle>
+        <DialogDescription>
+          Real-time logs from the container
+        </DialogDescription>
+      </DialogHeader>
+      <div ref="logContentRef" class="flex-1 overflow-y-auto bg-muted/30 p-4 font-mono text-xs">
+        <div v-if="logContent.length === 0" class="text-center text-muted-foreground py-8">
+          Waiting for logs...
+        </div>
+        <div v-for="(line, index) in logContent" :key="index"
+          class="mb-0.5 whitespace-pre-wrap break-words leading-relaxed">
+          {{ line }}
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

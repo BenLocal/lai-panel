@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import MonacoEditor from "@guolao/vue-monaco-editor";
-import { load } from "js-yaml";
 
 const props = withDefaults(
   defineProps<{

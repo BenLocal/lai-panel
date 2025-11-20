@@ -14,6 +14,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
+	dockerClient "github.com/docker/docker/client"
 )
 
 func (h *BaseHandler) DockerInfo(ctx context.Context, c *app.RequestContext) {
@@ -37,7 +38,9 @@ func (h *BaseHandler) DockerContainers(ctx context.Context, c *app.RequestContex
 		c.Error(err)
 		return
 	}
-	containers, err := nodeState.DockerClient.ContainerList(ctx, container.ListOptions{})
+	containers, err := nodeState.DockerClient.ContainerList(ctx, container.ListOptions{
+		All: true,
+	})
 	if err != nil {
 		c.Error(err)
 		return
@@ -143,6 +146,90 @@ func (h *BaseHandler) DockerList(ctx context.Context, c *app.RequestContext) {
 	c.JSON(http.StatusOK, containers)
 }
 
+func (h *BaseHandler) DockerContainerStart(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	err = client.ContainerStart(ctx, r.ContainerId, container.StartOptions{})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(nil))
+}
+
+func (h *BaseHandler) DockerContainerStop(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	err = client.ContainerStop(ctx, r.ContainerId, container.StopOptions{})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(nil))
+}
+
+func (h *BaseHandler) DockerContainerRestart(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	err = client.ContainerRestart(ctx, r.ContainerId, container.StopOptions{})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(nil))
+}
+
+func (h *BaseHandler) DockerContainerRemove(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	err = client.ContainerRemove(ctx, r.ContainerId, container.RemoveOptions{
+		Force: true,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	c.JSON(http.StatusOK, SuccessResponse(nil))
+}
+
+func (h *BaseHandler) DockerContainerLog(ctx context.Context, c *app.RequestContext) {
+	client, r, err := h.getContainerRequest(c)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	logs, err := client.ContainerLogs(ctx, r.ContainerId, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	writer := sse.NewWriter(c)
+	defer writer.Close()
+	_, err = io.Copy(&CopyWriter{writer}, logs)
+	if err != nil {
+		writer.WriteEvent("", "error", []byte(err.Error()))
+		return
+	}
+	writer.WriteEvent("", "done", []byte("done"))
+}
+
 func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestContext) {
 	type dockerImagePullAutoRequest struct {
 		Image string `json:"image"`
@@ -229,4 +316,28 @@ func (c *CopyWriter) Write(p []byte) (n int, err error) {
 		return 0, err
 	}
 	return len(p), err
+}
+
+type containerActionRequest struct {
+	ContainerId string `json:"container_id"`
+}
+
+func (h *BaseHandler) getContainerRequest(c *app.RequestContext) (*dockerClient.Client, *containerActionRequest, error) {
+	var req containerActionRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		return nil, nil, err
+	}
+	nodeId, err := h.getNodeIDFromRequest(c)
+	if err != nil {
+		return nil, nil, err
+	}
+	node, err := h.NodeRepository().GetByID(nodeId)
+	if err != nil {
+		return nil, nil, err
+	}
+	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	if err != nil {
+		return nil, nil, err
+	}
+	return nodeState.DockerClient, &req, nil
 }

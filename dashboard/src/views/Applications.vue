@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ import {
 import ApplicationQAEditor from "@/components/application/ApplicationQAEditor.vue";
 import { Separator } from "@/components/ui/separator";
 import YamlEditor from "@/components/application/YamlEditor.vue";
-import { load as parseYaml } from "js-yaml";
 import {
   Dialog,
   DialogContent,
@@ -291,7 +290,7 @@ onMounted(() => {
         <SheetHeader class="px-3 sm:px-5">
           <SheetTitle>{{
             isEditMode ? "Edit Application" : "Add Application"
-          }}</SheetTitle>
+            }}</SheetTitle>
           <SheetDescription>
             {{
               isEditMode

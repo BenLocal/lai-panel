@@ -1,4 +1,4 @@
-import { post, type ApiResponse } from "./base";
+import { post, stream, type ApiResponse } from "./base";
 
 export interface DockerInfo {
   version: string;
@@ -86,6 +86,38 @@ export const dockerApi = {
   async containers(nodeId: number): Promise<ApiResponse<Container[]>> {
     const header = getHeaders(nodeId);
     return post<Container[]>("/api/docker/containers", null, header);
+  },
+
+  async containerStart(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+    const header = getHeaders(nodeId);
+    return post<void>("/api/docker/container/start", { container_id: containerId }, header);
+  },
+
+  async containerStop(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+    const header = getHeaders(nodeId);
+    return post<void>("/api/docker/container/stop", { container_id: containerId }, header);
+  },
+
+  async containerRestart(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+    const header = getHeaders(nodeId);
+    return post<void>("/api/docker/container/restart", { container_id: containerId }, header);
+  },
+
+  async containerRemove(nodeId: number, containerId: string): Promise<ApiResponse<void>> {
+    const header = getHeaders(nodeId);
+    return post<void>("/api/docker/container/remove", { container_id: containerId }, header);
+  },
+
+  async containerLogStream(
+    nodeId: number,
+    containerId: string,
+    onMessage?: (data: string) => void,
+    onError?: (error: Error) => void,
+    onEnd?: () => void
+  ): Promise<AbortController> {
+    const header = getHeaders(nodeId);
+    return stream("/api/docker/container/log", { container_id: containerId },
+      onMessage, onError, onEnd, header);
   },
 
   async images(nodeId: number): Promise<ApiResponse<Image[]>> {

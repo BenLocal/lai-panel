@@ -48,6 +48,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "docker/container/terminal",
+        name: "DockerContainerTerminal",
+        component: () => import("@/views/docker/DockerContainerTerminal.vue"),
+        meta: {
+          title: "Container Terminal",
+          icon: "lucide:terminal",
+        },
+      },
+      {
         path: "services",
         name: "Services",
         component: () => import("@/views/Services.vue"),
