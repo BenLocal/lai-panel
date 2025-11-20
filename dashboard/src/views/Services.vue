@@ -25,6 +25,16 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Stepper,
   StepperItem,
   StepperTrigger,
@@ -77,6 +87,9 @@ const deployOutput = ref<string[]>([]);
 const deployOutputRef = ref<HTMLDivElement | null>(null);
 const isDeployOutputDrawerOpen = ref(false);
 const editingServiceId = ref<number | null>(null);
+const isDeleteDialogOpen = ref(false);
+const serviceToDelete = ref<Service | null>(null);
+const forceDelete = ref(false);
 
 // Fetch services with pagination
 const fetchServices = async (page: number = currentPage.value) => {
@@ -90,7 +103,7 @@ const fetchServices = async (page: number = currentPage.value) => {
       pageSize.value = response.data?.pageSize || 10;
     }
   } catch (error) {
-    console.error("Failed to fetch services:", error);
+    showToast("Failed to fetch services:", "error");
   } finally {
     loading.value = false;
   }
@@ -106,7 +119,7 @@ const fetchApplications = async () => {
       applications.value = response.data || [];
     }
   } catch (error) {
-    console.error("Failed to fetch applications:", error);
+    showToast("Failed to fetch applications:", "error");
   } finally {
     applicationsLoading.value = false;
   }
@@ -122,7 +135,7 @@ const fetchNodes = async () => {
       nodes.value = response.data || [];
     }
   } catch (error) {
-    console.error("Failed to fetch nodes:", error);
+    showToast("Failed to fetch nodes:", "error");
   } finally {
     nodesLoading.value = false;
   }
@@ -144,6 +157,44 @@ const openDeployDialog = async () => {
 
   // Initialize first step data
   await goToStep(1);
+};
+
+// Open delete dialog
+const openDeleteDialog = (service: Service) => {
+  serviceToDelete.value = service;
+  forceDelete.value = false;
+  isDeleteDialogOpen.value = true;
+};
+
+// Confirm delete service
+const confirmDeleteService = async () => {
+  if (!serviceToDelete.value) {
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const response = await serviceApi.delete(serviceToDelete.value.id, forceDelete.value);
+    if (ApiResponseHelper.isSuccess(response)) {
+      showToast("Service deleted successfully", "success");
+      // Refresh services list
+      await fetchServices(currentPage.value);
+      // If current page is empty, go to previous page
+      if (services.value.length === 0 && currentPage.value > 1) {
+        await fetchServices(currentPage.value - 1);
+      }
+    } else {
+      showToast(response.message ?? "Failed to delete service", "error");
+    }
+  } catch (error) {
+    showToast("Failed to delete service", "error");
+    console.error("Failed to delete service:", error);
+  } finally {
+    loading.value = false;
+    isDeleteDialogOpen.value = false;
+    serviceToDelete.value = null;
+    forceDelete.value = false;
+  }
 };
 
 // Close deploy sheet
@@ -332,9 +383,7 @@ const deployService = async ({
 
   if (onlySave) {
     showToast(editingServiceId.value ? "Service updated successfully" : "Service saved successfully", "success");
-    if (editingServiceId.value) {
-      closeDeployDialog();
-    }
+    closeDeployDialog();
     return;
   }
 
@@ -359,13 +408,12 @@ const deployService = async ({
     },
     (error) => {
       deployOutput.value.push(`[错误] ${error.message}`);
-      console.error("Failed to deploy service:", error);
+      showToast("Failed to deploy service:", "error");
       deployLoading.value = false;
     },
     () => {
       // 部署完成
       deployLoading.value = false;
-      console.log("Deployment completed");
       deployOutput.value.push("Deployment completed!!!");
       // Refresh services list after deployment
       fetchServices(currentPage.value);
@@ -417,10 +465,6 @@ onMounted(() => {
         <Icon icon="lucide:plus" class="h-4 w-4 mr-2" />
         Deploy Service
       </Button>
-      <Button variant="outline" @click="() =>
-        showToast('Event has been created', 'info')">
-        Show Toast
-      </Button>
     </div>
 
     <!-- Loading State -->
@@ -453,10 +497,17 @@ onMounted(() => {
             </TableCell>
             <TableCell class="px-6">{{ service.node_id }}</TableCell>
             <TableCell class="px-6">
-              <Button variant="ghost" size="sm" @click="openEditDialog(service)">
-                <Icon icon="lucide:edit" class="h-4 w-4 mr-1" />
-                Edit
-              </Button>
+              <div class="flex items-center gap-2">
+                <Button variant="ghost" size="sm" @click="openEditDialog(service)">
+                  <Icon icon="lucide:edit" class="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+                <Button variant="ghost" size="sm" @click="openDeleteDialog(service)"
+                  class="text-destructive hover:text-destructive hover:bg-destructive/10">
+                  <Icon icon="lucide:trash-2" class="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         </TableBody>
@@ -548,9 +599,9 @@ onMounted(() => {
                     ? 'default'
                     : 'outline'
                     " size="icon" class="z-10 rounded-full shrink-0" :class="[
-                                          state === 'active' &&
-                                          'ring-2 ring-ring ring-offset-2 ring-offset-background',
-                                        ]" @click.stop="handleStepChange(1)">
+                      state === 'active' &&
+                      'ring-2 ring-ring ring-offset-2 ring-offset-background',
+                    ]" @click.stop="handleStepChange(1)">
                     <Icon v-if="state === 'completed'" icon="lucide:check" class="h-5 w-5" />
                     <Icon v-else-if="state === 'active'" icon="lucide:circle" class="h-5 w-5" />
                     <Icon v-else icon="lucide:dot" class="h-5 w-5" />
@@ -578,9 +629,9 @@ onMounted(() => {
                     ? 'default'
                     : 'outline'
                     " size="icon" class="z-10 rounded-full shrink-0" :class="[
-                                          state === 'active' &&
-                                          'ring-2 ring-ring ring-offset-2 ring-offset-background',
-                                        ]" @click.stop="handleStepChange(2)">
+                      state === 'active' &&
+                      'ring-2 ring-ring ring-offset-2 ring-offset-background',
+                    ]" @click.stop="handleStepChange(2)">
                     <Icon v-if="state === 'completed'" icon="lucide:check" class="h-5 w-5" />
                     <Icon v-else-if="state === 'active'" icon="lucide:circle" class="h-5 w-5" />
                     <Icon v-else icon="lucide:dot" class="h-5 w-5" />
@@ -606,9 +657,9 @@ onMounted(() => {
                     ? 'default'
                     : 'outline'
                     " size="icon" class="z-10 rounded-full shrink-0" :class="[
-                                          state === 'active' &&
-                                          'ring-2 ring-ring ring-offset-2 ring-offset-background',
-                                        ]" @click.stop="handleStepChange(3)">
+                      state === 'active' &&
+                      'ring-2 ring-ring ring-offset-2 ring-offset-background',
+                    ]" @click.stop="handleStepChange(3)">
                     <Icon v-if="state === 'completed'" icon="lucide:check" class="h-5 w-5" />
                     <Icon v-else-if="state === 'active'" icon="lucide:circle" class="h-5 w-5" />
                     <Icon v-else icon="lucide:dot" class="h-5 w-5" />
@@ -671,8 +722,7 @@ onMounted(() => {
                 <div v-if="
                   !selectedApplication?.qa ||
                   selectedApplication.qa.length === 0
-                "
-                  class="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
+                " class="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                   No QA configuration required for this application.
                 </div>
                 <div v-else class="space-y-4">
@@ -796,5 +846,31 @@ onMounted(() => {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="isDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Service</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete service "{{ serviceToDelete?.name }}"?
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div class="flex items-center space-x-2 py-4">
+          <Checkbox id="force-delete" :model-value="forceDelete"
+            @update:model-value="(checked: boolean | 'indeterminate') => forceDelete = checked === true" />
+          <Label for="force-delete" class="text-sm font-normal cursor-pointer">
+            Force delete (undeploy if deployed)
+          </Label>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction @click="confirmDeleteService" :disabled="loading">
+            {{ loading ? "Deleting..." : "Delete" }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

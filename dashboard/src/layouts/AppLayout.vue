@@ -73,7 +73,7 @@ const isActive = (path: string) => {
 
 <template>
   <SidebarProvider>
-    <ResizablePanelGroup direction="horizontal" class="min-h-screen w-full">
+    <ResizablePanelGroup direction="horizontal" class="h-screen w-full overflow-hidden">
       <ResizablePanel :default-size="20" :min-size="15" :max-size="40">
         <Sidebar collapsible="none" class="h-screen">
           <SidebarHeader>
@@ -82,7 +82,7 @@ const isActive = (path: string) => {
                 <Icon icon="lucide:layers" class="h-4 w-4" />
               </div>
               <div class="flex flex-col">
-                <span class="font-semibold text-sm">Acme Inc</span>
+                <span class="font-semibold text-sm">Panel Manager</span>
                 <span class="text-xs text-muted-foreground">Enterprise</span>
               </div>
               <Icon icon="lucide:chevron-up" class="ml-auto h-4 w-4 text-muted-foreground" />
@@ -117,7 +117,7 @@ const isActive = (path: string) => {
                       <Icon icon="lucide:user" class="h-4 w-4" />
                     </div>
                     <div class="flex flex-col flex-1 min-w-0">
-                      <span class="font-semibold text-sm truncate">shadcn</span>
+                      <span class="font-semibold text-sm truncate">admin</span>
                       <span class="text-xs text-muted-foreground truncate">m@example.com</span>
                     </div>
                     <Icon icon="lucide:chevron-up" class="h-4 w-4 text-muted-foreground" />
@@ -132,7 +132,7 @@ const isActive = (path: string) => {
       <ResizableHandle with-handle />
 
       <ResizablePanel :default-size="80" :min-size="60">
-        <SidebarInset>
+        <SidebarInset class="flex flex-col h-screen overflow-hidden">
           <header class="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
             <div class="flex items-center gap-2">
               <SidebarTrigger class="-ml-1" />
@@ -155,7 +155,7 @@ const isActive = (path: string) => {
               </Button>
             </div>
           </header>
-          <main class="flex flex-1 flex-col gap-4 p-4">
+          <main class="flex flex-1 flex-col gap-4 p-4 overflow-y-auto">
             <router-view />
           </main>
         </SidebarInset>

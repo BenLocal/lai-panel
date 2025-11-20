@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import MonacoEditor from "@guolao/vue-monaco-editor";
 import { load } from "js-yaml";
 
@@ -11,7 +11,7 @@ const props = withDefaults(
   }>(),
   {
     modelValue: "",
-    height: 320,
+    height: 620,
     readOnly: false,
   }
 );
@@ -48,113 +48,66 @@ const editorOptions = computed(() => ({
   readOnly: props.readOnly,
 }));
 
-const parsedState = computed(() => {
-  const source = yamlContent.value;
+const containerRef = ref<HTMLElement | null>(null);
+const editorHeight = ref<number | string>(props.height);
 
-  if (!source || !source.trim()) {
-    return {
-      error: null as string | null,
-      content: "",
-    };
-  }
-
-  try {
-    const parsed = load(source);
-    let stringified = "";
-
-    if (parsed !== undefined) {
-      stringified =
-        typeof parsed === "string" ? parsed : JSON.stringify(parsed, null, 2);
+// Calculate height when using percentage
+const updateHeight = () => {
+  if (containerRef.value && typeof props.height === "string" && props.height.includes("%")) {
+    const parent = containerRef.value.parentElement;
+    if (parent) {
+      const parentHeight = parent.clientHeight;
+      const percentValue = parseFloat(props.height) / 100;
+      editorHeight.value = parentHeight * percentValue;
     }
-
-    return {
-      error: null as string | null,
-      content: stringified,
-    };
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unable to parse YAML content";
-    return {
-      error: message,
-      content: "",
-    };
+  } else {
+    editorHeight.value = props.height;
   }
+};
+
+onMounted(() => {
+  updateHeight();
+  window.addEventListener("resize", updateHeight);
 });
 
-const previewContent = computed(() => parsedState.value.content);
-const parseError = computed(() => parsedState.value.error);
+onUnmounted(() => {
+  window.removeEventListener("resize", updateHeight);
+});
 
-watch(
-  () => parseError.value,
-  (error) => {
-    emit("valid-state-change", !error);
-  },
-  { immediate: true }
-);
+watch(() => props.height, updateHeight);
 </script>
 
 <template>
-  <div class="space-y-3">
-    <div
-      class="grid gap-4 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)]"
-      :class="readOnly ? 'opacity-80' : ''"
-    >
-      <div class="rounded-lg border">
-        <div
-          class="border-b px-3 py-2 text-xs font-medium uppercase text-muted-foreground"
-        >
-          Editor
-        </div>
-        <MonacoEditor
-          class="yaml-editor-container"
-          v-model:value="yamlContent"
-          theme="vs-dark"
-          language="yaml"
-          :options="editorOptions"
-          :style="{
-            minHeight: typeof height === 'number' ? `${height}px` : height,
-          }"
-        />
-      </div>
-      <div class="rounded-lg border">
-        <div
-          class="border-b px-3 py-2 flex items-center justify-between text-xs font-medium uppercase text-muted-foreground"
-        >
-          <span>Preview (JSON)</span>
-          <span
-            v-if="!parseError"
-            class="text-[10px] font-normal text-muted-foreground"
-          >
-            Parsed successfully
-          </span>
-          <span v-else class="text-[10px] font-normal text-destructive">
-            Invalid YAML
-          </span>
-        </div>
-        <div
-          class="preview-container whitespace-pre-wrap break-words bg-muted/40 px-3 py-2 text-xs font-mono text-muted-foreground"
-          :class="[parseError ? 'border-destructive/50' : 'border-transparent']"
-        >
-          <template v-if="parseError">
-            {{ parseError }}
-          </template>
-          <template v-else-if="previewContent">
-            {{ previewContent }}
-          </template>
-          <template v-else>
-            <span class="italic text-muted-foreground/70">
-              The parsed JSON view will appear here.
-            </span>
-          </template>
-        </div>
+  <div ref="containerRef" class="space-y-3 h-full flex flex-col">
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)] flex-1 min-h-0"
+      :class="readOnly ? 'opacity-80' : ''">
+      <div class="rounded-lg border flex flex-col overflow-hidden">
+        <MonacoEditor class="yaml-editor-container flex-1" v-model:value="yamlContent" theme="vs-dark" language="yaml"
+          :options="editorOptions" :style="{
+            height: typeof editorHeight === 'number' ? `${editorHeight}px` : editorHeight,
+            minHeight: typeof props.height === 'number' ? `${props.height}px` : props.height,
+          }" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+.yaml-editor-container {
+  height: 100%;
+}
+
 .yaml-editor-container :deep(.monaco-editor) {
   border-radius: 0 0 0.5rem 0.5rem;
+  height: 100% !important;
+}
+
+.yaml-editor-container :deep(.monaco-editor .monaco-editor-background) {
+  height: 100%;
+}
+
+.yaml-editor-container :deep(.monaco-editor .overflow-guard) {
+  height: 100%;
 }
 
 .preview-container {

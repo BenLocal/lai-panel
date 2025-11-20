@@ -6,18 +6,24 @@ import (
 	"github.com/benlocal/lai-panel/pkg/hub"
 	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/benlocal/lai-panel/pkg/options"
+	"github.com/benlocal/lai-panel/pkg/pipe"
 	"github.com/benlocal/lai-panel/pkg/repository"
 )
 
 type BaseHandler struct {
 	options options.IOptions
 	appCtx  *ctx.AppCtx
+
+	deployPipeline *pipe.DeployPipeline
 }
 
 func NewBaseHandler(appCtx *ctx.AppCtx) *BaseHandler {
+	deployPipeline := pipe.NewDeployPipeline()
+
 	return &BaseHandler{
-		appCtx:  appCtx,
-		options: appCtx.Options(),
+		appCtx:         appCtx,
+		options:        appCtx.Options(),
+		deployPipeline: deployPipeline,
 	}
 }
 

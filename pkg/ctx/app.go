@@ -7,7 +7,6 @@ import (
 	"github.com/benlocal/lai-panel/pkg/hub"
 	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/benlocal/lai-panel/pkg/options"
-	"github.com/benlocal/lai-panel/pkg/pipe"
 	"github.com/benlocal/lai-panel/pkg/repository"
 )
 
@@ -20,7 +19,6 @@ type AppCtx struct {
 	serviceRepository *repository.ServiceRepository
 	signalrServer     *hub.SignalRServer
 	kvRepository      *repository.KvRepository
-	nodePipeline      *pipe.NodePipeline
 }
 
 func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCtx {
@@ -33,7 +31,6 @@ func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCt
 		kvRepository := repository.NewKvRepository()
 		h := hub.NewSimpleHub(nodeRepository)
 		signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
-		nodePipeline := pipe.NewNodePipeline()
 
 		return &AppCtx{
 			kvRepository:      kvRepository,
@@ -43,7 +40,6 @@ func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCt
 			signalrServer:     signalrServer,
 			serviceRepository: serviceRepository,
 			options:           options,
-			nodePipeline:      nodePipeline,
 			dockerProxy:       dockerProxy,
 		}
 	}
@@ -72,10 +68,6 @@ func (a *AppCtx) ServiceRepository() *repository.ServiceRepository {
 
 func (a *AppCtx) KvRepository() *repository.KvRepository {
 	return a.kvRepository
-}
-
-func (a *AppCtx) NodePipeline() *pipe.NodePipeline {
-	return a.nodePipeline
 }
 
 func (a *AppCtx) DockerProxy() *docker.DockerProxy {

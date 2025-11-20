@@ -2,17 +2,15 @@ package handler
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
+	"errors"
 	"net/http"
-	"sort"
-	"strings"
-	"sync"
-	"time"
 
+	"github.com/benlocal/lai-panel/pkg/model"
+	"github.com/benlocal/lai-panel/pkg/pipe/deploypipe"
 	"github.com/benlocal/lai-panel/pkg/tmpl"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/sse"
-	"gopkg.in/yaml.v3"
 )
 
 func (b *BaseHandler) HandleDockerComposeConfig(ctx context.Context, c *app.RequestContext) {
@@ -38,8 +36,10 @@ func (b *BaseHandler) HandleDockerComposeConfig(ctx context.Context, c *app.Requ
 
 func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.RequestContext) {
 	type dockerComposeDeployRequest struct {
-		AppId  int64 `json:"app_id"`
-		NodeId int64 `json:"node_id"`
+		ServiceId int64             `json:"service_id"`
+		AppId     int64             `json:"app_id"`
+		NodeId    int64             `json:"node_id"`
+		QAValues  map[string]string `json:"qa_values"`
 	}
 	var req dockerComposeDeployRequest
 	if err := c.BindAndValidate(&req); err != nil {
@@ -49,166 +49,164 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 	writer := sse.NewWriter(c)
 	defer writer.Close()
 
-	var sendMu sync.Mutex
-	send := func(event string, data string) bool {
-		sendMu.Lock()
-		defer sendMu.Unlock()
-		if err := writer.WriteEvent("", event, []byte(data)); err != nil {
-			return false
-		}
-		return true
-	}
+	deployCtx := deploypipe.NewDeployCtx(
+		b.options,
+		writer,
+		req.QAValues,
+	)
 
-	if req.AppId == 0 || req.NodeId == 0 {
-		send("error", "app_id and node_id are required")
+	service, err := b.ServiceRepository().GetByID(req.ServiceId)
+	if err != nil {
+		deployCtx.Send("error", err.Error())
 		return
 	}
-
-	if !send("message", "Fetching application information") {
+	if service == nil {
+		deployCtx.Send("error", "service not found")
 		return
 	}
+	deployCtx.Service = service
 
 	app, err := b.AppRepository().GetByID(req.AppId)
 	if err != nil {
-		send("error", fmt.Sprintf("Failed to fetch application: %v", err))
+		deployCtx.Send("error", err.Error())
 		return
 	}
 	if app == nil {
-		send("error", "Application not found")
+		deployCtx.Send("error", "app not found")
 		return
 	}
-	if app.DockerCompose == nil || len(strings.TrimSpace(*app.DockerCompose)) == 0 {
-		send("error", "Application does not have docker compose configuration")
-		return
-	}
-
-	if !send("message", "Loading node information") {
-		return
-	}
+	deployCtx.App = app
 
 	node, err := b.NodeRepository().GetByID(req.NodeId)
 	if err != nil {
-		send("error", fmt.Sprintf("Failed to fetch node: %v", err))
+		deployCtx.Send("error", err.Error())
 		return
 	}
 	if node == nil {
-		send("error", "Node not found")
+		deployCtx.Send("error", "node not found")
 		return
 	}
-
-	env := app.GetDefaultEnv()
-	if env == nil {
-		env = make(map[string]string)
-	}
-	env["APP_NAME"] = app.Name
-	env["APP_VERSION"] = app.Version
-	env["NODE_NAME"] = node.Name
-
-	if !send("message", "Rendering docker compose template") {
-		return
-	}
-
-	config, err := tmpl.ParseDockerCompose(app.Name, *app.DockerCompose, env)
-	if err != nil {
-		send("error", fmt.Sprintf("Failed to render docker compose template: %v", err))
-		return
-	}
-
 	state, err := b.NodeManager().AddOrGetNode(node)
 	if err != nil {
-		send("error", fmt.Sprintf("Failed to initialize node executor: %v", err))
+		deployCtx.Send("error", err.Error())
 		return
 	}
+	deployCtx.NodeState = state
 
-	_, _ = extractComposeImages(config)
+	res, err := b.deployPipeline.Up(ctx, deployCtx)
 	if err != nil {
-		send("error", fmt.Sprintf("Failed to parse docker compose images: %v", err))
+		deployCtx.Send("error", err.Error())
 		return
 	}
 
-	filePath := fmt.Sprintf("/tmp/%s-%d-compose.yaml", sanitizeName(app.Name), time.Now().Unix())
-	if !send("message", fmt.Sprintf("Uploading docker compose file to node (%s)", filePath)) {
+	// update service deploy info and status
+	err = b.updateServiceDeployInfo(service, res.GetDeployInfo())
+	if err != nil {
+		deployCtx.Send("error", err.Error())
 		return
 	}
-	if err := state.Exec.WriteFile(filePath, []byte(config)); err != nil {
-		send("error", fmt.Sprintf("Failed to upload docker compose file: %v", err))
+}
+
+func (b *BaseHandler) HandleDockerComposeUndeploy(ctx context.Context, c *app.RequestContext) {
+	type dockerComposeUndeployRequest struct {
+		ServiceId int64 `json:"service_id"`
+	}
+	var req dockerComposeUndeployRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
 		return
 	}
 
-	commands := []struct {
-		Title   string
-		Command string
-	}{
-		{
-			Title:   "Pulling latest images",
-			Command: fmt.Sprintf("docker compose -f %s pull", filePath),
-		},
-		{
-			Title:   "Starting services",
-			Command: fmt.Sprintf("docker compose -f %s up -d --remove-orphans", filePath),
-		},
+	service, err := b.ServiceRepository().GetByID(req.ServiceId)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if service == nil {
+		return
 	}
 
-	for _, step := range commands {
-		if !send("message", fmt.Sprintf("%s...", step.Title)) {
-			return
-		}
-		if err := state.Exec.ExecuteCommand(
-			step.Command,
-			env,
-			func(line string) {
-				if strings.TrimSpace(line) == "" {
-					return
-				}
-				send("log", line)
-			},
-			func(line string) {
-				if strings.TrimSpace(line) == "" {
-					return
-				}
-				send("error", line)
-			},
-		); err != nil {
-			send("error", fmt.Sprintf("Command failed: %v", err))
-			return
-		}
+	_, err = b.dockerComposeUndeploy(ctx, service)
+	if err != nil {
+		c.Error(err)
+		return
 	}
-
-	send("done", "Deployment completed successfully")
 
 }
 
-func extractComposeImages(config string) ([]string, error) {
-	type composeService struct {
-		Image string `yaml:"image"`
+func (b *BaseHandler) updateServiceDeployInfo(service *model.Service, deployInfo map[string]string) error {
+	jsonStr, err := json.Marshal(deployInfo)
+	if err != nil {
+		return err
 	}
-	type composeDocument struct {
-		Services map[string]composeService `yaml:"services"`
+	j := string(jsonStr)
+	db := model.Service{
+		DeployInfo: &j,
+		Status:     "running",
+		ID:         service.ID,
 	}
 
-	var doc composeDocument
-	if err := yaml.Unmarshal([]byte(config), &doc); err != nil {
+	return b.ServiceRepository().UpdateDeployInfo(&db)
+}
+
+func (b *BaseHandler) dockerComposeUndeploy(ctx context.Context, service *model.Service) (*deploypipe.DownCtx, error) {
+	var deployInfo map[string]string
+	err := json.Unmarshal([]byte(*service.DeployInfo), &deployInfo)
+	if err != nil {
+		return nil, err
+	}
+	node, err := b.NodeRepository().GetByID(service.NodeID)
+	if err != nil {
+		return nil, err
+	}
+	if node == nil {
+		return nil, errors.New("node not found")
+	}
+	state, err := b.NodeManager().AddOrGetNode(node)
+	if err != nil {
 		return nil, err
 	}
 
-	imagesSet := make(map[string]struct{})
-	for _, service := range doc.Services {
-		image := strings.TrimSpace(service.Image)
-		if image == "" {
-			continue
-		}
-		imagesSet[image] = struct{}{}
+	downCtx := deploypipe.NewDownCtx(service, state, deployInfo)
+	res, err := b.deployPipeline.Down(ctx, downCtx)
+	if err != nil {
+		return nil, err
 	}
 
-	images := make([]string, 0, len(imagesSet))
-	for image := range imagesSet {
-		images = append(images, image)
-	}
-
-	sort.Strings(images)
-	return images, nil
+	return res, nil
 }
 
-func sanitizeName(name string) string {
-	return strings.ReplaceAll(name, " ", "-")
-}
+// func extractComposeImages(config string) ([]string, error) {
+// 	type composeService struct {
+// 		Image string `yaml:"image"`
+// 	}
+// 	type composeDocument struct {
+// 		Services map[string]composeService `yaml:"services"`
+// 	}
+
+// 	var doc composeDocument
+// 	if err := yaml.Unmarshal([]byte(config), &doc); err != nil {
+// 		return nil, err
+// 	}
+
+// 	imagesSet := make(map[string]struct{})
+// 	for _, service := range doc.Services {
+// 		image := strings.TrimSpace(service.Image)
+// 		if image == "" {
+// 			continue
+// 		}
+// 		imagesSet[image] = struct{}{}
+// 	}
+
+// 	images := make([]string, 0, len(imagesSet))
+// 	for image := range imagesSet {
+// 		images = append(images, image)
+// 	}
+
+// 	sort.Strings(images)
+// 	return images, nil
+// }
+
+// func sanitizeName(name string) string {
+// 	return strings.ReplaceAll(name, " ", "-")
+// }

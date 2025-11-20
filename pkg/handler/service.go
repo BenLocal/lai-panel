@@ -88,3 +88,48 @@ func (h *BaseHandler) SaveServiceHandler(ctx context.Context, c *app.RequestCont
 		ID: id,
 	}))
 }
+
+func (h *BaseHandler) DeleteServiceHandler(ctx context.Context, c *app.RequestContext) {
+	type deleteServiceRequest struct {
+		ID    int64 `json:"id"`
+		Force bool  `json:"force"`
+	}
+
+	var req deleteServiceRequest
+	if err := c.BindAndValidate(&req); err != nil {
+		c.Error(err)
+		return
+	}
+
+	currentService, err := h.ServiceRepository().GetByID(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	if currentService == nil {
+		c.Error(errors.New("service not found"))
+		return
+	}
+
+	// check if service is deployed
+	if currentService.DeployInfo != nil {
+		if !req.Force {
+			c.Error(errors.New("service is deployed, use force to undeploy"))
+			return
+		}
+
+		_, err = h.dockerComposeUndeploy(ctx, currentService)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+	}
+
+	err = h.ServiceRepository().Delete(req.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, SuccessResponse(nil))
+}

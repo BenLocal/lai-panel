@@ -27,6 +27,13 @@ func InitOptions(options IOptions) error {
 		return err
 	}
 
+	// service
+	secretPath := options.ServicePath()
+	err = os.MkdirAll(secretPath, 0755)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -36,6 +43,8 @@ type IOptions interface {
 	StaticDataPath() string
 
 	LogDataPath() string
+
+	ServicePath() string
 
 	Agent() bool
 }

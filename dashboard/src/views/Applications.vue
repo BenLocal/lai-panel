@@ -29,6 +29,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ApiResponseHelper } from "@/api/base";
+import { showToast } from "@/lib/toast";
 
 interface ApplicationForm {
   name: string;
@@ -48,7 +49,6 @@ const isSheetOpen = ref(false);
 const isEditMode = ref(false);
 const loading = ref(false);
 const editingApplicationId = ref<number | null>(null);
-const isDockerComposeValid = ref(true);
 const isComposeEditorOpen = ref(false);
 
 const createDefaultForm = (): ApplicationForm => ({
@@ -81,27 +81,6 @@ const fetchApplications = async () => {
   pageSize.value = data?.pageSize || 6;
 };
 
-const handleDockerComposeValidityChange = (isValid: boolean) => {
-  isDockerComposeValid.value = isValid;
-};
-
-watch(
-  () => formData.dockerCompose,
-  (value) => {
-    if (!value || !value.trim()) {
-      isDockerComposeValid.value = true;
-      return;
-    }
-    try {
-      parseYaml(value);
-      isDockerComposeValid.value = true;
-    } catch {
-      isDockerComposeValid.value = false;
-    }
-  },
-  { immediate: true }
-);
-
 const dockerComposePreview = computed(() => {
   const content = formData.dockerCompose?.trim();
   if (!content) {
@@ -130,7 +109,6 @@ const isSaveDisabled = computed(() => {
   return (
     !formData.name.trim() ||
     !isNameValid.value ||
-    !isDockerComposeValid.value ||
     loading.value
   );
 });
@@ -138,7 +116,6 @@ const isSaveDisabled = computed(() => {
 const resetForm = () => {
   Object.assign(formData, createDefaultForm());
   editingApplicationId.value = null;
-  isDockerComposeValid.value = true;
   isComposeEditorOpen.value = false;
 };
 
@@ -215,7 +192,7 @@ const saveApplication = async () => {
     isEditMode.value = false;
     resetForm();
   } catch (error) {
-    console.error("Failed to save application", error);
+    showToast("Failed to save application", "error");
   } finally {
     loading.value = false;
   }
@@ -387,10 +364,6 @@ onMounted(() => {
                     </Button>
                   </div>
                 </div>
-                <p v-if="!isDockerComposeValid" class="text-xs text-destructive">
-                  YAML contains syntax errors. Please fix them in the editor
-                  before saving.
-                </p>
               </div>
             </div>
             <div class="space-y-2">
@@ -429,21 +402,10 @@ onMounted(() => {
           </DialogDescription>
         </DialogHeader>
         <div class="flex-1 overflow-hidden">
-          <YamlEditor v-model="formData.dockerCompose" :height="'100%'"
-            @valid-state-change="handleDockerComposeValidityChange" />
+          <YamlEditor v-model="formData.dockerCompose" :height="'100%'" />
         </div>
         <DialogFooter class="border-t px-6 py-4">
           <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <span class="text-xs" :class="isDockerComposeValid
-              ? 'text-muted-foreground'
-              : 'text-destructive'
-              ">
-              {{
-                isDockerComposeValid
-                  ? "YAML parsed successfully."
-                  : "YAML contains syntax errors."
-              }}
-            </span>
             <div class="flex gap-2">
               <Button variant="outline" @click="isComposeEditorOpen = false">
                 Close

@@ -90,7 +90,6 @@ export async function stream(
 
   const processSSEEvent = () => {
     if (currentData) {
-      console.log(currentData);
       onMessage?.(currentData);
 
       // 检测 done 事件，表示部署完成
@@ -134,10 +133,9 @@ export async function stream(
 
   const handleError = (error: unknown) => {
     if (error instanceof Error && error.name === "AbortError") {
-      console.log("请求已取消");
+      //ignore
     } else {
       const err = error instanceof Error ? error : new Error(String(error));
-      console.error("SSE 请求错误:", err);
       onError?.(err);
     }
   };

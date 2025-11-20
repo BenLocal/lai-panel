@@ -60,3 +60,7 @@ func (o *AgentOptions) StaticDataPath() string {
 func (o *AgentOptions) LogDataPath() string {
 	return path.Join(o.dataPath, "logs")
 }
+
+func (o *AgentOptions) ServicePath() string {
+	return path.Join(o.dataPath, "services")
+}

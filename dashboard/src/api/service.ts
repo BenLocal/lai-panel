@@ -55,4 +55,12 @@ export const serviceApi = {
   ): Promise<AbortController> {
     return stream("/api/docker/compose/deploy", req, onMessage, onError, onEnd);
   },
+
+  async delete(id: number, force: boolean = false): Promise<ApiResponse<void>> {
+    return post<void>("/api/service/delete", { id: id, force: force });
+  },
+
+  async undeploy(id: number): Promise<ApiResponse<void>> {
+    return post<void>("/api/docker/compose/undeploy", { service_id: id });
+  },
 };

@@ -17,12 +17,11 @@ func NewServiceRepository() *ServiceRepository {
 func (r *ServiceRepository) Create(service *model.Service) (int64, error) {
 	query := `INSERT INTO services (name, app_id, node_id, status, metadata) 
 	VALUES (:name, :app_id, :node_id, :status, :metadata)`
-	_, err := r.db.NamedExec(query, service)
+	result, err := r.db.NamedExec(query, service)
 	if err != nil {
 		return 0, err
 	}
-	var id int64
-	err = r.db.Get(&id, "SELECT LAST_INSERT_ID()")
+	id, err := result.LastInsertId()
 	return id, err
 }
 
@@ -38,6 +37,15 @@ func (r *ServiceRepository) Update(service *model.Service) error {
 	node_id = :node_id,
 	metadata = :metadata,
 	updated_at = CURRENT_TIMESTAMP
+	WHERE id = :id`
+	_, err := r.db.NamedExec(query, service)
+	return err
+}
+
+func (r *ServiceRepository) UpdateDeployInfo(service *model.Service) error {
+	query := `UPDATE services SET deploy_info = :deploy_info,
+	status = :status,
+	updated_at = CURRENT_TIMESTAMP 
 	WHERE id = :id`
 	_, err := r.db.NamedExec(query, service)
 	return err

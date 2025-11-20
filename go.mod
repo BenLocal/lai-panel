@@ -16,7 +16,6 @@ require (
 	github.com/philippseith/signalr v0.8.0
 	github.com/pkg/sftp v1.13.10
 	golang.org/x/crypto v0.43.0
-	gopkg.in/yaml.v3 v3.0.1
 	gotest.tools/v3 v3.5.2
 )
 

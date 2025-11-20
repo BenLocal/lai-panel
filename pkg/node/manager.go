@@ -1,6 +1,7 @@
 package node
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/benlocal/lai-panel/pkg/docker"
@@ -12,6 +13,14 @@ type NodeState struct {
 	info         model.Node
 	Exec         NodeExec
 	DockerClient *dockerClient.Client
+}
+
+func (n *NodeState) GetNodeInfo() string {
+	return fmt.Sprintf("Node ID: %d, Node Name: %s, Node Address: %s", n.info.ID, n.info.Name, n.info.Address)
+}
+
+func (n *NodeState) GetNodeID() int64 {
+	return n.info.ID
 }
 
 type NodeManager struct {

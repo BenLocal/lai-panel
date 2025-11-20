@@ -54,3 +54,7 @@ func (o *ServeOptions) StaticDataPath() string {
 func (o *ServeOptions) LogDataPath() string {
 	return path.Join(o.dataPath, "logs")
 }
+
+func (o *ServeOptions) ServicePath() string {
+	return path.Join(o.dataPath, "services")
+}

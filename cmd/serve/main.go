@@ -46,6 +46,7 @@ func init() {
 		api.POST("/docker/networks", h.DockerNetworks)
 		api.POST("/docker/compose/config", h.HandleDockerComposeConfig)
 		api.POST("/docker/compose/deploy", h.HandleDockerComposeDeploy)
+		api.POST("/docker/compose/undeploy", h.HandleDockerComposeUndeploy)
 		api.POST("/node/add", h.AddNodeHandler)
 		api.POST("/node/get", h.GetNodeHandler)
 		api.POST("/node/update", h.UpdateNodeHandler)
@@ -54,6 +55,7 @@ func init() {
 		api.POST("/node/page", h.GetNodePageHandler)
 		api.POST("/service/page", h.GetServicePageHandler)
 		api.POST("/service/save", h.SaveServiceHandler)
+		api.POST("/service/delete", h.DeleteServiceHandler)
 		api.POST("/dashboard/stats", h.DashboardStatsHandler)
 
 		// hub

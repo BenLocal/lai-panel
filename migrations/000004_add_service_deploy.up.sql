@@ -1,0 +1,1 @@
+ALTER TABLE services ADD COLUMN deploy_info TEXT;
