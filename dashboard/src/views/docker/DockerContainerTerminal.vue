@@ -97,9 +97,9 @@ const connect = async () => {
 
     // 启动连接
     if (connection.value?.state !== HubConnectionState.Connected) {
-      console.log("starting connection");
+      console.log("Starting SignalR connection...");
       await connection.value?.start();
-      console.log("connection started");
+      console.log("Connection started successfully");
     }
 
     // 获取终端尺寸
@@ -123,9 +123,24 @@ const connect = async () => {
     showToast("Connected to container", "success");
   } catch (error) {
     console.error("Connection error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      connectionState: connection.value?.state,
+    });
     showToast(`Failed to connect: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
     connectionStatus.value = "disconnected";
     isConnected.value = false;
+
+    // 如果连接失败，清理连接
+    if (connection.value) {
+      try {
+        await connection.value.stop();
+      } catch (stopError) {
+        console.error("Error stopping connection:", stopError);
+      }
+      connection.value = null;
+    }
   } finally {
     isConnecting.value = false;
   }

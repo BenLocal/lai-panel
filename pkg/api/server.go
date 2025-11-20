@@ -38,6 +38,17 @@ func (h *ApiServer) Start(ctx context.Context) error {
 		hertzServer.WithHostPorts(h.listenAddr),
 		hertzServer.WithMaxRequestBodySize(1*1024*1024*1024), // 1GB
 	)
+
+	// 配置 CORS 中间件
+	// h.server.Use(cors.New(cors.Config{
+	// 	AllowOrigins:     []string{"*"},
+	// 	AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"},
+	// 	AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Node-ID"},
+	// 	ExposeHeaders:    []string{"Content-Length", "Content-Type"},
+	// 	AllowCredentials: true,
+	// 	MaxAge:           12 * time.Hour,
+	// }))
+
 	h.server.Use(handler.ErrorHandlerMiddleware())
 	h.registryRouter()
 	h.server.Spin()

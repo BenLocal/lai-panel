@@ -47,6 +47,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hertz-contrib/cors v0.1.0 // indirect
 	github.com/jellydator/ttlcache/v2 v2.11.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect

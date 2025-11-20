@@ -23,6 +23,7 @@ func NewSignalRServer(ctx context.Context, hub signalr.HubInterface, opts ...fun
 		signalr.KeepAliveInterval(2 * time.Second),
 		signalr.TimeoutInterval(6 * time.Second),
 		signalr.HandshakeTimeout(15 * time.Second),
+		signalr.InsecureSkipVerify(true),
 	}
 	opts = append(baseOpts, opts...)
 
