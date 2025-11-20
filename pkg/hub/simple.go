@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/benlocal/lai-panel/pkg/repository"
 	"github.com/philippseith/signalr"
 )
@@ -11,16 +12,24 @@ import (
 type SimpleHub struct {
 	signalr.Hub
 	nodeRepository *repository.NodeRepository
+	nodeManager    *node.NodeManager
 
 	sshSessions      map[string]*sshSessionState
 	sshSessionsMutex sync.Mutex
+
+	dockerSessions      map[string]*dockerSessionState
+	dockerSessionsMutex sync.Mutex
 }
 
-func NewSimpleHub(nodeRepository *repository.NodeRepository) *SimpleHub {
+func NewSimpleHub(nodeRepository *repository.NodeRepository,
+	nodeManager *node.NodeManager) *SimpleHub {
 	return &SimpleHub{
-		nodeRepository:   nodeRepository,
-		sshSessions:      make(map[string]*sshSessionState),
-		sshSessionsMutex: sync.Mutex{},
+		nodeRepository:      nodeRepository,
+		nodeManager:         nodeManager,
+		sshSessions:         make(map[string]*sshSessionState),
+		sshSessionsMutex:    sync.Mutex{},
+		dockerSessions:      make(map[string]*dockerSessionState),
+		dockerSessionsMutex: sync.Mutex{},
 	}
 }
 
@@ -62,4 +71,9 @@ func (h *SimpleHub) StopSshSession() {
 	if h.stopSshSessionByID(connectionID) {
 		h.Clients().Caller().Send("sshClosed", "")
 	}
+}
+
+func (h *SimpleHub) StartDockerExec(nodeID int64, containerID string, cols int, rows int) error {
+	connectionID := h.ConnectionID()
+	return h.startDockerExec(connectionID, nodeID, containerID, cols, rows)
 }

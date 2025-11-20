@@ -29,7 +29,7 @@ func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCt
 		appRepository := repository.NewAppRepository()
 		serviceRepository := repository.NewServiceRepository()
 		kvRepository := repository.NewKvRepository()
-		h := hub.NewSimpleHub(nodeRepository)
+		h := hub.NewSimpleHub(nodeRepository, nodeManager)
 		signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
 
 		return &AppCtx{
