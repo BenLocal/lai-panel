@@ -102,21 +102,19 @@ watch(
               <TableCell class="font-medium">{{ container.name }}</TableCell>
               <TableCell>{{ container.image }}</TableCell>
               <TableCell>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                    getStatusColor(container.status),
-                  ]"
-                >
+                <span :class="[
+                  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                  getStatusColor(container.status),
+                ]">
                   {{ container.status }}
                 </span>
               </TableCell>
               <TableCell class="font-mono text-xs">{{
                 container.ports
-              }}</TableCell>
+                }}</TableCell>
               <TableCell class="text-muted-foreground">{{
                 container.created
-              }}</TableCell>
+                }}</TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">
                   <Button variant="ghost" size="sm" class="h-8 px-2">

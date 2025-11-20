@@ -105,9 +105,7 @@ const recentActivity = [
     <!-- Statistics Cards -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card v-for="stat in stats" :key="stat.title">
-        <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
-        >
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">
             {{ stat.title }}
           </CardTitle>
@@ -116,13 +114,10 @@ const recentActivity = [
         <CardContent>
           <div class="text-2xl font-bold">{{ stat.value }}</div>
           <p class="text-xs text-muted-foreground mt-1">
-            <span
-              :class="
-                stat.changeType === 'positive'
-                  ? 'text-green-500'
-                  : 'text-red-500'
-              "
-            >
+            <span :class="stat.changeType === 'positive'
+              ? 'text-green-500'
+              : 'text-red-500'
+              ">
               {{ stat.change }}
             </span>
           </p>
@@ -141,14 +136,9 @@ const recentActivity = [
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div
-            class="flex items-center justify-center h-[300px] text-muted-foreground"
-          >
+          <div class="flex items-center justify-center h-[300px] text-muted-foreground">
             <div class="text-center">
-              <Icon
-                icon="lucide:bar-chart-3"
-                class="h-12 w-12 mx-auto mb-4 opacity-50"
-              />
+              <Icon icon="lucide:bar-chart-3" class="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Chart visualization will be added here</p>
             </div>
           </div>
@@ -165,14 +155,8 @@ const recentActivity = [
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <div
-              v-for="activity in recentActivity"
-              :key="activity.id"
-              class="flex items-center gap-4"
-            >
-              <div
-                class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary"
-              >
+            <div v-for="activity in recentActivity" :key="activity.id" class="flex items-center gap-4">
+              <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Icon icon="lucide:user" class="h-4 w-4" />
               </div>
               <div class="flex-1 space-y-1">

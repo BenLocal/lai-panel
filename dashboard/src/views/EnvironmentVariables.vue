@@ -228,7 +228,7 @@ const saveEnvVar = () => {
           node_name:
             formData.value.scope === "node" && formData.value.node_id
               ? nodes.value.find((n) => n.id === formData.value.node_id)
-                  ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
+                ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
               : undefined,
           description: formData.value.description || undefined,
           created_at: existing.created_at,
@@ -240,7 +240,7 @@ const saveEnvVar = () => {
       const newNodeName =
         formData.value.scope === "node" && formData.value.node_id
           ? nodes.value.find((n) => n.id === formData.value.node_id)
-              ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
+            ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
           : undefined;
       envVars.value.push({
         id: newId,
@@ -386,11 +386,7 @@ onMounted(() => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Nodes</SelectItem>
-            <SelectItem
-              v-for="node in nodes"
-              :key="node.id"
-              :value="node.id.toString()"
-            >
+            <SelectItem v-for="node in nodes" :key="node.id" :value="node.id.toString()">
               {{ node.display_name || node.name }}
             </SelectItem>
           </SelectContent>
@@ -399,10 +395,7 @@ onMounted(() => {
     </div>
 
     <!-- Loading State -->
-    <div
-      v-if="loading && envVars.length === 0"
-      class="text-center py-8 text-muted-foreground"
-    >
+    <div v-if="loading && envVars.length === 0" class="text-center py-8 text-muted-foreground">
       Loading...
     </div>
 
@@ -411,11 +404,7 @@ onMounted(() => {
       <Table>
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <TableHead
-              v-for="header in headerGroup.headers"
-              :key="header.id"
-              class="px-6"
-            >
+            <TableHead v-for="header in headerGroup.headers" :key="header.id" class="px-6">
               <div v-if="!header.isPlaceholder">
                 {{
                   typeof header.column.columnDef.header === "string"
@@ -428,39 +417,27 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
-            <TableCell
-              v-for="cell in row.getVisibleCells()"
-              :key="cell.id"
-              class="px-6"
-            >
+            <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="px-6">
               <template v-if="cell.column.id === 'scope'">
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                    (cell.getValue() as { scope: string }).scope === 'global'
-                      ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                      : 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-                  ]"
-                >
+                <span :class="[
+                  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
+                  (cell.getValue() as { scope: string }).scope === 'global'
+                    ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                    : 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+                ]">
                   {{ (cell.getValue() as { scope: string }).scope }}
                 </span>
               </template>
               <template v-else-if="cell.column.id === 'actions'">
                 <div class="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button variant="ghost" size="sm"
                     @click="openEditDialog((cell.getValue() as { envVar: EnvironmentVariable }).envVar)"
-                    class="h-8 px-2"
-                  >
+                    class="h-8 px-2">
                     <Icon icon="lucide:edit" class="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button variant="ghost" size="sm"
                     @click="deleteEnvVar((cell.getValue() as { envVar: EnvironmentVariable }).envVar)"
-                    class="h-8 px-2 text-red-500 hover:text-red-600"
-                  >
+                    class="h-8 px-2 text-red-500 hover:text-red-600">
                     <Icon icon="lucide:trash-2" class="h-4 w-4" />
                   </Button>
                 </div>
@@ -485,59 +462,39 @@ onMounted(() => {
       </Table>
 
       <!-- Pagination Controls -->
-      <div
-        v-if="table.getPageCount() > 1"
-        class="flex items-center justify-between border-t px-6 py-4"
-      >
+      <div v-if="table.getPageCount() > 1" class="flex items-center justify-between border-t px-6 py-4">
         <div class="text-sm text-muted-foreground">
           Showing
           {{
             table.getState().pagination.pageIndex *
-              table.getState().pagination.pageSize +
+            table.getState().pagination.pageSize +
             1
           }}
           -
           {{
             Math.min(
               (table.getState().pagination.pageIndex + 1) *
-                table.getState().pagination.pageSize,
+              table.getState().pagination.pageSize,
               filteredEnvVars.length
             )
           }}
           of {{ filteredEnvVars.length }} variables
         </div>
         <div class="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            :disabled="!table.getCanPreviousPage()"
-            @click="table.previousPage()"
-          >
+          <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
             <Icon icon="lucide:chevron-left" class="h-4 w-4" />
           </Button>
           <div class="flex items-center gap-1">
-            <Button
-              v-for="page in table.getPageCount()"
-              :key="page"
-              variant="outline"
-              size="sm"
-              :class="[
-                'min-w-[40px]',
-                table.getState().pagination.pageIndex + 1 === page
-                  ? 'bg-primary text-primary-foreground'
-                  : '',
-              ]"
-              @click="table.setPageIndex(page - 1)"
-            >
+            <Button v-for="page in table.getPageCount()" :key="page" variant="outline" size="sm" :class="[
+              'min-w-[40px]',
+              table.getState().pagination.pageIndex + 1 === page
+                ? 'bg-primary text-primary-foreground'
+                : '',
+            ]" @click="table.setPageIndex(page - 1)">
               {{ page }}
             </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            :disabled="!table.getCanNextPage()"
-            @click="table.nextPage()"
-          >
+          <Button variant="outline" size="sm" :disabled="!table.getCanNextPage()" @click="table.nextPage()">
             <Icon icon="lucide:chevron-right" class="h-4 w-4" />
           </Button>
         </div>
@@ -546,10 +503,7 @@ onMounted(() => {
 
     <!-- Empty State -->
     <div v-else class="rounded-lg border bg-card p-12 text-center">
-      <Icon
-        icon="lucide:key"
-        class="h-12 w-12 mx-auto text-muted-foreground mb-4"
-      />
+      <Icon icon="lucide:key" class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
       <p class="text-muted-foreground">No environment variables found</p>
       <Button class="mt-4" @click="openAddDialog">
         <Icon icon="lucide:plus" class="h-4 w-4 mr-2" />
@@ -576,20 +530,12 @@ onMounted(() => {
         <div class="space-y-4 !px-0">
           <div class="space-y-2">
             <label for="env-key" class="text-sm font-medium">Key *</label>
-            <Input
-              id="env-key"
-              v-model="formData.key"
-              placeholder="ENV_VARIABLE_NAME"
-            />
+            <Input id="env-key" v-model="formData.key" placeholder="ENV_VARIABLE_NAME" />
           </div>
 
           <div class="space-y-2">
             <label for="env-value" class="text-sm font-medium">Value *</label>
-            <Input
-              id="env-value"
-              v-model="formData.value"
-              placeholder="variable value"
-            />
+            <Input id="env-value" v-model="formData.value" placeholder="variable value" />
           </div>
 
           <div class="space-y-2">
@@ -607,19 +553,12 @@ onMounted(() => {
 
           <div v-if="formData.scope === 'node'" class="space-y-2">
             <label for="env-node" class="text-sm font-medium">Node *</label>
-            <Select
-              :model-value="formData.node_id?.toString()"
-              @update:model-value="handleNodeIdUpdate"
-            >
+            <Select :model-value="formData.node_id?.toString()" @update:model-value="handleNodeIdUpdate">
               <SelectTrigger id="env-node">
                 <SelectValue placeholder="Select a node" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem
-                  v-for="node in nodes"
-                  :key="node.id"
-                  :value="node.id.toString()"
-                >
+                <SelectItem v-for="node in nodes" :key="node.id" :value="node.id.toString()">
                   {{ node.display_name || node.name }}
                 </SelectItem>
               </SelectContent>
@@ -628,11 +567,7 @@ onMounted(() => {
 
           <div class="space-y-2">
             <label for="env-description" class="text-sm font-medium">Description</label>
-            <Input
-              id="env-description"
-              v-model="formData.description"
-              placeholder="Optional description"
-            />
+            <Input id="env-description" v-model="formData.description" placeholder="Optional description" />
           </div>
         </div>
 
@@ -646,4 +581,3 @@ onMounted(() => {
     </Sheet>
   </div>
 </template>
-

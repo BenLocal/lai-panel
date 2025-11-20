@@ -95,8 +95,7 @@ watch(
               <TableCell class="font-medium">{{ image.repository }}</TableCell>
               <TableCell>
                 <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20"
-                >
+                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20">
                   {{ image.tag }}
                 </span>
               </TableCell>
@@ -106,7 +105,7 @@ watch(
               <TableCell>{{ image.size }}</TableCell>
               <TableCell class="text-muted-foreground">{{
                 image.created
-              }}</TableCell>
+                }}</TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">
                   <Button variant="ghost" size="sm" class="h-8 px-2">
