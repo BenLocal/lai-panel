@@ -54,7 +54,6 @@ const initConnection = () => {
   connection.value.onclose(() => {
     connectionStatus.value = "disconnected";
     isConnected.value = false;
-    showToast("Connection closed", "info");
   });
 
   // 监听容器数据
@@ -71,7 +70,6 @@ const initConnection = () => {
     }
     isConnected.value = false;
     connectionStatus.value = "disconnected";
-    showToast("Container session closed", "info");
   });
 };
 
@@ -122,12 +120,6 @@ const connect = async () => {
     connectionStatus.value = "connected";
     showToast("Connected to container", "success");
   } catch (error) {
-    console.error("Connection error:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      connectionState: connection.value?.state,
-    });
     showToast(`Failed to connect: ${error instanceof Error ? error.message : "Unknown error"}`, "error");
     connectionStatus.value = "disconnected";
     isConnected.value = false;
@@ -137,7 +129,7 @@ const connect = async () => {
       try {
         await connection.value.stop();
       } catch (stopError) {
-        console.error("Error stopping connection:", stopError);
+        // ignore
       }
       connection.value = null;
     }
