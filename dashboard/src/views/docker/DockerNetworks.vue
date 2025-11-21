@@ -132,7 +132,7 @@ const handleNetworkAction = async (
               <TableHead>Subnet</TableHead>
               <TableHead>Gateway</TableHead>
               <TableHead>Containers</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -161,7 +161,7 @@ const handleNetworkAction = async (
               <TableCell>
                 <span class="font-medium">{{ network.containers }}</span>
               </TableCell>
-              <TableCell>
+              <TableCell class="sticky right-0 z-10 bg-background border-l">
                 <div class="flex items-center gap-2">
                   <Button
                     variant="ghost"

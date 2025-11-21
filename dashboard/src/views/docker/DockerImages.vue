@@ -26,6 +26,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import TooltipWithCopy from "@/components/application/TooltipWithCopy.vue";
 import {
   Select,
   SelectContent,
@@ -231,18 +232,22 @@ const closePushDialog = () => {
               <TableHead>Image ID</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-for="image in images" :key="image.id">
-              <TableCell class="font-medium">{{ image.repository }}</TableCell>
+              <TableCell class="font-medium">
+                <TooltipWithCopy :text="image.repository" max-width="300px" />
+              </TableCell>
               <TableCell>
-                <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20"
-                >
-                  {{ image.tag }}
-                </span>
+                <TooltipWithCopy :text="image.tag" max-width="200px">
+                  <span
+                    class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20 truncate max-w-full"
+                  >
+                    {{ image.tag }}
+                  </span>
+                </TooltipWithCopy>
               </TableCell>
               <TableCell class="font-mono text-xs">
                 {{ DockerUtils.getShortImageId(image.id) }}
@@ -251,7 +256,7 @@ const closePushDialog = () => {
               <TableCell class="text-muted-foreground">{{
                 image.created
               }}</TableCell>
-              <TableCell>
+              <TableCell class="sticky right-0 z-10 bg-background border-l">
                 <div class="flex items-center gap-2">
                   <Button
                     variant="ghost"

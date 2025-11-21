@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref, watch, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { Icon } from "@iconify/vue";
+import { PanelLeft } from "lucide-vue-next";
 import { useDark, useToggle } from "@vueuse/core";
 import {
   Sidebar,
@@ -27,6 +29,38 @@ import { Button } from "@/components/ui/button";
 const route = useRoute();
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
+
+const panelSizes = ref<number[]>([20, 80]);
+const defaultSidebarSize = 20;
+const isSidebarCollapsed = ref(false);
+
+const toggleSidebar = () => {
+  const newCollapsed = !isSidebarCollapsed.value;
+  isSidebarCollapsed.value = newCollapsed;
+
+  // Force update panel sizes immediately
+  if (newCollapsed) {
+    // Hide sidebar - set first panel to 0
+    panelSizes.value = [0, 100];
+  } else {
+    // Show sidebar - restore default sizes
+    panelSizes.value = [defaultSidebarSize, 100 - defaultSidebarSize];
+  }
+
+  // Force reactivity update
+  nextTick(() => {
+    const sizes = [...panelSizes.value];
+    panelSizes.value = sizes;
+  });
+};
+
+const handleResize = (sizes: number[]) => {
+  // Update panel sizes when user manually resizes
+  panelSizes.value = sizes;
+  // Update collapsed state based on first panel size
+  const firstPanelSize = sizes[0] ?? 0;
+  isSidebarCollapsed.value = firstPanelSize < 1;
+};
 
 const navigation = [
   {
@@ -73,9 +107,11 @@ const isActive = (path: string) => {
 
 <template>
   <SidebarProvider>
-    <ResizablePanelGroup direction="horizontal" class="h-screen w-full overflow-hidden">
-      <ResizablePanel :default-size="20" :min-size="15" :max-size="40">
-        <Sidebar collapsible="none" class="h-screen">
+    <ResizablePanelGroup :model-value="panelSizes" @update:model-value="handleResize" direction="horizontal"
+      class="h-screen w-full overflow-hidden">
+      <ResizablePanel :default-size="defaultSidebarSize" :min-size="0" :max-size="40"
+        :class="{ collapsed: isSidebarCollapsed }">
+        <Sidebar v-show="!isSidebarCollapsed" collapsible="none" class="h-screen w-full">
           <SidebarHeader>
             <div class="flex items-center gap-2 px-2 py-1.5">
               <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -129,13 +165,16 @@ const isActive = (path: string) => {
         </Sidebar>
       </ResizablePanel>
 
-      <ResizableHandle with-handle />
+      <ResizableHandle v-if="!isSidebarCollapsed" with-handle />
 
       <ResizablePanel :default-size="80" :min-size="60">
         <SidebarInset class="flex flex-col h-screen overflow-hidden">
           <header class="flex h-16 shrink-0 items-center justify-between gap-2 border-b px-4">
             <div class="flex items-center gap-2">
-              <SidebarTrigger class="-ml-1" />
+              <Button variant="ghost" size="icon" class="h-7 w-7 -ml-1" @click="toggleSidebar">
+                <PanelLeft class="h-4 w-4" />
+                <span class="sr-only">Toggle Sidebar</span>
+              </Button>
               <Breadcrumb />
             </div>
             <div class="flex items-center gap-2">
@@ -172,5 +211,17 @@ const isActive = (path: string) => {
 
 :deep([data-sidebar="content"]) {
   overflow: hidden !important;
+}
+
+/* Force sidebar panel to collapse when isSidebarCollapsed is true */
+:deep([data-slot="resizable-panel"]:first-child) {
+  transition: width 0.2s ease;
+}
+
+:deep([data-slot="resizable-panel"]:first-child.collapsed) {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden;
 }
 </style>

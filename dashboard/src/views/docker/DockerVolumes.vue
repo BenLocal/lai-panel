@@ -11,12 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import TooltipWithCopy from "@/components/application/TooltipWithCopy.vue";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -129,56 +124,32 @@ const handleVolumeAction = async (
               <TableHead>Mountpoint</TableHead>
               <TableHead>Size</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-for="volume in volumes" :key="volume.name">
-              <TableCell class="font-medium max-w-[200px]">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <div class="truncate">{{ volume.name }}</div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p class="max-w-xs break-all">{{ volume.name }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              <TableCell class="font-medium">
+                <TooltipWithCopy :text="volume.name" max-width="200px" />
               </TableCell>
               <TableCell>
                 <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20"
-                >
+                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20">
                   {{ volume.driver }}
                 </span>
               </TableCell>
-              <TableCell
-                class="font-mono text-xs text-muted-foreground max-w-[300px]"
-              >
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger as-child>
-                      <div class="truncate">{{ volume.mountpoint }}</div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p class="max-w-xs break-all">{{ volume.mountpoint }}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              <TableCell class="font-mono text-xs text-muted-foreground">
+                <TooltipWithCopy :text="volume.mountpoint" max-width="300px" />
               </TableCell>
               <TableCell>{{ volume.size }}</TableCell>
               <TableCell class="text-muted-foreground">{{
                 volume.created
               }}</TableCell>
-              <TableCell>
+              <TableCell class="sticky right-0 z-10 bg-background border-l">
                 <div class="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button variant="ghost" size="sm"
                     class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    @click="handleVolumeAction('remove', volume)"
-                  >
+                    @click="handleVolumeAction('remove', volume)">
                     <Icon icon="lucide:trash-2" class="h-4 w-4" />
                   </Button>
                   <DropdownMenu>
@@ -188,17 +159,12 @@ const handleVolumeAction = async (
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem
-                        @click="handleVolumeAction('inspect', volume)"
-                      >
+                      <DropdownMenuItem @click="handleVolumeAction('inspect', volume)">
                         <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
                         Inspect
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        @click="handleVolumeAction('remove', volume)"
-                      >
+                      <DropdownMenuItem variant="destructive" @click="handleVolumeAction('remove', volume)">
                         <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
                         Remove
                       </DropdownMenuItem>
@@ -211,10 +177,7 @@ const handleVolumeAction = async (
         </Table>
       </div>
       <div v-else class="text-center py-8 text-muted-foreground">
-        <Icon
-          icon="lucide:database"
-          class="h-12 w-12 mx-auto mb-4 opacity-50"
-        />
+        <Icon icon="lucide:database" class="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No volumes found</p>
       </div>
     </CardContent>
