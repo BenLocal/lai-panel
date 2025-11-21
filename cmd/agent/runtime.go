@@ -16,15 +16,17 @@ import (
 )
 
 type AgentRuntime struct {
+	op *options.AgentOptions
 }
 
-func NewAgentRuntime() *AgentRuntime {
-	return &AgentRuntime{}
+func NewAgentRuntime(options *options.AgentOptions) *AgentRuntime {
+	return &AgentRuntime{
+		op: options,
+	}
 }
 
 func (r *AgentRuntime) Start() error {
-	op := options.NewAgentOptions()
-	err := options.InitOptions(op)
+	err := options.InitOptions(r.op)
 	if err != nil {
 		return err
 	}
@@ -33,15 +35,21 @@ func (r *AgentRuntime) Start() error {
 	dp, _ := docker.NewDockerProxy(dh, "/docker.proxy")
 	g := gracefulshutdown.New()
 	g.CatchSignals()
-	appCtx := ctx.NewAppCtx(op, dp)
+	appCtx := ctx.NewAppCtx(r.op, dp)
 	baseHandler := handler.NewBaseHandler(appCtx)
-	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
+	apiServer := api.NewApiServer(fmt.Sprintf(":%d", r.op.Port), baseHandler)
 	g.Add(apiServer)
 
-	registryService := service.NewRemoteRegistryService(op.Name, op.MasterHost, op.MasterPort, op.Port)
+	registryService := service.NewRemoteRegistryService(
+		r.op.Name,
+		r.op.MasterHost,
+		r.op.MasterPort,
+		r.op.Address,
+		r.op.Port,
+	)
 	g.Add(registryService)
 
-	log.Println("start agent server on port", op.Port, "with name", op.Name)
+	log.Println("start agent server on port", r.op.Port, "with name", r.op.Name)
 
 	ctx := context.Background()
 	return g.Start(ctx)

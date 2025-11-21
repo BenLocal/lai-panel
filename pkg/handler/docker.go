@@ -24,8 +24,13 @@ func (h *BaseHandler) DockerInfo(ctx context.Context, c *app.RequestContext) {
 		c.Error(err)
 		return
 	}
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
 
-	info, err := nodeState.DockerClient.Info(ctx)
+	info, err := dockerClient.Info(ctx)
 	if err != nil {
 		c.Error(err)
 		return
@@ -39,7 +44,12 @@ func (h *BaseHandler) DockerContainers(ctx context.Context, c *app.RequestContex
 		c.Error(err)
 		return
 	}
-	containers, err := nodeState.DockerClient.ContainerList(ctx, container.ListOptions{
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	containers, err := dockerClient.ContainerList(ctx, container.ListOptions{
 		All: true,
 	})
 	if err != nil {
@@ -55,7 +65,12 @@ func (h *BaseHandler) DockerImages(ctx context.Context, c *app.RequestContext) {
 		c.Error(err)
 		return
 	}
-	images, err := nodeState.DockerClient.ImageList(ctx, image.ListOptions{})
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	images, err := dockerClient.ImageList(ctx, image.ListOptions{})
 	if err != nil {
 		c.Error(err)
 		return
@@ -69,7 +84,12 @@ func (h *BaseHandler) DockerVolumes(ctx context.Context, c *app.RequestContext) 
 		c.Error(err)
 		return
 	}
-	volumes, err := nodeState.DockerClient.VolumeList(ctx, volume.ListOptions{})
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	volumes, err := dockerClient.VolumeList(ctx, volume.ListOptions{})
 	if err != nil {
 		c.Error(err)
 		return
@@ -89,7 +109,12 @@ func (h *BaseHandler) DockerNetworks(ctx context.Context, c *app.RequestContext)
 		c.Error(err)
 		return
 	}
-	networks, err := nodeState.DockerClient.NetworkList(ctx, network.ListOptions{})
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	networks, err := dockerClient.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		c.Error(err)
 		return
@@ -139,7 +164,12 @@ func (h *BaseHandler) DockerList(ctx context.Context, c *app.RequestContext) {
 		c.Error(err)
 		return
 	}
-	containers, err := nodeState.DockerClient.ContainerList(ctx, container.ListOptions{})
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	containers, err := dockerClient.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		c.Error(err)
 		return
@@ -292,7 +322,11 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 		if err != nil {
 			continue
 		}
-		_, err = srcNodeState.DockerClient.ImageList(ctx, image.ListOptions{})
+		srcDockerClient, err := srcNodeState.GetDockerClient()
+		if err != nil {
+			continue
+		}
+		_, err = srcDockerClient.ImageList(ctx, image.ListOptions{})
 		if err != nil {
 			continue
 		}
@@ -417,7 +451,11 @@ func (h *BaseHandler) getContainerRequest(c *app.RequestContext) (*dockerClient.
 	if err != nil {
 		return nil, nil, err
 	}
-	return nodeState.DockerClient, &req, nil
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		return nil, nil, err
+	}
+	return dockerClient, &req, nil
 }
 
 type imageActionRequest struct {
@@ -441,5 +479,9 @@ func (h *BaseHandler) getImageRequest(c *app.RequestContext) (*dockerClient.Clie
 	if err != nil {
 		return nil, nil, err
 	}
-	return nodeState.DockerClient, &req, nil
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		return nil, nil, err
+	}
+	return dockerClient, &req, nil
 }

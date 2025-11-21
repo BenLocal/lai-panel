@@ -1,7 +1,11 @@
 @HOST=localhost:8081
+#@HOST=172.31.169.114:8081
 
 ### healthz
 GET http://{{HOST}}/healthz
 
 ### docker proxy info 
 GET http://{{HOST}}/docker.proxy/info
+
+### docker images
+GET http://{{HOST}}/docker.proxy/images/json

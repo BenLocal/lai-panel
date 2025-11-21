@@ -25,6 +25,7 @@ type RegistryService struct {
 	name       string
 	agentPort  int
 	is_local   bool
+	address    string
 }
 
 func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler) *RegistryService {
@@ -39,10 +40,11 @@ func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler) *
 		name:        "local",
 		masterHost:  "127.0.0.1",
 		baseHandler: baseHandler,
+		address:     "127.0.0.1",
 	}
 }
 
-func NewRemoteRegistryService(name string, masterHost string, masterPort int, agentPort int) *RegistryService {
+func NewRemoteRegistryService(name string, masterHost string, masterPort int, agentAddress string, agentPort int) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
 	httpClient, _ := httpClient.NewClient()
 	return &RegistryService{
@@ -53,6 +55,8 @@ func NewRemoteRegistryService(name string, masterHost string, masterPort int, ag
 		masterPort: masterPort,
 		name:       name,
 		httpClient: httpClient,
+		address:    agentAddress,
+		agentPort:  agentPort,
 	}
 }
 
@@ -119,7 +123,7 @@ func (s *RegistryService) updateRegistry() error {
 	defer protocol.ReleaseRequest(req)
 
 	url := fmt.Sprintf("http://%s:%d/registry", s.masterHost, s.masterPort)
-
+	log.Println("update registry to", url)
 	req.SetRequestURI(url)
 	req.Header.SetMethod("POST")
 	req.Header.SetContentTypeBytes([]byte("application/json"))
@@ -129,6 +133,7 @@ func (s *RegistryService) updateRegistry() error {
 		AgentPort: s.agentPort,
 		IsLocal:   s.is_local,
 		Status:    "online",
+		Address:   s.address,
 	}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {

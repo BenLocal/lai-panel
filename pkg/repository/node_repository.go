@@ -73,10 +73,22 @@ func (r *NodeRepository) Update(node *model.Node) error {
 
 func (r *NodeRepository) UpdateRegistry(node *model.Node) error {
 	query := `UPDATE nodes SET status = :status,
+	 address = :address,
+	 agent_port = :agent_port,
 	 updated_at = CURRENT_TIMESTAMP 
 	 WHERE id = :id`
-
 	_, err := r.db.NamedExec(query, node)
+	return err
+}
+
+func (r *NodeRepository) UpdateNodeStatus(id int64, status string) error {
+	query := `UPDATE nodes SET status = :status,
+	 updated_at = CURRENT_TIMESTAMP 
+	 WHERE id = :id`
+	_, err := r.db.Exec(query, map[string]interface{}{
+		"id":     id,
+		"status": status,
+	})
 	return err
 }
 

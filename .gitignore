@@ -34,3 +34,5 @@ go.work.sum
 lai-panel.db*
 
 __debug_*
+
+bin/

@@ -12,8 +12,12 @@ func (p *NodeCheckPipeline) Process(ctx context.Context, nodeCtx *NodeCtx) (*Nod
 	if nodeCtx.Node.ID <= 0 {
 		return nil, errors.New("node is invalid")
 	}
+	exec, err := nodeCtx.state.GetExec()
+	if err != nil {
+		return nil, err
+	}
 
-	out, errout, err := nodeCtx.state.Exec.ExecuteOutput("docker ps", nil)
+	out, errout, err := exec.ExecuteOutput("docker ps", nil)
 	if err != nil {
 		return nil, err
 	}

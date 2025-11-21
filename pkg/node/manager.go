@@ -1,27 +1,10 @@
 package node
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/model"
-	dockerClient "github.com/docker/docker/client"
 )
-
-type NodeState struct {
-	info         model.Node
-	Exec         NodeExec
-	DockerClient *dockerClient.Client
-}
-
-func (n *NodeState) GetNodeInfo() string {
-	return fmt.Sprintf("Node ID: %d, Node Name: %s, Node Address: %s", n.info.ID, n.info.Name, n.info.Address)
-}
-
-func (n *NodeState) GetNodeID() int64 {
-	return n.info.ID
-}
 
 type NodeManager struct {
 	nodes map[int64]*NodeState
@@ -49,27 +32,8 @@ func (m *NodeManager) AddOrGetNode(node *model.Node) (*NodeState, error) {
 		return state, nil
 	}
 
-	var exec NodeExec
-	if node.IsLocal {
-		exec = NewLocalNodeExec()
-	} else {
-		exec = NewRemoteNodeExec(node)
-	}
-	if err := exec.Init(); err != nil {
-		return &NodeState{}, err
-	}
-
-	var dockerClient *dockerClient.Client
-	if node.IsLocal {
-		dockerClient, _ = docker.LocalDockerClient()
-	} else {
-		dockerClient, _ = docker.AgentDockerClient(node.Address, node.AgentPort)
-	}
-
 	state := NodeState{
-		info:         *node,
-		Exec:         exec,
-		DockerClient: dockerClient,
+		info: *node,
 	}
 	m.nodes[node.ID] = &state
 	return &state, nil
@@ -84,11 +48,7 @@ func (m *NodeManager) RemoveNode(nodeID int64) error {
 		return nil
 	}
 
-	if closer, ok := state.Exec.(interface{ Close() error }); ok {
-		if err := closer.Close(); err != nil {
-			return err
-		}
-	}
+	_ = state.Close()
 
 	delete(m.nodes, nodeID)
 	return nil

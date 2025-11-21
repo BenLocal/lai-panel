@@ -23,7 +23,11 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 
 	// write docker compose file to disk
 	pa := path.Join(c.options.ServicePath(), name, "docker_compose.yml")
-	err := c.NodeState.Exec.WriteFile(pa, []byte(*c.dockerComposeFile))
+	exec, err := c.NodeState.GetExec()
+	if err != nil {
+		return c, err
+	}
+	err = exec.WriteFile(pa, []byte(*c.dockerComposeFile))
 	if err != nil {
 		return c, err
 	}
@@ -33,7 +37,7 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 
 	// execute docker compose up
 	cmd := fmt.Sprintf("docker compose -f %s up -d --build", pa)
-	err = c.NodeState.Exec.ExecuteCommand(cmd, c.env, func(s string) {
+	err = exec.ExecuteCommand(cmd, c.env, func(s string) {
 		c.Send("info", s)
 	}, func(s string) {
 		c.Send("error", s)
@@ -58,7 +62,11 @@ type DockerComposeDownPipeline struct {
 func (p *DockerComposeDownPipeline) Process(ctx context.Context, c *DownCtx) (*DownCtx, error) {
 	pa := c.deployInfo[DockerComposeFilePath]
 	env := map[string]string{}
-	err := c.NodeState.Exec.ExecuteCommand(fmt.Sprintf("docker compose -f %s down", pa), env, func(s string) {
+	exec, err := c.NodeState.GetExec()
+	if err != nil {
+		return c, err
+	}
+	err = exec.ExecuteCommand(fmt.Sprintf("docker compose -f %s down", pa), env, func(s string) {
 		// do nothing
 	}, func(s string) {
 		// do nothing

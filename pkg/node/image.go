@@ -13,13 +13,22 @@ func CopyImageBetweenNodes(
 	image string,
 	cb func(ctx context.Context, reader io.ReadCloser) error,
 ) error {
-	reader, err := sourceState.DockerClient.ImageSave(ctx, []string{image})
+	sdc, err := sourceState.GetDockerClient()
+	if err != nil {
+		return fmt.Errorf("failed to get source docker client: %w", err)
+	}
+	ddc, err := destState.GetDockerClient()
+	if err != nil {
+		return fmt.Errorf("failed to get destination docker client: %w", err)
+	}
+
+	reader, err := sdc.ImageSave(ctx, []string{image})
 	if err != nil {
 		return fmt.Errorf("failed to export image from source node: %w", err)
 	}
 	defer reader.Close()
 
-	loadResp, err := destState.DockerClient.ImageLoad(ctx, reader)
+	loadResp, err := ddc.ImageLoad(ctx, reader)
 	if err != nil {
 		return fmt.Errorf("failed to import image to destination node: %w", err)
 	}

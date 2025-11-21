@@ -148,8 +148,12 @@ func (h *SimpleHub) resizeDockerExec(connectionID string, cols int, rows int) {
 	if nodeState == nil {
 		return
 	}
+	dockerClient, err := nodeState.GetDockerClient()
+	if err != nil {
+		return
+	}
 
-	err := nodeState.DockerClient.ContainerExecResize(context.Background(), state.sessionID, container.ResizeOptions{
+	err = dockerClient.ContainerExecResize(context.Background(), state.sessionID, container.ResizeOptions{
 		Height: uint(rows),
 		Width:  uint(cols),
 	})
@@ -190,8 +194,12 @@ func createDockerExecSession(state *node.NodeState, containerID string, rows int
 	}
 	// 清理 shell 字符串，移除前后空格
 	shell = strings.TrimSpace(shell)
+	dockerClient, err := state.GetDockerClient()
+	if err != nil {
+		return "", nil, err
+	}
 
-	resp, err := state.DockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+	resp, err := dockerClient.ContainerExecCreate(ctx, containerID, container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		AttachStdin:  true,
@@ -229,7 +237,7 @@ func createDockerExecSession(state *node.NodeState, containerID string, rows int
 	// 	return "", err
 	// }
 
-	v, err := state.DockerClient.ContainerExecAttach(context.Background(), resp.ID, container.ExecAttachOptions{
+	v, err := dockerClient.ContainerExecAttach(context.Background(), resp.ID, container.ExecAttachOptions{
 		Tty:         true,
 		ConsoleSize: &[2]uint{uint(rows), uint(cols)},
 	})
