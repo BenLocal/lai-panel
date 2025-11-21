@@ -1,55 +1,57 @@
 package docker
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
-	"net/url"
+	"time"
 
 	"github.com/docker/docker/client"
 )
 
 func LocalDockerClient() (*client.Client, error) {
-	return client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	return client.NewClientWithOpts(client.WithAPIVersionNegotiation())
 }
 
 func AgentDockerClient(host string, port int) (*client.Client, error) {
-	hostURL := fmt.Sprintf("http://%s:%d", host, port)
-	httpClient := &http.Client{
-		Transport: &proxyTransport{
-			base: &http.Transport{
-				Proxy: nil,
-			},
-			baseURL:   hostURL,
-			proxyPath: "/docker.proxy",
-		},
-	}
-	return client.NewClientWithOpts(
-		client.FromEnv,
+	return agentDockerClient(host, port, true)
+}
+
+func agentDockerClient(host string, port int, withoutProxy bool) (*client.Client, error) {
+	hostURL := fmt.Sprintf("tcp://%s:%d/docker.proxy", host, port)
+
+	opts := []client.Opt{
 		client.WithHost(hostURL),
 		client.WithAPIVersionNegotiation(),
-		client.WithHTTPClient(httpClient),
-	)
-}
-
-type proxyTransport struct {
-	base      http.RoundTripper
-	baseURL   string
-	proxyPath string
-}
-
-func (t *proxyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	originalPath := req.URL.Path
-	req.URL.Path = t.proxyPath + originalPath
-	if req.URL.Scheme == "" {
-		req.URL.Scheme = "http"
 	}
-	if req.URL.Host == "" {
-		baseURL, err := url.Parse(t.baseURL)
+
+	if withoutProxy {
+		cc, err := customWithoutProxyHTTPClient()
 		if err != nil {
 			return nil, err
 		}
-		req.URL.Host = baseURL.Host
-	}
 
-	return t.base.RoundTrip(req)
+		opts = append(opts, client.WithHTTPClient(cc))
+	}
+	return client.NewClientWithOpts(opts...)
+}
+
+func customWithoutProxyHTTPClient() (*http.Client, error) {
+	transport := &http.Transport{}
+	transport.MaxIdleConns = 6
+	transport.IdleConnTimeout = 30 * time.Second
+	transport.DisableCompression = false
+	transport.DialContext = (&net.Dialer{
+		Timeout: 10 * time.Second,
+	}).DialContext
+	return &http.Client{
+		Transport: transport,
+		CheckRedirect: func(_ *http.Request, via []*http.Request) error {
+			if via[0].Method == http.MethodGet {
+				return http.ErrUseLastResponse
+			}
+			return errors.New("unexpected redirect in response")
+		},
+	}, nil
 }

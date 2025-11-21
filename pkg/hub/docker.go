@@ -67,7 +67,6 @@ func (h *SimpleHub) startDockerExec(connectionID string, nodeID int64, container
 	}
 	id, resp, err := createDockerExecSession(nodeState, containerID, rows, cols, shell)
 	if err != nil {
-		log.Printf("failed to create docker exec session: %v\n", err)
 		return err
 	}
 	if id == "" {

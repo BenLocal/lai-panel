@@ -9,14 +9,11 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"regexp"
 
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/common/adaptor"
 	"github.com/docker/docker/client"
 )
-
-var dockerAPIVersionRegex = regexp.MustCompile(`^/v1\.\d+/`)
 
 type DockerProxy struct {
 	prefix  string

@@ -14,7 +14,8 @@ type NodeState struct {
 	exec         NodeExec
 	dockerClient *dockerClient.Client
 
-	mu sync.RWMutex
+	execMu         sync.RWMutex
+	dockerClientMu sync.RWMutex
 }
 
 func (n *NodeState) GetNodeInfo() string {
@@ -26,9 +27,12 @@ func (n *NodeState) GetNodeID() int64 {
 }
 
 func (n *NodeState) GetDockerClient() (*dockerClient.Client, error) {
+	n.dockerClientMu.RLock()
 	if n.dockerClient != nil {
+		n.dockerClientMu.RUnlock()
 		return n.dockerClient, nil
 	}
+	n.dockerClientMu.RUnlock()
 
 	var dockerClient *dockerClient.Client
 	var err error
@@ -41,16 +45,19 @@ func (n *NodeState) GetDockerClient() (*dockerClient.Client, error) {
 		return nil, err
 	}
 
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.dockerClientMu.Lock()
+	defer n.dockerClientMu.Unlock()
 	n.dockerClient = dockerClient
 	return dockerClient, nil
 }
 
 func (n *NodeState) GetExec() (NodeExec, error) {
+	n.execMu.RLock()
 	if n.exec != nil {
+		n.execMu.RUnlock()
 		return n.exec, nil
 	}
+	n.execMu.RUnlock()
 
 	var exec NodeExec
 	if n.info.IsLocal {
@@ -62,8 +69,8 @@ func (n *NodeState) GetExec() (NodeExec, error) {
 		return nil, err
 	}
 
-	n.mu.Lock()
-	defer n.mu.Unlock()
+	n.execMu.Lock()
+	defer n.execMu.Unlock()
 	n.exec = exec
 	return exec, nil
 }
