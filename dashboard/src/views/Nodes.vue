@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   useVueTable,
   getCoreRowModel,
   getPaginationRowModel,
@@ -38,6 +46,8 @@ import {
 import { nodeApi } from "@/api/node";
 import { ApiResponseHelper } from "@/api/base";
 import { showToast } from "@/lib/toast";
+
+const router = useRouter();
 
 interface Node {
   id: number;
@@ -209,6 +219,17 @@ const confirmDeleteNode = async () => {
   nodeToDelete.value = null;
 };
 
+// 打开终端
+const openTerminal = (node: Node) => {
+  router.push({
+    name: "NodeTerminal",
+    query: {
+      nodeId: node.id.toString(),
+      nodeName: node.display_name || node.name,
+    },
+  });
+};
+
 const getStatusColor = (status?: string) => {
   const colors: Record<string, string> = {
     online: "text-green-500 bg-green-500/10 border-green-500/20",
@@ -247,6 +268,14 @@ const columns: ColumnDef<Node>[] = [
     header: "Address",
   },
   {
+    accessorKey: "status",
+    header: "Status",
+  },
+  {
+    accessorKey: "is_local",
+    header: "Type",
+  },
+  {
     accessorKey: "ssh_port",
     header: "SSH Port",
   },
@@ -258,14 +287,7 @@ const columns: ColumnDef<Node>[] = [
     accessorKey: "ssh_user",
     header: "SSH User",
   },
-  {
-    accessorKey: "is_local",
-    header: "Type",
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-  },
+
   {
     id: "actions",
     header: "Actions",
@@ -318,7 +340,10 @@ onMounted(() => {
       <Table>
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <TableHead v-for="header in headerGroup.headers" :key="header.id" class="px-6">
+            <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="[
+              'px-6',
+              header.column.id === 'actions' ? 'sticky right-0 z-10 bg-background border-l' : '',
+            ]">
               <div v-if="!header.isPlaceholder">
                 {{
                   typeof header.column.columnDef.header === "string"
@@ -331,7 +356,10 @@ onMounted(() => {
         </TableHeader>
         <TableBody>
           <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
-            <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" class="px-6">
+            <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="[
+              'px-6',
+              cell.column.id === 'actions' ? 'sticky right-0 z-10 bg-background border-l' : '',
+            ]">
               <template v-if="cell.column.id === 'is_local'">
                 <span :class="[
                   'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
@@ -361,6 +389,11 @@ onMounted(() => {
               <template v-else-if="cell.column.id === 'actions'">
                 <div class="flex items-center gap-2">
                   <Button variant="ghost" size="sm" @click="
+                    openTerminal(cell.row.original as Node)
+                    " class="h-8 px-2" :disabled="(cell.row.original as Node).status !== 'online'">
+                    <Icon icon="lucide:terminal" class="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" @click="
                     openEditDialog(cell.row.original as Node)
                     " class="h-8 px-2">
                     <Icon icon="lucide:edit" class="h-4 w-4" />
@@ -370,6 +403,30 @@ onMounted(() => {
                     " class="h-8 px-2 text-red-500 hover:text-red-600">
                     <Icon icon="lucide:trash-2" class="h-4 w-4" />
                   </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                      <Button variant="ghost" size="sm" class="h-8 px-2">
+                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem :disabled="(cell.row.original as Node).status !== 'online'"
+                        @click="openTerminal(cell.row.original as Node)">
+                        <Icon icon="lucide:terminal" class="h-4 w-4 mr-2" />
+                        Terminal
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem @click="openEditDialog(cell.row.original as Node)">
+                        <Icon icon="lucide:edit" class="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem variant="destructive" @click="openDeleteDialog(cell.row.original as Node)">
+                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </template>
               <template v-else>

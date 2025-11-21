@@ -57,6 +57,15 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: "nodes/terminal",
+        name: "NodeTerminal",
+        component: () => import("@/views/NodeTerminal.vue"),
+        meta: {
+          title: "Node Terminal",
+          icon: "lucide:terminal",
+        },
+      },
+      {
         path: "services",
         name: "Services",
         component: () => import("@/views/Services.vue"),

@@ -481,7 +481,7 @@ onMounted(() => {
             <TableHead class="px-6">Name</TableHead>
             <TableHead class="px-6">Status</TableHead>
             <TableHead class="px-6">Node ID</TableHead>
-            <TableHead class="px-6">Actions</TableHead>
+            <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -496,16 +496,14 @@ onMounted(() => {
               </span>
             </TableCell>
             <TableCell class="px-6">{{ service.node_id }}</TableCell>
-            <TableCell class="px-6">
+            <TableCell class="sticky right-0 z-10 bg-background border-l">
               <div class="flex items-center gap-2">
                 <Button variant="ghost" size="sm" @click="openEditDialog(service)">
                   <Icon icon="lucide:edit" class="h-4 w-4 mr-1" />
-                  Edit
                 </Button>
                 <Button variant="ghost" size="sm" @click="openDeleteDialog(service)"
                   class="text-destructive hover:text-destructive hover:bg-destructive/10">
                   <Icon icon="lucide:trash-2" class="h-4 w-4 mr-1" />
-                  Delete
                 </Button>
               </div>
             </TableCell>

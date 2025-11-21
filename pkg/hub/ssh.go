@@ -285,16 +285,34 @@ func createLocalSession(cols int, rows int) (*exec.Cmd, *os.File, error) {
 	cmd := exec.Command(shell)
 	env := os.Environ()
 	hasTerm := false
+	hasHome := false
+	var homeDir string
 	for _, kv := range env {
 		if len(kv) >= 5 && kv[:5] == "TERM=" {
 			hasTerm = true
-			break
+		}
+		if len(kv) >= 5 && kv[:5] == "HOME=" {
+			hasHome = true
+			// 提取 HOME 路径
+			homeDir = kv[5:]
 		}
 	}
 	if !hasTerm {
 		env = append(env, "TERM=xterm-256color")
 	}
+	if !hasHome {
+		// 确保 HOME 路径被设置
+		var err error
+		homeDir, err = os.UserHomeDir()
+		if err == nil {
+			env = append(env, "HOME="+homeDir)
+		}
+	}
 	cmd.Env = env
+	// 设置工作目录为 HOME 目录
+	if homeDir != "" {
+		cmd.Dir = homeDir
+	}
 	ptyFile, err := pty.StartWithSize(cmd, &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)})
 	if err != nil {
 		return nil, nil, err
