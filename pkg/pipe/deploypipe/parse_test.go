@@ -41,8 +41,8 @@ func TestDockerComposeFileParsePipelineProcess(t *testing.T) {
     ports:
       - 80:80
     labels:
-      managed-by: lai-panel
-      owner: lai-panel
+      com.lai-panel.managed-by: lai-panel
+      com.lai-panel.owner: lai-panel
 `
 	// Normalize whitespace for comparison
 	assert.Equal(t, normalizeWhitespace(res), normalizeWhitespace(expected))

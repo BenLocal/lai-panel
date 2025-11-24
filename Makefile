@@ -28,3 +28,7 @@ run-agent: agent
 	@echo "Running agent..."
 	@./bin/agent
 
+test:
+	@echo "Running tests..."
+	@go test -v ./...
+
