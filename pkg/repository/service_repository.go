@@ -68,7 +68,12 @@ func (r *ServiceRepository) GetPage(page, pageSize int) (int, []*model.Service, 
 		return 0, nil, nil
 	}
 
-	query := `SELECT * FROM services ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	query := `SELECT services.*,
+		apps.name as app_name,
+		nodes.name as node_name FROM services
+		LEFT JOIN apps ON services.app_id = apps.id
+		LEFT JOIN nodes ON services.node_id = nodes.id
+	ORDER BY services.created_at DESC LIMIT ? OFFSET ?`
 	var services []*model.Service
 	limit := pageSize
 	offset := (page - 1) * pageSize

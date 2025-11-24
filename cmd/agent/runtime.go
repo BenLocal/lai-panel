@@ -41,15 +41,22 @@ func (r *AgentRuntime) Start() error {
 	dp, _ := docker.NewDockerProxy(dh, "/docker.proxy")
 	baseClient := myClient.NewBaseClient()
 
+	appCtx, err := ctx.NewAppCtx(r.op, dp)
+	if err != nil {
+		return err
+	}
+
 	g := gracefulshutdown.New()
 	g.CatchSignals()
 
-	appCtx := ctx.NewAppCtx(r.op, dp)
 	baseHandler := handler.NewBaseHandler(appCtx)
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", r.op.Port), baseHandler)
 	g.Add(apiServer)
 
-	dockerEventListenerService := service.NewdockerEventListenerService(localDockerClient)
+	dockerEventListenerService := service.NewdockerEventListenerService(
+		localDockerClient,
+		baseClient,
+	)
 	g.Add(dockerEventListenerService)
 
 	dataPath := r.op.DataPath()

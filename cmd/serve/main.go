@@ -5,6 +5,7 @@ import (
 	_ "embed"
 
 	"github.com/benlocal/lai-panel/pkg/api"
+	"github.com/benlocal/lai-panel/pkg/client"
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/route"
@@ -24,7 +25,8 @@ var signalrHTML []byte
 func init() {
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
 		router.GET("/healthz", h.HandleHealthz)
-		router.POST("/registry", h.GetRegistryHandler)
+		router.POST(client.RegistryPath, h.GetRegistryHandler)
+		router.POST(client.DockerEventPath, h.GetDockerEventHandler)
 
 		openApi := router.Group("/open")
 		// static file

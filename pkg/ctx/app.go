@@ -2,6 +2,7 @@ package ctx
 
 import (
 	"context"
+	"errors"
 
 	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/hub"
@@ -19,11 +20,17 @@ type AppCtx struct {
 	serviceRepository *repository.ServiceRepository
 	signalrServer     *hub.SignalRServer
 	kvRepository      *repository.KvRepository
+	serverStore       *ServerStore
 }
 
-func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCtx {
+func NewAppCtx(opt options.IOptions, dockerProxy *docker.DockerProxy) (*AppCtx, error) {
 	// server
-	if !options.Agent() {
+	if !opt.Agent() {
+		ss := GetServerStoreForLocal(opt.(*options.ServeOptions))
+		if ss == nil {
+			return nil, errors.New("failed to get server store for local")
+		}
+
 		nodeRepository := repository.NewNodeRepository()
 		nodeManager := node.NewNodeManager(nodeRepository)
 		appRepository := repository.NewAppRepository()
@@ -39,15 +46,22 @@ func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCt
 			appRepository:     appRepository,
 			signalrServer:     signalrServer,
 			serviceRepository: serviceRepository,
-			options:           options,
+			options:           opt,
 			dockerProxy:       dockerProxy,
-		}
+			serverStore:       ss,
+		}, nil
+	}
+
+	ss := GetServerStore(opt.(*options.AgentOptions))
+	if ss == nil {
+		return nil, errors.New("failed to get server store for agent")
 	}
 
 	return &AppCtx{
-		options:     options,
+		options:     opt,
 		dockerProxy: dockerProxy,
-	}
+		serverStore: ss,
+	}, nil
 }
 
 func (a *AppCtx) SignalRServer() *hub.SignalRServer {

@@ -1,6 +1,7 @@
 package deploypipe
 
 import (
+	"bytes"
 	"context"
 	"errors"
 
@@ -9,8 +10,8 @@ import (
 )
 
 const (
-	ManagedByLabel = "managed-by"
-	OwnerLabel     = "owner"
+	ManagedByLabel = "com.lai-panel.managed-by"
+	OwnerLabel     = "com.lai-panel.owner"
 )
 
 type DockerComposeFileParsePipeline struct {
@@ -28,7 +29,6 @@ func (p *DockerComposeFileParsePipeline) Process(ctx context.Context, c *DeployC
 	}
 
 	c.Send("info", "docker compose file parsed")
-	c.Send("info", v)
 
 	v, err = p.editFile(v, map[string]string{
 		ManagedByLabel: "lai-panel",
@@ -39,6 +39,8 @@ func (p *DockerComposeFileParsePipeline) Process(ctx context.Context, c *DeployC
 	}
 
 	c.dockerComposeFile = &v
+
+	c.Send("info", *c.dockerComposeFile)
 	return c, nil
 }
 
@@ -80,12 +82,16 @@ func (p *DockerComposeFileParsePipeline) editFile(
 	}
 
 	// Marshal back to string
-	data, err := yaml.Marshal(&y)
-	if err != nil {
+	var buf bytes.Buffer
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	defer enc.Close()
+
+	if err := enc.Encode(&y); err != nil {
 		return file, err
 	}
 
-	return string(data), nil
+	return buf.String(), nil
 }
 
 func lookup(node *yaml.Node, key string) *yaml.Node {

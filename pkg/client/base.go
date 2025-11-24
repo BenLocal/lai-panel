@@ -2,6 +2,11 @@ package client
 
 import httpClient "github.com/cloudwego/hertz/pkg/app/client"
 
+const (
+	RegistryPath    = "/registry"
+	DockerEventPath = "/docker_event"
+)
+
 type BaseClient struct {
 	httpClient *httpClient.Client
 }

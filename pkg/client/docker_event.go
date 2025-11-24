@@ -9,17 +9,17 @@ import (
 	"github.com/cloudwego/hertz/pkg/protocol"
 )
 
-func (c *BaseClient) Registry(host string, port int, body *model.RegistryRequest) (*model.RegistryResponse, error) {
+func (c *BaseClient) DockerEvent(host string, port int, body *model.DockerEvent) error {
 	req := protocol.AcquireRequest()
 	defer protocol.ReleaseRequest(req)
 
-	url := fmt.Sprintf("http://%s:%d%s", host, port, RegistryPath)
+	url := fmt.Sprintf("http://%s:%d%s", host, port, DockerEventPath)
 	req.SetRequestURI(url)
 	req.Header.SetMethod("POST")
 	req.Header.SetContentTypeBytes([]byte("application/json"))
 	jsonBody, err := json.Marshal(body)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	req.SetBody(jsonBody)
@@ -28,13 +28,8 @@ func (c *BaseClient) Registry(host string, port int, body *model.RegistryRequest
 	defer protocol.ReleaseResponse(resp)
 
 	if err := c.httpClient.Do(context.Background(), req, resp); err != nil {
-		return nil, err
+		return err
 	}
 
-	respBody := resp.Body()
-	var respModel model.RegistryResponse
-	if err := json.Unmarshal(respBody, &respModel); err != nil {
-		return nil, err
-	}
-	return &respModel, nil
+	return nil
 }

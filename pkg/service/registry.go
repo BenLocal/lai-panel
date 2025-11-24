@@ -9,6 +9,8 @@ import (
 	"github.com/benlocal/lai-panel/pkg/client"
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/model"
+
+	appCtx "github.com/benlocal/lai-panel/pkg/ctx"
 )
 
 const (
@@ -21,28 +23,15 @@ type RegistryService struct {
 
 	baseHandler *handler.BaseHandler
 	baseClient  *client.BaseClient
-
-	masterHost string
-	masterPort int
-	name       string
-	agentPort  int
-	is_local   bool
-	address    string
-	dataPath   *string
 }
 
-func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler, baseClient *client.BaseClient) *RegistryService {
+func NewLocalRegistryService(baseHandler *handler.BaseHandler, baseClient *client.BaseClient) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &RegistryService{
 		context:     ctx,
 		cancel:      cancel,
 		baseClient:  baseClient,
-		is_local:    true,
-		masterPort:  masterPort,
-		name:        "local",
-		masterHost:  BaseIP,
 		baseHandler: baseHandler,
-		address:     BaseIP,
 	}
 }
 
@@ -57,14 +46,7 @@ func NewRemoteRegistryService(name string,
 	return &RegistryService{
 		context:    ctx,
 		cancel:     cancel,
-		is_local:   false,
-		masterHost: masterHost,
-		masterPort: masterPort,
-		name:       name,
 		baseClient: baseClient,
-		address:    agentAddress,
-		agentPort:  agentPort,
-		dataPath:   dataPath,
 	}
 }
 
@@ -73,7 +55,8 @@ func (s *RegistryService) Name() string {
 }
 
 func (s *RegistryService) Start(ctx context.Context) error {
-	if s.is_local {
+	isLocal := appCtx.GlobalServerStore.IsLocal()
+	if isLocal {
 		if err := s.tryAddLocalRegistry(); err != nil {
 			log.Println("try add local registry failed", err)
 		}
@@ -101,7 +84,8 @@ func (s *RegistryService) Shutdown() error {
 }
 
 func (s *RegistryService) tryAddLocalRegistry() error {
-	node, err := s.baseHandler.NodeRepository().GetByNodeName(s.name)
+	nodeName := appCtx.GlobalServerStore.GetName()
+	node, err := s.baseHandler.NodeRepository().GetByNodeName(nodeName)
 	if err != nil {
 		return err
 	}
@@ -111,10 +95,10 @@ func (s *RegistryService) tryAddLocalRegistry() error {
 
 	// create local node
 	node = &model.Node{
-		Name:        s.name,
-		DisplayName: &s.name,
-		Address:     "127.0.0.1",
-		SSHPort:     s.masterPort,
+		Name:        nodeName,
+		DisplayName: &nodeName,
+		Address:     appCtx.GlobalServerStore.GetAddress(),
+		SSHPort:     0,
 		SSHUser:     "root",
 		AgentPort:   0,
 		IsLocal:     true,
@@ -127,20 +111,26 @@ func (s *RegistryService) tryAddLocalRegistry() error {
 }
 
 func (s *RegistryService) updateRegistry() error {
+	nodeName := appCtx.GlobalServerStore.GetName()
+	masterHost := appCtx.GlobalServerStore.GetMasterHost()
+	masterPort := appCtx.GlobalServerStore.GetMasterPort()
 	reqBody := model.RegistryRequest{
-		Name:      s.name,
-		AgentPort: s.agentPort,
-		IsLocal:   s.is_local,
+		Name:      nodeName,
+		AgentPort: appCtx.GlobalServerStore.GetAgentPort(),
+		IsLocal:   appCtx.GlobalServerStore.IsLocal(),
 		Status:    "online",
-		Address:   s.address,
-		DataPath:  s.dataPath,
+		Address:   appCtx.GlobalServerStore.GetAddress(),
+		DataPath:  appCtx.GlobalServerStore.GetDataPath(),
 	}
-	resp, err := s.baseClient.Registry(s.masterHost, s.masterPort, &reqBody)
+	resp, err := s.baseClient.Registry(masterHost, masterPort, &reqBody)
 	if err != nil {
 		return err
 	}
 	if resp.ID == 0 {
 		return errors.New("registry failed")
 	}
+
+	// set service id
+	appCtx.GlobalServerStore.SetID(resp.ID)
 	return nil
 }

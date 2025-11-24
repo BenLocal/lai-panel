@@ -34,10 +34,13 @@ func (r *ServeRuntime) Start() error {
 		return err
 	}
 
+	appCtx, err := ctx.NewAppCtx(op, nil)
+	if err != nil {
+		return err
+	}
+
 	g := gracefulshutdown.New()
 	g.CatchSignals()
-
-	appCtx := ctx.NewAppCtx(op, nil)
 
 	baseHandler := handler.NewBaseHandler(appCtx)
 	baseClient := myClient.NewBaseClient()
@@ -45,7 +48,7 @@ func (r *ServeRuntime) Start() error {
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 
-	registryService := service.NewLocalRegistryService(op.Port, baseHandler, baseClient)
+	registryService := service.NewLocalRegistryService(baseHandler, baseClient)
 	g.Add(registryService)
 
 	ctx := context.Background()

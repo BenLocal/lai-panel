@@ -27,7 +27,6 @@ func (h *BaseHandler) GetRegistryHandler(ctx context.Context, c *app.RequestCont
 	}
 
 	// add remote registry
-
 	resp, err := h.remote(&req)
 	if err != nil {
 		c.Error(err)

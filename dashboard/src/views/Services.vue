@@ -447,6 +447,20 @@ const goToPage = (page: number) => {
   }
 };
 
+const copyDeployOutput = async () => {
+  if (!deployOutput.value.length) {
+    showToast("No deploy output to copy", "info");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(deployOutput.value.join("\n"));
+    showToast("Deploy output copied", "success");
+  } catch (error) {
+    console.error("Failed to copy deploy output:", error);
+    showToast("Failed to copy deploy output", "error");
+  }
+};
+
 onMounted(() => {
   fetchServices();
 });
@@ -480,7 +494,8 @@ onMounted(() => {
             <TableHead class="px-6">ID</TableHead>
             <TableHead class="px-6">Name</TableHead>
             <TableHead class="px-6">Status</TableHead>
-            <TableHead class="px-6">Node ID</TableHead>
+            <TableHead class="px-6">App Name</TableHead>
+            <TableHead class="px-6">Node Name</TableHead>
             <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -495,7 +510,8 @@ onMounted(() => {
                 {{ service.status || "Unknown" }}
               </span>
             </TableCell>
-            <TableCell class="px-6">{{ service.node_id }}</TableCell>
+            <TableCell class="px-6">{{ service.app_name }}</TableCell>
+            <TableCell class="px-6">{{ service.node_name }}</TableCell>
             <TableCell class="sticky right-0 z-10 bg-background border-l">
               <div class="flex items-center gap-2">
                 <Button variant="ghost" size="sm" @click="openEditDialog(service)">
@@ -556,14 +572,19 @@ onMounted(() => {
             <div>
               <DrawerTitle>Deploy Output</DrawerTitle>
             </div>
+            <Button variant="ghost" size="icon" :disabled="deployOutput.length === 0" @click="copyDeployOutput">
+              <Icon icon="lucide:copy" class="h-4 w-4" />
+            </Button>
           </div>
         </DrawerHeader>
         <div class="px-4 pb-4">
-          <div ref="deployOutputRef" class="max-h-[60vh] overflow-y-auto rounded-md bg-muted/30 p-3 font-mono text-xs">
+          <div ref="deployOutputRef"
+            class="max-h-[60vh] overflow-y-auto rounded-md bg-muted/30 p-3 font-mono text-xs select-text">
             <div v-if="deployOutput.length === 0" class="text-center text-muted-foreground py-8">
               No output yet
             </div>
-            <div v-for="(line, index) in deployOutput" :key="index" class="mb-1 whitespace-pre-wrap break-words">
+            <div v-for="(line, index) in deployOutput" :key="index"
+              class="mb-1 whitespace-pre-wrap break-words select-text">
               {{ line }}
             </div>
           </div>

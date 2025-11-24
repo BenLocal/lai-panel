@@ -2,19 +2,28 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"log"
 
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/client"
+
+	myClient "github.com/benlocal/lai-panel/pkg/client"
+	"github.com/benlocal/lai-panel/pkg/ctx"
+	"github.com/benlocal/lai-panel/pkg/model"
 )
 
 type dockerEventListenerService struct {
 	dockerClient *client.Client
+	baseClient   *myClient.BaseClient
 }
 
-func NewdockerEventListenerService(dockerClient *client.Client) *dockerEventListenerService {
+func NewdockerEventListenerService(
+	dockerClient *client.Client,
+	baseClient *myClient.BaseClient,
+) *dockerEventListenerService {
 	return &dockerEventListenerService{
 		dockerClient: dockerClient,
+		baseClient:   baseClient,
 	}
 }
 
@@ -31,13 +40,31 @@ loop:
 		case <-ctx.Done():
 			break loop
 		case event := <-eventChain:
-			fmt.Println(event)
+			s.handleEvent(event)
 		case err := <-errChain:
-			fmt.Println(err)
+			log.Println("docker event listener service error: ", err)
 		}
 	}
 
 	return nil
+}
+
+func (s *dockerEventListenerService) handleEvent(event events.Message) {
+	id := ctx.GlobalServerStore.GetID()
+	if id <= 0 {
+		return
+	}
+	masterHost := ctx.GlobalServerStore.GetMasterHost()
+	masterPort := ctx.GlobalServerStore.GetMasterPort()
+	dockerEvent := model.DockerEvent{
+		NodeId: id,
+		Event:  event,
+	}
+
+	err := s.baseClient.DockerEvent(masterHost, masterPort, &dockerEvent)
+	if err != nil {
+		log.Println("docker event listener service error: ", err)
+	}
 }
 
 func (s *dockerEventListenerService) Shutdown() error {

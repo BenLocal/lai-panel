@@ -15,6 +15,9 @@ type Service struct {
 	UpdatedAt  time.Time `db:"updated_at" json:"updated_at"`
 	Metadata   *string   `db:"metadata" json:"metadata"`
 	DeployInfo *string   `db:"deploy_info" json:"deploy_info"`
+
+	AppName  string `db:"app_name" json:"app_name"`
+	NodeName string `db:"node_name" json:"node_name"`
 }
 
 type ServiceView struct {
@@ -24,6 +27,8 @@ type ServiceView struct {
 	NodeID   int64             `json:"node_id"`
 	Status   string            `json:"status,omitempty"`
 	QAValues map[string]string `json:"qa_values"`
+	AppName  string            `json:"app_name"`
+	NodeName string            `json:"node_name"`
 }
 
 func (s *Service) ToView() *ServiceView {
@@ -43,6 +48,8 @@ func (s *Service) ToView() *ServiceView {
 		NodeID:   s.NodeID,
 		Status:   s.Status,
 		QAValues: qa,
+		AppName:  s.AppName,
+		NodeName: s.NodeName,
 	}
 }
 
