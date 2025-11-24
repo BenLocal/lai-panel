@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/benlocal/lai-panel/pkg/model"
@@ -78,16 +77,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 	}
 	deployCtx.App = app
 
-	node, err := b.NodeRepository().GetByID(req.NodeId)
-	if err != nil {
-		deployCtx.Send("error", err.Error())
-		return
-	}
-	if node == nil {
-		deployCtx.Send("error", "node not found")
-		return
-	}
-	state, err := b.NodeManager().AddOrGetNode(node)
+	state, err := b.NodeManager().GetNodeState(req.NodeId)
 	if err != nil {
 		deployCtx.Send("error", err.Error())
 		return
@@ -156,14 +146,7 @@ func (b *BaseHandler) dockerComposeUndeploy(ctx context.Context, service *model.
 	if err != nil {
 		return nil, err
 	}
-	node, err := b.NodeRepository().GetByID(service.NodeID)
-	if err != nil {
-		return nil, err
-	}
-	if node == nil {
-		return nil, errors.New("node not found")
-	}
-	state, err := b.NodeManager().AddOrGetNode(node)
+	state, err := b.NodeManager().GetNodeState(service.NodeID)
 	if err != nil {
 		return nil, err
 	}
@@ -176,38 +159,3 @@ func (b *BaseHandler) dockerComposeUndeploy(ctx context.Context, service *model.
 
 	return res, nil
 }
-
-// func extractComposeImages(config string) ([]string, error) {
-// 	type composeService struct {
-// 		Image string `yaml:"image"`
-// 	}
-// 	type composeDocument struct {
-// 		Services map[string]composeService `yaml:"services"`
-// 	}
-
-// 	var doc composeDocument
-// 	if err := yaml.Unmarshal([]byte(config), &doc); err != nil {
-// 		return nil, err
-// 	}
-
-// 	imagesSet := make(map[string]struct{})
-// 	for _, service := range doc.Services {
-// 		image := strings.TrimSpace(service.Image)
-// 		if image == "" {
-// 			continue
-// 		}
-// 		imagesSet[image] = struct{}{}
-// 	}
-
-// 	images := make([]string, 0, len(imagesSet))
-// 	for image := range imagesSet {
-// 		images = append(images, image)
-// 	}
-
-// 	sort.Strings(images)
-// 	return images, nil
-// }
-
-// func sanitizeName(name string) string {
-// 	return strings.ReplaceAll(name, " ", "-")
-// }

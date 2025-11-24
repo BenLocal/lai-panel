@@ -25,7 +25,7 @@ func NewAppCtx(options options.IOptions, dockerProxy *docker.DockerProxy) *AppCt
 	// server
 	if !options.Agent() {
 		nodeRepository := repository.NewNodeRepository()
-		nodeManager := node.NewNodeManager()
+		nodeManager := node.NewNodeManager(nodeRepository)
 		appRepository := repository.NewAppRepository()
 		serviceRepository := repository.NewServiceRepository()
 		kvRepository := repository.NewKvRepository()

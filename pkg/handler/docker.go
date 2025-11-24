@@ -127,12 +127,7 @@ func (h *BaseHandler) getNodeState(_ context.Context, c *app.RequestContext) (*n
 	if err != nil {
 		return nil, err
 	}
-	node, err := h.NodeRepository().GetByID(nodeId)
-	if err != nil {
-		return nil, err
-	}
-
-	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	nodeState, err := h.NodeManager().GetNodeState(nodeId)
 	if err != nil {
 		return nil, err
 	}
@@ -154,12 +149,7 @@ func (h *BaseHandler) DockerList(ctx context.Context, c *app.RequestContext) {
 		c.Error(err)
 		return
 	}
-	node, err := h.NodeRepository().GetByID(nodeId)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	nodeState, err := h.NodeManager().GetNodeState(nodeId)
 	if err != nil {
 		c.Error(err)
 		return
@@ -295,12 +285,7 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 		c.Error(err)
 		return
 	}
-	dst, err := h.NodeRepository().GetByID(nodeId)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	ds, err := h.NodeManager().AddOrGetNode(dst)
+	ds, err := h.NodeManager().GetNodeState(nodeId)
 	if err != nil {
 		c.Error(err)
 		return
@@ -318,7 +303,7 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 		if srcNode.ID == nodeId {
 			continue
 		}
-		srcNodeState, err := h.NodeManager().AddOrGetNode(&srcNode)
+		srcNodeState, err := h.NodeManager().GetNodeState(srcNode.ID)
 		if err != nil {
 			continue
 		}
@@ -358,32 +343,21 @@ func (h *BaseHandler) DockerImagePullAuto(ctx context.Context, c *app.RequestCon
 
 func (h *BaseHandler) DockerImagePushTo(ctx context.Context, c *app.RequestContext) {
 	type imageActionRequest struct {
-		ImageId      string `json:"image_id"`
-		PushToNodeID int64  `json:"push_to_node_id"`
+		ImageId       string `json:"image_id"`
+		PushToNodeID  int64  `json:"push_to_node_id"`
+		CurrentNodeID int64  `json:"current_node_id"`
 	}
 	var req imageActionRequest
 	if err := c.BindAndValidate(&req); err != nil {
 		c.Error(err)
 		return
 	}
-
-	srcNode, err := h.NodeRepository().GetByID(req.PushToNodeID)
+	srcNodeState, err := h.NodeManager().GetNodeState(req.CurrentNodeID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	srcNodeState, err := h.NodeManager().AddOrGetNode(srcNode)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	dstNode, err := h.NodeRepository().GetByID(req.PushToNodeID)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	dstNodeState, err := h.NodeManager().AddOrGetNode(dstNode)
+	dstNodeState, err := h.NodeManager().GetNodeState(req.PushToNodeID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -443,11 +417,7 @@ func (h *BaseHandler) getContainerRequest(c *app.RequestContext) (*dockerClient.
 	if err != nil {
 		return nil, nil, err
 	}
-	node, err := h.NodeRepository().GetByID(nodeId)
-	if err != nil {
-		return nil, nil, err
-	}
-	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	nodeState, err := h.NodeManager().GetNodeState(nodeId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -471,11 +441,7 @@ func (h *BaseHandler) getImageRequest(c *app.RequestContext) (*dockerClient.Clie
 	if err != nil {
 		return nil, nil, err
 	}
-	node, err := h.NodeRepository().GetByID(nodeId)
-	if err != nil {
-		return nil, nil, err
-	}
-	nodeState, err := h.NodeManager().AddOrGetNode(node)
+	nodeState, err := h.NodeManager().GetNodeState(nodeId)
 	if err != nil {
 		return nil, nil, err
 	}

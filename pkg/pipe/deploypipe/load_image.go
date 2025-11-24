@@ -109,7 +109,7 @@ func (p *LoadImagePipeline) loadImage(ctx context.Context,
 		if node.ID == currentState.GetNodeID() {
 			continue
 		}
-		ssState, err := c.appCtx.NodeManager().AddOrGetNode(&node)
+		ssState, err := c.appCtx.NodeManager().GetNodeState(node.ID)
 		if err != nil {
 			continue
 		}

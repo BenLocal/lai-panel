@@ -55,12 +55,7 @@ func (h *SimpleHub) startDockerExec(connectionID string, nodeID int64, container
 	// 清理 shell 字符串，移除前后空格
 	shell = strings.TrimSpace(shell)
 
-	targetNode, err := h.nodeRepository.GetByID(nodeID)
-	if err != nil {
-		log.Printf("failed to get node %d: %v\n", nodeID, err)
-		return err
-	}
-	nodeState, err := h.nodeManager.AddOrGetNode(targetNode)
+	nodeState, err := h.nodeManager.GetNodeState(nodeID)
 	if err != nil {
 		log.Printf("failed to add or get node %d: %v\n", nodeID, err)
 		return err
