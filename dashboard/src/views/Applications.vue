@@ -38,6 +38,7 @@ interface ApplicationForm {
   icon?: string;
   qa: ApplicationQAItem[];
   dockerCompose: string;
+  static_path?: string;
 }
 
 const applications = ref<Application[]>([]);
@@ -58,6 +59,7 @@ const createDefaultForm = (): ApplicationForm => ({
   icon: "lucide:app-window",
   qa: [],
   dockerCompose: "",
+  static_path: "",
 });
 
 const formData = reactive<ApplicationForm>(createDefaultForm());
@@ -151,6 +153,7 @@ const openEditApplicationDialog = (application: Application) => {
       }))
       : [],
     dockerCompose: application.docker_compose ?? "",
+    static_path: application.static_path ?? "",
   });
   isComposeEditorOpen.value = false;
   isSheetOpen.value = true;
@@ -178,6 +181,7 @@ const saveApplication = async () => {
     icon: formData.icon?.trim() ?? "",
     qa: formData.qa,
     docker_compose: formData.dockerCompose?.trim() ?? "",
+    static_path: formData.static_path?.trim() ?? "",
   };
 
   try {
@@ -290,7 +294,7 @@ onMounted(() => {
         <SheetHeader class="px-3 sm:px-5">
           <SheetTitle>{{
             isEditMode ? "Edit Application" : "Add Application"
-            }}</SheetTitle>
+          }}</SheetTitle>
           <SheetDescription>
             {{
               isEditMode
@@ -331,6 +335,14 @@ onMounted(() => {
               <textarea id="app-description" v-model="formData.description"
                 class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
                 placeholder="Describe the application"></textarea>
+            </div>
+            <div class="space-y-2">
+              <label for="app-static-path" class="text-sm font-medium">Static Path</label>
+              <Input id="app-static-path" v-model="formData.static_path"
+                placeholder="URL or local path to installer file (e.g., https://example.com/app.tar.gz or /path/to/app.tar.gz)" />
+              <p class="text-xs text-muted-foreground">
+                Path to installer file. If it's a tar.gz file, it will be automatically extracted.
+              </p>
             </div>
             <div class="space-y-2">
               <Separator class="my-4" />

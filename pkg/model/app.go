@@ -18,6 +18,8 @@ type App struct {
 	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 	QA            *string   `db:"qa" json:"qa"`
 	Metadata      *string   `db:"metadata" json:"metadata"`
+	// installer file some like xxx.tar.gz
+	StaticPath *string `db:"static_path" json:"static_path"`
 }
 
 type AppQAItem struct {
@@ -39,6 +41,7 @@ type AppView struct {
 	Icon          string       `json:"icon"`
 	QA            []*AppQAItem `json:"qa"`
 	Metadata      []*Metadata  `json:"metadata"`
+	StaticPath    *string      `json:"static_path"`
 }
 
 func (a *App) ToView() *AppView {
@@ -62,6 +65,7 @@ func (a *App) ToView() *AppView {
 		Icon:          a.Icon,
 		QA:            qa,
 		Metadata:      metadata,
+		StaticPath:    a.StaticPath,
 	}
 }
 
@@ -113,5 +117,6 @@ func (a *AppView) ToModel() *App {
 		QA:            qaString,
 		Metadata:      metadataString,
 		Display:       a.Display,
+		StaticPath:    a.StaticPath,
 	}
 }

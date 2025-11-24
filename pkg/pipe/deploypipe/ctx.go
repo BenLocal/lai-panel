@@ -1,6 +1,7 @@
 package deploypipe
 
 import (
+	"path"
 	"sync"
 
 	"github.com/benlocal/lai-panel/pkg/ctx"
@@ -51,13 +52,19 @@ func (d *DeployCtx) GetDeployInfo() map[string]string {
 	return d.deployInfo
 }
 
+func (d *DeployCtx) GetServicePath() string {
+	return path.Join(d.options.ServicePath(), d.Service.Name)
+}
+
 type DownCtx struct {
+	options    options.IOptions
 	Service    *model.Service
 	NodeState  *node.NodeState
 	deployInfo map[string]string
 }
 
 func NewDownCtx(
+	options options.IOptions,
 	service *model.Service,
 	nodeState *node.NodeState,
 	deployInfo map[string]string,
@@ -67,4 +74,8 @@ func NewDownCtx(
 		NodeState:  nodeState,
 		deployInfo: deployInfo,
 	}
+}
+
+func (d *DownCtx) GetServicePath() string {
+	return path.Join(d.options.ServicePath(), d.Service.Name)
 }

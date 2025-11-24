@@ -66,7 +66,6 @@ interface CreateNodeRequest {
   name: string;
   address: string;
   ssh_port: number;
-  agent_port: number;
   ssh_user: string;
   ssh_password: string;
   is_local: boolean;
@@ -91,7 +90,6 @@ const formData = ref<CreateNodeRequest>({
   name: "",
   address: "",
   ssh_port: 22,
-  agent_port: 8080,
   ssh_user: "root",
   ssh_password: "",
   is_local: false,
@@ -110,9 +108,9 @@ const fetchNodes = async () => {
     address: node.address,
     is_local: node.is_local,
     display_name: node.display_name || null,
-    ssh_port: 0,
-    agent_port: 0,
-    ssh_user: "",
+    ssh_port: node.ssh_port,
+    agent_port: node.agent_port,
+    ssh_user: node.ssh_user,
     ssh_password: "",
     status: node.status || "offline",
   })) ?? [];
@@ -127,7 +125,6 @@ const openAddDialog = () => {
     name: "",
     address: "",
     ssh_port: 22,
-    agent_port: 8080,
     ssh_user: "root",
     ssh_password: "",
     is_local: false,
@@ -144,7 +141,6 @@ const openEditDialog = (node: Node) => {
     name: node.name,
     address: node.address,
     ssh_port: node.ssh_port,
-    agent_port: node.agent_port,
     ssh_user: node.ssh_user,
     ssh_password: node.ssh_password,
     is_local: node.is_local,
@@ -168,7 +164,6 @@ const saveNode = async () => {
       name: formData.value.name,
       address: formData.value.address,
       ssh_port: formData.value.ssh_port,
-      agent_port: formData.value.agent_port,
       ssh_user: formData.value.ssh_user,
       ssh_password: formData.value.ssh_password,
       is_local: formData.value.is_local,
@@ -523,15 +518,9 @@ onMounted(() => {
               <Input id="node-address" v-model="formData.address" placeholder="192.168.1.1" />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label for="node-ssh-port" class="text-sm font-medium">SSH Port</label>
-                <Input id="node-ssh-port" v-model.number="formData.ssh_port" type="number" placeholder="22" />
-              </div>
-              <div class="space-y-2">
-                <label for="node-agent-port" class="text-sm font-medium">Agent Port</label>
-                <Input id="node-agent-port" v-model.number="formData.agent_port" type="number" placeholder="8080" />
-              </div>
+            <div class="space-y-2">
+              <label for="node-ssh-port" class="text-sm font-medium">SSH Port</label>
+              <Input id="node-ssh-port" v-model.number="formData.ssh_port" type="number" placeholder="22" />
             </div>
 
             <div class="space-y-2">

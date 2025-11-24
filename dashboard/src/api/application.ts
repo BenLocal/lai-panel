@@ -12,6 +12,7 @@ export interface Application {
   qa?: ApplicationQAItem[];
   metadata?: Metadata[] | null;
   docker_compose?: string;
+  static_path?: string;
 }
 
 export interface ApplicationQAItem {

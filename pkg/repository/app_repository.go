@@ -15,8 +15,10 @@ func NewAppRepository() *AppRepository {
 }
 
 func (r *AppRepository) Create(app *model.App) error {
-	query := `INSERT INTO apps (name, display, version, icon, docker_compose, metadata, qa, description) 
-	VALUES (:name, :display, :version, :icon, :docker_compose, :metadata, :qa, :description)`
+	query := `INSERT INTO apps (name, display, version, icon, docker_compose,
+	 metadata, qa, description, static_path) 
+	VALUES (:name, :display, :version, :icon, :docker_compose,
+	 :metadata, :qa, :description, :static_path)`
 
 	result, err := r.db.NamedExec(query, app)
 	if err != nil {
@@ -48,6 +50,7 @@ func (r *AppRepository) Update(app *model.App) error {
 		metadata = :metadata,
 		qa = :qa,
 		description = :description,
+		static_path = :static_path,
 	  updated_at = CURRENT_TIMESTAMP WHERE id = :id`
 	_, err := r.db.NamedExec(query, app)
 	return err

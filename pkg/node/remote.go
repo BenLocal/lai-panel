@@ -28,10 +28,15 @@ func NewRemoteNodeExec(node *model.Node) *RemoteNodeExec {
 }
 
 func (r *RemoteNodeExec) Init() error {
+	password, err := r.node.GetDecryptedSSHPassword()
+	if err != nil {
+		return err
+	}
+
 	config := &ssh.ClientConfig{
 		User: r.node.SSHUser,
 		Auth: []ssh.AuthMethod{
-			ssh.Password(r.node.SSHPassword),
+			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}

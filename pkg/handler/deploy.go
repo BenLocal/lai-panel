@@ -151,7 +151,7 @@ func (b *BaseHandler) dockerComposeUndeploy(ctx context.Context, service *model.
 		return nil, err
 	}
 
-	downCtx := deploypipe.NewDownCtx(service, state, deployInfo)
+	downCtx := deploypipe.NewDownCtx(b.options, service, state, deployInfo)
 	res, err := b.deployPipeline.Down(ctx, downCtx)
 	if err != nil {
 		return nil, err

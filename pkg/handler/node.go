@@ -15,7 +15,11 @@ func (h *BaseHandler) AddNodeHandler(ctx context.Context, c *app.RequestContext)
 		c.Error(err)
 		return
 	}
-	modelNode := node.ToModel()
+	modelNode, err := node.ToModel()
+	if err != nil {
+		c.Error(err)
+		return
+	}
 	if err := h.NodeRepository().Create(modelNode); err != nil {
 		c.Error(err)
 		return
@@ -59,7 +63,11 @@ func (h *BaseHandler) UpdateNodeHandler(ctx context.Context, c *app.RequestConte
 		return
 	}
 
-	modelNode := node.ToModel()
+	modelNode, err := node.ToModel()
+	if err != nil {
+		c.Error(err)
+		return
+	}
 	if err := h.NodeRepository().Update(modelNode); err != nil {
 		c.Error(err)
 		return

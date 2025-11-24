@@ -63,10 +63,13 @@ func (r *NodeRepository) Update(node *model.Node) error {
 	 address = :address, 
 	 ssh_port = :ssh_port,
 	 ssh_user = :ssh_user,
-	 ssh_password = :ssh_password,
-	 updated_at = CURRENT_TIMESTAMP 
-	 WHERE id = :id`
+	 updated_at = CURRENT_TIMESTAMP`
 
+	if node.SSHPassword != "" {
+		query += `, ssh_password = :ssh_password`
+	}
+
+	query += ` WHERE id = :id`
 	_, err := r.db.NamedExec(query, node)
 	return err
 }

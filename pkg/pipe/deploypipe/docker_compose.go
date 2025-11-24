@@ -19,10 +19,8 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 		return c, errors.New("docker compose file is not found")
 	}
 
-	name := c.Service.Name
-
 	// write docker compose file to disk
-	pa := path.Join(c.options.ServicePath(), name, "docker_compose.yml")
+	pa := path.Join(c.GetServicePath(), "docker_compose.yml")
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
 		return c, err

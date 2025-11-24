@@ -7,13 +7,16 @@ export interface Node {
   display_name?: string | null;
   address: string;
   status?: string;
+  ssh_port: number;
+  ssh_user: string;
+  ssh_password: string;
+  agent_port: number;
 }
 
 export interface CreateNodeRequest {
   name: string;
   address: string;
   ssh_port: number;
-  agent_port: number;
   ssh_user: string;
   ssh_password: string;
   display_name?: string;
@@ -24,7 +27,6 @@ export interface UpdateNodeRequest {
   name: string;
   address: string;
   ssh_port: number;
-  agent_port: number;
   ssh_user: string;
   ssh_password: string;
   is_local: boolean;
