@@ -26,6 +26,14 @@ func (n *NodeState) GetNodeID() int64 {
 	return n.info.ID
 }
 
+func (n *NodeState) IsLocal() bool {
+	return n.info.IsLocal
+}
+
+func (n *NodeState) GetDataPath() *string {
+	return n.info.DataPath
+}
+
 func (n *NodeState) GetDockerClient() (*dockerClient.Client, error) {
 	n.dockerClientMu.RLock()
 	if n.dockerClient != nil {

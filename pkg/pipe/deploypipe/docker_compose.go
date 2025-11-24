@@ -22,7 +22,11 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	}
 
 	// write docker compose file to disk
-	pa := path.Join(c.GetServicePath(), "docker_compose.yml")
+	installerPath, err := c.GetServicePath()
+	if err != nil {
+		return c, err
+	}
+	pa := path.Join(installerPath, "docker_compose.yml")
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
 		return c, err

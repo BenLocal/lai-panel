@@ -50,6 +50,7 @@ func (h *BaseHandler) remote(req *model.RegistryRequest) (*model.RegistryRespons
 			IsLocal:   req.IsLocal,
 			AgentPort: req.AgentPort,
 			Address:   req.Address,
+			DataPath:  req.DataPath,
 		}
 		err := h.NodeRepository().Create(node)
 		if err != nil {
@@ -67,8 +68,9 @@ func (h *BaseHandler) remote(req *model.RegistryRequest) (*model.RegistryRespons
 			Status:    req.Status,
 			Address:   req.Address,
 			AgentPort: req.AgentPort,
+			DataPath:  req.DataPath,
 		}
-		if registry.Status != req.Status || registry.Address != req.Address || registry.AgentPort != req.AgentPort {
+		if needUpdateNode(registry, req) {
 			err = h.NodeRepository().UpdateRegistry(node)
 			if err != nil {
 				return nil, err
@@ -80,6 +82,13 @@ func (h *BaseHandler) remote(req *model.RegistryRequest) (*model.RegistryRespons
 			Name: node.Name,
 		}, nil
 	}
+}
+
+func needUpdateNode(registry *model.Node, req *model.RegistryRequest) bool {
+	return registry.Status != req.Status ||
+		registry.Address != req.Address ||
+		registry.AgentPort != req.AgentPort ||
+		registry.DataPath != req.DataPath
 }
 
 func (h *BaseHandler) local(req *model.RegistryRequest) (*model.RegistryResponse, error) {

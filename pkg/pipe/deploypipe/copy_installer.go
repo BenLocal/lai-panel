@@ -24,7 +24,10 @@ func (p *CopyInstallerPipeline) Process(ctx context.Context, c *DeployCtx) (*Dep
 		return c, nil
 	}
 
-	installerPath := c.GetServicePath()
+	installerPath, err := c.GetServicePath()
+	if err != nil {
+		return c, err
+	}
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
 		return c, err

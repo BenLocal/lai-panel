@@ -20,6 +20,7 @@ type Node struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at" json:"updated_at"`
 	Metadata    *string   `db:"metadata" json:"metadata"`
+	DataPath    *string   `db:"data_path" json:"data_path"`
 }
 
 type NodeView struct {

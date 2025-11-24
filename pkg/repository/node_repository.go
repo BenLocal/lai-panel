@@ -18,9 +18,9 @@ func NewNodeRepository() *NodeRepository {
 
 func (r *NodeRepository) Create(node *model.Node) error {
 	query := `INSERT INTO nodes (name, address, ssh_port,
-	 ssh_user, ssh_password, agent_port, status, is_local) 
+	 ssh_user, ssh_password, agent_port, status, is_local, data_path) 
 	          VALUES (:name, :address, :ssh_port, :ssh_user, 
-			  :ssh_password, :agent_port, :status, :is_local) RETURNING id`
+			  :ssh_password, :agent_port, :status, :is_local, :data_path) RETURNING id`
 
 	result, err := r.db.NamedExec(query, node)
 	if err != nil {
@@ -78,7 +78,8 @@ func (r *NodeRepository) UpdateRegistry(node *model.Node) error {
 	query := `UPDATE nodes SET status = :status,
 	 address = :address,
 	 agent_port = :agent_port,
-	 updated_at = CURRENT_TIMESTAMP 
+	 data_path = :data_path,
+	 updated_at = CURRENT_TIMESTAMP
 	 WHERE id = :id`
 	_, err := r.db.NamedExec(query, node)
 	return err

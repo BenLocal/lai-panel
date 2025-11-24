@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/protocol/http1/resp"
 )
 
 func (h *BaseHandler) StaticDataPath() string {
-	return h.options.StaticDataPath()
+	return path.Join(h.options.DataPath(), options.STATIC_BASE_PATH)
 }
 
 func (h *BaseHandler) Tar(ctx context.Context, c *app.RequestContext) {

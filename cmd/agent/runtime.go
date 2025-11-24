@@ -52,8 +52,10 @@ func (r *AgentRuntime) Start() error {
 	dockerEventListenerService := service.NewdockerEventListenerService(localDockerClient)
 	g.Add(dockerEventListenerService)
 
+	dataPath := r.op.DataPath()
 	registryService := service.NewRemoteRegistryService(
 		r.op.Name,
+		&dataPath,
 		r.op.MasterHost,
 		r.op.MasterPort,
 		r.op.Address,

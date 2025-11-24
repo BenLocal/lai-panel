@@ -1,6 +1,7 @@
 package deploypipe
 
 import (
+	"errors"
 	"path"
 	"sync"
 
@@ -52,8 +53,8 @@ func (d *DeployCtx) GetDeployInfo() map[string]string {
 	return d.deployInfo
 }
 
-func (d *DeployCtx) GetServicePath() string {
-	return path.Join(d.options.ServicePath(), d.Service.Name)
+func (d *DeployCtx) GetServicePath() (string, error) {
+	return getPath(d.NodeState, d.options, d.Service.Name)
 }
 
 type DownCtx struct {
@@ -76,6 +77,18 @@ func NewDownCtx(
 	}
 }
 
-func (d *DownCtx) GetServicePath() string {
-	return path.Join(d.options.ServicePath(), d.Service.Name)
+func (d *DownCtx) GetServicePath() (string, error) {
+	return getPath(d.NodeState, d.options, d.Service.Name)
+}
+
+func getPath(nodeState *node.NodeState, opt options.IOptions, name string) (string, error) {
+	if nodeState.IsLocal() {
+		return path.Join(opt.DataPath(), options.SERVICE_BASE_PATH, name), nil
+	}
+
+	dataPath := nodeState.GetDataPath()
+	if dataPath == nil {
+		return "", errors.New("data path is not set")
+	}
+	return path.Join(*dataPath, options.SERVICE_BASE_PATH, name), nil
 }

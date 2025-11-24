@@ -28,6 +28,7 @@ type RegistryService struct {
 	agentPort  int
 	is_local   bool
 	address    string
+	dataPath   *string
 }
 
 func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler, baseClient *client.BaseClient) *RegistryService {
@@ -46,6 +47,7 @@ func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler, b
 }
 
 func NewRemoteRegistryService(name string,
+	dataPath *string,
 	masterHost string,
 	masterPort int,
 	agentAddress string,
@@ -62,6 +64,7 @@ func NewRemoteRegistryService(name string,
 		baseClient: baseClient,
 		address:    agentAddress,
 		agentPort:  agentPort,
+		dataPath:   dataPath,
 	}
 }
 
@@ -130,6 +133,7 @@ func (s *RegistryService) updateRegistry() error {
 		IsLocal:   s.is_local,
 		Status:    "online",
 		Address:   s.address,
+		DataPath:  s.dataPath,
 	}
 	resp, err := s.baseClient.Registry(s.masterHost, s.masterPort, &reqBody)
 	if err != nil {

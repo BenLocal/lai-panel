@@ -5,6 +5,12 @@ import (
 	"path"
 )
 
+const (
+	LOG_BASE_PATH     = "log"
+	STATIC_BASE_PATH  = "static"
+	SERVICE_BASE_PATH = "service"
+)
+
 func InitOptions(options IOptions) error {
 	dataPath := options.DataPath()
 	err := os.MkdirAll(dataPath, 0755)
@@ -12,26 +18,12 @@ func InitOptions(options IOptions) error {
 		return err
 	}
 
-	// log
-	logPath := options.LogDataPath()
-	err = os.MkdirAll(logPath, 0755)
-	if err != nil {
-		return err
-	}
-
-	// static
-	// add static file
-	staticPath := options.StaticDataPath()
-	err = os.MkdirAll(staticPath, 0755)
-	if err != nil {
-		return err
-	}
-
-	// service
-	secretPath := options.ServicePath()
-	err = os.MkdirAll(secretPath, 0755)
-	if err != nil {
-		return err
+	for _, v := range []string{LOG_BASE_PATH, STATIC_BASE_PATH, SERVICE_BASE_PATH} {
+		p := path.Join(dataPath, v)
+		err = os.MkdirAll(p, 0755)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -39,12 +31,6 @@ func InitOptions(options IOptions) error {
 
 type IOptions interface {
 	DataPath() string
-
-	StaticDataPath() string
-
-	LogDataPath() string
-
-	ServicePath() string
 
 	Agent() bool
 }

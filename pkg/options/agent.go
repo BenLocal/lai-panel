@@ -101,15 +101,3 @@ func (o *AgentOptions) DataPath() string {
 func (o *AgentOptions) Agent() bool {
 	return true
 }
-
-func (o *AgentOptions) StaticDataPath() string {
-	return path.Join(o.dataPath, "static")
-}
-
-func (o *AgentOptions) LogDataPath() string {
-	return path.Join(o.dataPath, "logs")
-}
-
-func (o *AgentOptions) ServicePath() string {
-	return path.Join(o.dataPath, "services")
-}

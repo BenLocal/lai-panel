@@ -1,9 +1,5 @@
 package options
 
-import (
-	"path"
-)
-
 type ServeOptions struct {
 	DBPath         string
 	MigrationsPath string
@@ -45,16 +41,4 @@ func (o *ServeOptions) DataPath() string {
 
 func (o *ServeOptions) Agent() bool {
 	return false
-}
-
-func (o *ServeOptions) StaticDataPath() string {
-	return path.Join(o.dataPath, "static")
-}
-
-func (o *ServeOptions) LogDataPath() string {
-	return path.Join(o.dataPath, "logs")
-}
-
-func (o *ServeOptions) ServicePath() string {
-	return path.Join(o.dataPath, "services")
 }
