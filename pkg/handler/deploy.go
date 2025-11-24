@@ -53,6 +53,7 @@ func (b *BaseHandler) HandleDockerComposeDeploy(ctx context.Context, c *app.Requ
 		b.options,
 		writer,
 		req.QAValues,
+		b.appCtx,
 	)
 
 	service, err := b.ServiceRepository().GetByID(req.ServiceId)

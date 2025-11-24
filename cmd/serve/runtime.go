@@ -11,6 +11,8 @@ import (
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/service"
+
+	myClient "github.com/benlocal/lai-panel/pkg/client"
 )
 
 type ServeRuntime struct {
@@ -38,11 +40,12 @@ func (r *ServeRuntime) Start() error {
 	appCtx := ctx.NewAppCtx(op, nil)
 
 	baseHandler := handler.NewBaseHandler(appCtx)
+	baseClient := myClient.NewBaseClient()
 
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", op.Port), baseHandler)
 	g.Add(apiServer)
 
-	registryService := service.NewLocalRegistryService(op.Port, baseHandler)
+	registryService := service.NewLocalRegistryService(op.Port, baseHandler, baseClient)
 	g.Add(registryService)
 
 	ctx := context.Background()

@@ -13,6 +13,8 @@ import (
 	"github.com/benlocal/lai-panel/pkg/options"
 	"github.com/benlocal/lai-panel/pkg/service"
 	"github.com/docker/docker/client"
+
+	myClient "github.com/benlocal/lai-panel/pkg/client"
 )
 
 type AgentRuntime struct {
@@ -32,13 +34,23 @@ func (r *AgentRuntime) Start() error {
 	}
 
 	dh := client.DefaultDockerHost
+	localDockerClient, err := docker.LocalDockerClient()
+	if err != nil {
+		return err
+	}
 	dp, _ := docker.NewDockerProxy(dh, "/docker.proxy")
+	baseClient := myClient.NewBaseClient()
+
 	g := gracefulshutdown.New()
 	g.CatchSignals()
+
 	appCtx := ctx.NewAppCtx(r.op, dp)
 	baseHandler := handler.NewBaseHandler(appCtx)
 	apiServer := api.NewApiServer(fmt.Sprintf(":%d", r.op.Port), baseHandler)
 	g.Add(apiServer)
+
+	dockerEventListenerService := service.NewdockerEventListenerService(localDockerClient)
+	g.Add(dockerEventListenerService)
 
 	registryService := service.NewRemoteRegistryService(
 		r.op.Name,
@@ -46,6 +58,7 @@ func (r *AgentRuntime) Start() error {
 		r.op.MasterPort,
 		r.op.Address,
 		r.op.Port,
+		baseClient,
 	)
 	g.Add(registryService)
 

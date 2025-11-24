@@ -25,28 +25,29 @@ func (p *NodePipeline) Run(ctx context.Context, nodeCtx *nodepipe.NodeCtx) (*nod
 }
 
 type DeployPipeline struct {
-	pipeline.Processor[*deploypipe.DeployCtx, *deploypipe.DeployCtx]
+	upPipeline   pipeline.Processor[*deploypipe.DeployCtx, *deploypipe.DeployCtx]
 	downPipeline pipeline.Processor[*deploypipe.DownCtx, *deploypipe.DownCtx]
 }
 
 func NewDeployPipeline() *DeployPipeline {
-	p := pipeline.Sequence(
+	up := pipeline.Sequence(
 		&deploypipe.DockerComposeFileParsePipeline{},
+		&deploypipe.LoadImagePipeline{},
 		&deploypipe.DockerComposeUpPipeline{},
 	)
 
-	d := pipeline.Sequence(
+	down := pipeline.Sequence(
 		&deploypipe.DockerComposeDownPipeline{},
 	)
 
 	return &DeployPipeline{
-		Processor:    p,
-		downPipeline: d,
+		upPipeline:   up,
+		downPipeline: down,
 	}
 }
 
 func (p *DeployPipeline) Up(ctx context.Context, deployCtx *deploypipe.DeployCtx) (*deploypipe.DeployCtx, error) {
-	return p.Processor.Process(ctx, deployCtx)
+	return p.upPipeline.Process(ctx, deployCtx)
 }
 
 func (p *DeployPipeline) Down(ctx context.Context, downCtx *deploypipe.DownCtx) (*deploypipe.DownCtx, error) {

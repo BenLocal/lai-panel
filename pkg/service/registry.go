@@ -2,23 +2,25 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"errors"
 	"log"
 	"time"
 
+	"github.com/benlocal/lai-panel/pkg/client"
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/model"
-	httpClient "github.com/cloudwego/hertz/pkg/app/client"
-	"github.com/cloudwego/hertz/pkg/protocol"
+)
+
+const (
+	BaseIP = "127.0.0.1"
 )
 
 type RegistryService struct {
-	context    context.Context
-	cancel     context.CancelFunc
-	httpClient *httpClient.Client
+	context context.Context
+	cancel  context.CancelFunc
 
 	baseHandler *handler.BaseHandler
+	baseClient  *client.BaseClient
 
 	masterHost string
 	masterPort int
@@ -28,25 +30,28 @@ type RegistryService struct {
 	address    string
 }
 
-func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler) *RegistryService {
+func NewLocalRegistryService(masterPort int, baseHandler *handler.BaseHandler, baseClient *client.BaseClient) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
-	httpClient, _ := httpClient.NewClient()
 	return &RegistryService{
 		context:     ctx,
 		cancel:      cancel,
-		httpClient:  httpClient,
+		baseClient:  baseClient,
 		is_local:    true,
 		masterPort:  masterPort,
 		name:        "local",
-		masterHost:  "127.0.0.1",
+		masterHost:  BaseIP,
 		baseHandler: baseHandler,
-		address:     "127.0.0.1",
+		address:     BaseIP,
 	}
 }
 
-func NewRemoteRegistryService(name string, masterHost string, masterPort int, agentAddress string, agentPort int) *RegistryService {
+func NewRemoteRegistryService(name string,
+	masterHost string,
+	masterPort int,
+	agentAddress string,
+	agentPort int,
+	baseClient *client.BaseClient) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
-	httpClient, _ := httpClient.NewClient()
 	return &RegistryService{
 		context:    ctx,
 		cancel:     cancel,
@@ -54,7 +59,7 @@ func NewRemoteRegistryService(name string, masterHost string, masterPort int, ag
 		masterHost: masterHost,
 		masterPort: masterPort,
 		name:       name,
-		httpClient: httpClient,
+		baseClient: baseClient,
 		address:    agentAddress,
 		agentPort:  agentPort,
 	}
@@ -119,15 +124,6 @@ func (s *RegistryService) tryAddLocalRegistry() error {
 }
 
 func (s *RegistryService) updateRegistry() error {
-	req := protocol.AcquireRequest()
-	defer protocol.ReleaseRequest(req)
-
-	url := fmt.Sprintf("http://%s:%d/registry", s.masterHost, s.masterPort)
-	log.Println("update registry to", url)
-	req.SetRequestURI(url)
-	req.Header.SetMethod("POST")
-	req.Header.SetContentTypeBytes([]byte("application/json"))
-
 	reqBody := model.RegistryRequest{
 		Name:      s.name,
 		AgentPort: s.agentPort,
@@ -135,23 +131,12 @@ func (s *RegistryService) updateRegistry() error {
 		Status:    "online",
 		Address:   s.address,
 	}
-	jsonBody, err := json.Marshal(reqBody)
+	resp, err := s.baseClient.Registry(s.masterHost, s.masterPort, &reqBody)
 	if err != nil {
 		return err
 	}
-
-	req.SetBody(jsonBody)
-
-	resp := protocol.AcquireResponse()
-	defer protocol.ReleaseResponse(resp)
-
-	if err := s.httpClient.Do(context.Background(), req, resp); err != nil {
-		return err
+	if resp.ID == 0 {
+		return errors.New("registry failed")
 	}
-
-	body := resp.Body()
-	// 处理响应
-	_ = body
-
 	return nil
 }

@@ -87,6 +87,17 @@ func TestAgentDockerClientRemote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to list images: %v", err)
 	}
+
+	reader, err := dockerClient.ImageSave(context.Background(), []string{"nginx:aaa"})
+	if err != nil {
+		t.Fatalf("failed to save image: %v", err)
+	}
+	defer reader.Close()
+
+	dockerClient.ImageLoad(context.Background(), reader)
+	if err != nil {
+		t.Fatalf("failed to load image: %v", err)
+	}
 	t.Logf("images: %v", images)
 }
 

@@ -3,6 +3,7 @@ package deploypipe
 import (
 	"sync"
 
+	"github.com/benlocal/lai-panel/pkg/ctx"
 	"github.com/benlocal/lai-panel/pkg/model"
 	"github.com/benlocal/lai-panel/pkg/node"
 	"github.com/benlocal/lai-panel/pkg/options"
@@ -14,6 +15,7 @@ type DeployCtx struct {
 	App       *model.App
 	Service   *model.Service
 	NodeState *node.NodeState
+	appCtx    *ctx.AppCtx
 	writer    *sse.Writer
 	sendMu    sync.Mutex
 	env       map[string]string
@@ -27,9 +29,11 @@ func NewDeployCtx(
 	options options.IOptions,
 	writer *sse.Writer,
 	env map[string]string,
+	appCtx *ctx.AppCtx,
 ) *DeployCtx {
 	return &DeployCtx{
 		options:    options,
+		appCtx:     appCtx,
 		writer:     writer,
 		env:        env,
 		sendMu:     sync.Mutex{},
