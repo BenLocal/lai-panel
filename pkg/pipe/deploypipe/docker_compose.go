@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"path"
+
+	"github.com/benlocal/lai-panel/pkg/node"
 )
 
 const (
@@ -25,6 +27,10 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	if err != nil {
 		return c, err
 	}
+	composeCmd, err := findDockerComposeCommand(exec)
+	if err != nil {
+		return c, err
+	}
 	err = exec.WriteFile(pa, []byte(*c.dockerComposeFile))
 	if err != nil {
 		return c, err
@@ -34,7 +40,8 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	c.Send("info", "  --> deploying to node: "+c.NodeState.GetNodeInfo())
 
 	// execute docker compose up
-	cmd := fmt.Sprintf("docker compose -f %s up -d --build", pa)
+	cmd := fmt.Sprintf("%s -f %s up -d --build", composeCmd, pa)
+	c.Send("info", "executing command: "+cmd)
 	err = exec.ExecuteCommand(cmd, c.env, func(s string) {
 		c.Send("info", s)
 	}, func(s string) {
@@ -64,7 +71,11 @@ func (p *DockerComposeDownPipeline) Process(ctx context.Context, c *DownCtx) (*D
 	if err != nil {
 		return c, err
 	}
-	err = exec.ExecuteCommand(fmt.Sprintf("docker compose -f %s down", pa), env, func(s string) {
+	composeCmd, err := findDockerComposeCommand(exec)
+	if err != nil {
+		return c, err
+	}
+	err = exec.ExecuteCommand(fmt.Sprintf("%s -f %s down", composeCmd, pa), env, func(s string) {
 		// do nothing
 	}, func(s string) {
 		// do nothing
@@ -77,4 +88,14 @@ func (p *DockerComposeDownPipeline) Process(ctx context.Context, c *DownCtx) (*D
 
 func (p *DockerComposeDownPipeline) Cancel(c *DownCtx, err error) {
 	// do nothing
+}
+
+func findDockerComposeCommand(exec node.NodeExec) (string, error) {
+	if _, _, err := exec.ExecuteOutput("docker compose version", map[string]string{}); err == nil {
+		return "docker compose", nil
+	}
+	if _, _, err := exec.ExecuteOutput("docker-compose version", map[string]string{}); err == nil {
+		return "docker-compose", nil
+	}
+	return "", errors.New("docker compose command not found (tried 'docker compose' and 'docker-compose')")
 }

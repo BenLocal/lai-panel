@@ -242,11 +242,11 @@ const closePushDialog = () => {
               </TableCell>
               <TableCell>
                 <TooltipWithCopy :text="image.tag" max-width="200px">
-                  <span
+                <span
                     class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20 truncate max-w-full"
-                  >
-                    {{ image.tag }}
-                  </span>
+                >
+                  {{ image.tag }}
+                </span>
                 </TooltipWithCopy>
               </TableCell>
               <TableCell class="font-mono text-xs">

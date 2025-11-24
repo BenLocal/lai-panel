@@ -34,8 +34,44 @@ func (l *LocalNodeExec) WriteFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
+func (l *LocalNodeExec) WriteFileStream(path string, reader io.Reader) error {
+	dir := filepath.Dir(path)
+	if dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return err
+		}
+	}
+
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (l *LocalNodeExec) ReadFile(path string) ([]byte, error) {
 	return os.ReadFile(path)
+}
+
+func (l *LocalNodeExec) ReadFileStream(path string, writer io.Writer) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(writer, file)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (l *LocalNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {

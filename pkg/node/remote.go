@@ -94,6 +94,25 @@ func (r *RemoteNodeExec) WriteFile(path string, data []byte) error {
 	return nil
 }
 
+func (r *RemoteNodeExec) WriteFileStream(path string, reader io.Reader) error {
+	if r.sftpClient == nil {
+		return fmt.Errorf("SFTP client not initialized")
+	}
+
+	file, err := r.sftpClient.Create(path)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, reader)
+	if err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
+}
+
 func (r *RemoteNodeExec) ReadFile(path string) ([]byte, error) {
 	if r.sftpClient == nil {
 		return nil, fmt.Errorf("SFTP client not initialized")
@@ -111,6 +130,25 @@ func (r *RemoteNodeExec) ReadFile(path string) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (r *RemoteNodeExec) ReadFileStream(path string, writer io.Writer) error {
+	if r.sftpClient == nil {
+		return fmt.Errorf("SFTP client not initialized")
+	}
+
+	file, err := r.sftpClient.Open(path)
+	if err != nil {
+		return fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(writer, file)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	return nil
 }
 
 func (r *RemoteNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {

@@ -277,9 +277,9 @@ watch(
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm" class="h-8 px-2">
-                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                      </Button>
+                  <Button variant="ghost" size="sm" class="h-8 px-2">
+                    <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
+                  </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem :disabled="container.status === 'running'"
