@@ -70,37 +70,6 @@ func TestLocalDockerClient(t *testing.T) {
 	t.Logf("images: %v", images)
 }
 
-func TestAgentDockerClientRemote(t *testing.T) {
-	dockerClient, err := AgentDockerClient("172.31.169.114", 8081)
-	if err != nil {
-		t.Fatalf("failed to create agent docker client: %v", err)
-	}
-	defer dockerClient.Close()
-
-	containers, err := dockerClient.ContainerList(context.Background(), container.ListOptions{})
-	if err != nil {
-		t.Fatalf("failed to list containers: %v", err)
-	}
-	t.Logf("containers: %v", containers)
-
-	images, err := dockerClient.ImageList(context.Background(), image.ListOptions{})
-	if err != nil {
-		t.Fatalf("failed to list images: %v", err)
-	}
-
-	reader, err := dockerClient.ImageSave(context.Background(), []string{"nginx:aaa"})
-	if err != nil {
-		t.Fatalf("failed to save image: %v", err)
-	}
-	defer reader.Close()
-
-	dockerClient.ImageLoad(context.Background(), reader)
-	if err != nil {
-		t.Fatalf("failed to load image: %v", err)
-	}
-	t.Logf("images: %v", images)
-}
-
 func TestAgentDockerClient(t *testing.T) {
 	// start agent server
 	dh := client.DefaultDockerHost
