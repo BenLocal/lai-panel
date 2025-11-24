@@ -19,7 +19,7 @@ type AgentOptions struct {
 
 func NewAgentOptions(opts ...func(o *AgentOptions)) *AgentOptions {
 	uuid := uuid.New().String()[:8]
-	dataPath := getDefaultDataPath("agent")
+	dataPath := getDefaultDataPath("data")
 
 	t := &AgentOptions{
 		Port:       8081,

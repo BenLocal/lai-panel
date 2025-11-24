@@ -39,8 +39,8 @@ func init() {
 		router.Any("/docker.proxy/*path", h.HandleDockerProxy)
 
 		api := router.Group("/open")
-		// static file
-		api.Static("/static", h.StaticDataPath())
+		// workspace files
+		api.Static("/workspace", h.WorkSpaceDataPath())
 		// file upload
 		api.POST("/file/upload", h.HandleFileUpload)
 	})

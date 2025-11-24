@@ -15,7 +15,7 @@ func LocalDockerClient() (*client.Client, error) {
 }
 
 func AgentDockerClient(host string, port int) (*client.Client, error) {
-	return agentDockerClient(host, port, true)
+	return agentDockerClient(host, port, false)
 }
 
 func agentDockerClient(host string, port int, withoutProxy bool) (*client.Client, error) {

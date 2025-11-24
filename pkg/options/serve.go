@@ -8,7 +8,7 @@ type ServeOptions struct {
 }
 
 func NewServeOptions() *ServeOptions {
-	dataPath := getDefaultDataPath("serve")
+	dataPath := getDefaultDataPath("data")
 	return &ServeOptions{
 		DBPath:         "lai-panel.db",
 		MigrationsPath: "migrations",

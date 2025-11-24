@@ -29,8 +29,8 @@ func init() {
 		router.POST(client.DockerEventPath, h.GetDockerEventHandler)
 
 		openApi := router.Group("/open")
-		// static file
-		openApi.Static("/static", h.StaticDataPath())
+		// workspace files
+		openApi.Static("/workspace", h.WorkSpaceDataPath())
 		// file upload
 		openApi.POST("/file/upload", h.HandleFileUpload)
 

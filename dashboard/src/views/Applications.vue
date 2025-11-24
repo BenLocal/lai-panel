@@ -50,6 +50,7 @@ const isEditMode = ref(false);
 const loading = ref(false);
 const editingApplicationId = ref<number | null>(null);
 const isComposeEditorOpen = ref(false);
+const composeDraft = ref("");
 
 const createDefaultForm = (): ApplicationForm => ({
   display: "",
@@ -107,17 +108,14 @@ const handleNameInput = (event: Event) => {
 };
 
 const isSaveDisabled = computed(() => {
-  return (
-    !formData.name.trim() ||
-    !isNameValid.value ||
-    loading.value
-  );
+  return !formData.name.trim() || !isNameValid.value || loading.value;
 });
 
 const resetForm = () => {
   Object.assign(formData, createDefaultForm());
   editingApplicationId.value = null;
   isComposeEditorOpen.value = false;
+  composeDraft.value = "";
 };
 
 const openAddApplicationDialog = () => {
@@ -137,26 +135,42 @@ const openEditApplicationDialog = (application: Application) => {
     display: application.display ?? "",
     qa: application.qa
       ? application.qa.map((item) => ({
-        ...item,
-        options: item.options ? [...item.options] : undefined,
-      }))
+          ...item,
+          options: item.options ? [...item.options] : undefined,
+        }))
       : [],
     metadata: application.metadata
       ? application.metadata.map((item) => ({
-        name: item.name ?? "",
-        properties: Object.entries(item.properties ?? {}).map(
-          ([key, value]) => ({
-            key,
-            value,
-          })
-        ),
-      }))
+          name: item.name ?? "",
+          properties: Object.entries(item.properties ?? {}).map(
+            ([key, value]) => ({
+              key,
+              value,
+            })
+          ),
+        }))
       : [],
     dockerCompose: application.docker_compose ?? "",
     static_path: application.static_path ?? "",
   });
   isComposeEditorOpen.value = false;
+  composeDraft.value = application.docker_compose ?? "";
   isSheetOpen.value = true;
+};
+
+const openComposeEditor = () => {
+  composeDraft.value = formData.dockerCompose ?? "";
+  isComposeEditorOpen.value = true;
+};
+
+const cancelComposeEdit = () => {
+  isComposeEditorOpen.value = false;
+  composeDraft.value = formData.dockerCompose ?? "";
+};
+
+const confirmComposeEdit = () => {
+  formData.dockerCompose = composeDraft.value ?? "";
+  isComposeEditorOpen.value = false;
 };
 
 const handleCancel = () => {
@@ -224,12 +238,17 @@ onMounted(() => {
     <!-- Applications Cards -->
     <div v-if="applications.length > 0">
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <div v-for="app in applications" :key="app.id"
+        <div
+          v-for="app in applications"
+          :key="app.id"
           class="group rounded-lg border bg-card p-6 hover:shadow-md transition-shadow cursor-pointer"
-          @click="openEditApplicationDialog(app)">
+          @click="openEditApplicationDialog(app)"
+        >
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary"
+              >
                 <Icon :icon="app.icon || 'lucide:app-window'" class="h-5 w-5" />
               </div>
               <div>
@@ -252,27 +271,47 @@ onMounted(() => {
       </div>
 
       <!-- Pagination Controls -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between border-t pt-6 mt-6">
+      <div
+        v-if="totalPages > 1"
+        class="flex items-center justify-between border-t pt-6 mt-6"
+      >
         <div class="text-sm text-muted-foreground">
           Showing {{ (currentPage - 1) * pageSize + 1 }} -
           {{ Math.min(currentPage * pageSize, applications.length) }} of
           {{ applications.length }} applications
         </div>
         <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="currentPage === 1"
+            @click="goToPage(currentPage - 1)"
+          >
             <Icon icon="lucide:chevron-left" class="h-4 w-4" />
           </Button>
           <div class="flex items-center gap-1">
-            <Button v-for="page in totalPages" :key="page" variant="outline" size="sm" :class="[
-              'min-w-[40px]',
-              currentPage === page
-                ? 'bg-primary text-primary-foreground'
-                : '',
-            ]" @click="goToPage(page)">
+            <Button
+              v-for="page in totalPages"
+              :key="page"
+              variant="outline"
+              size="sm"
+              :class="[
+                'min-w-[40px]',
+                currentPage === page
+                  ? 'bg-primary text-primary-foreground'
+                  : '',
+              ]"
+              @click="goToPage(page)"
+            >
               {{ page }}
             </Button>
           </div>
-          <Button variant="outline" size="sm" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="currentPage === totalPages"
+            @click="goToPage(currentPage + 1)"
+          >
             <Icon icon="lucide:chevron-right" class="h-4 w-4" />
           </Button>
         </div>
@@ -281,7 +320,10 @@ onMounted(() => {
 
     <!-- Empty State -->
     <div v-else class="rounded-lg border bg-card p-12 text-center">
-      <Icon icon="lucide:layers" class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+      <Icon
+        icon="lucide:layers"
+        class="h-12 w-12 mx-auto text-muted-foreground mb-4"
+      />
       <p class="text-muted-foreground">No applications found</p>
       <Button class="mt-4" @click="openAddApplicationDialog">
         <Icon icon="lucide:plus" class="h-4 w-4 mr-2" />
@@ -290,7 +332,9 @@ onMounted(() => {
     </div>
 
     <Sheet v-model:open="isSheetOpen">
-      <SheetContent class="flex h-full w-full max-w-[90vw] sm:max-w-none lg:max-w-[1200px] flex-col">
+      <SheetContent
+        class="flex h-full w-full max-w-[90vw] sm:max-w-none lg:max-w-[1200px] flex-col"
+      >
         <SheetHeader class="px-3 sm:px-5">
           <SheetTitle>{{
             isEditMode ? "Edit Application" : "Add Application"
@@ -308,68 +352,119 @@ onMounted(() => {
           <div class="space-y-4 px-3 sm:px-5">
             <div class="space-y-2">
               <label for="app-name" class="text-sm font-medium">Name *</label>
-              <Input id="app-name" v-model="formData.name" placeholder="Application name, English letters only"
-                @input="handleNameInput" />
-              <p v-if="formData.name && !isNameValid" class="text-xs text-destructive">
+              <Input
+                id="app-name"
+                v-model="formData.name"
+                placeholder="Application name, English letters only"
+                @input="handleNameInput"
+              />
+              <p
+                v-if="formData.name && !isNameValid"
+                class="text-xs text-destructive"
+              >
                 Only English letters (A-Z) are allowed.
               </p>
             </div>
             <div class="space-y-2">
-              <label for="app-display" class="text-sm font-medium">Display Name</label>
-              <Input id="app-display" v-model="formData.display"
-                placeholder="Application display name, if not set, use name" />
+              <label for="app-display" class="text-sm font-medium"
+                >Display Name</label
+              >
+              <Input
+                id="app-display"
+                v-model="formData.display"
+                placeholder="Application display name, if not set, use name"
+              />
             </div>
 
             <div class="space-y-2">
-              <label for="app-version" class="text-sm font-medium">Version</label>
-              <Input id="app-version" v-model="formData.version" placeholder="v1.0.0" />
+              <label for="app-version" class="text-sm font-medium"
+                >Version</label
+              >
+              <Input
+                id="app-version"
+                v-model="formData.version"
+                placeholder="v1.0.0"
+              />
             </div>
 
             <div class="space-y-2">
               <label for="app-icon" class="text-sm font-medium">Icon</label>
-              <Input id="app-icon" v-model="formData.icon" placeholder="lucide:app-window" />
+              <Input
+                id="app-icon"
+                v-model="formData.icon"
+                placeholder="lucide:app-window"
+              />
             </div>
 
             <div class="space-y-2">
-              <label for="app-description" class="text-sm font-medium">Description</label>
-              <textarea id="app-description" v-model="formData.description"
+              <label for="app-description" class="text-sm font-medium"
+                >Description</label
+              >
+              <textarea
+                id="app-description"
+                v-model="formData.description"
                 class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[120px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                placeholder="Describe the application"></textarea>
+                placeholder="Describe the application"
+              ></textarea>
             </div>
             <div class="space-y-2">
-              <label for="app-static-path" class="text-sm font-medium">Static Path</label>
-              <Input id="app-static-path" v-model="formData.static_path"
-                placeholder="URL or local path to installer file (e.g., https://example.com/app.tar.gz or /path/to/app.tar.gz)" />
+              <label for="app-static-path" class="text-sm font-medium"
+                >Static Path</label
+              >
+              <Input
+                id="app-static-path"
+                v-model="formData.static_path"
+                placeholder="URL or local path to installer file (e.g., https://example.com/app.tar.gz or /path/to/app.tar.gz)"
+              />
               <p class="text-xs text-muted-foreground">
-                Path to installer file. If it's a tar.gz file, it will be automatically extracted.
+                Path to installer file. If it's a tar.gz file, it will be
+                automatically extracted.
               </p>
             </div>
             <div class="space-y-2">
               <Separator class="my-4" />
             </div>
             <div class="space-y-3">
-              <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <span class="text-sm font-medium">Docker Compose (YAML)</span>
                 <span class="text-xs text-muted-foreground">
                   Edit and preview the compose definition
                 </span>
               </div>
-              <div class="space-y-3 rounded-md border border-dashed border-muted-foreground/40 bg-muted/20 p-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div
+                class="space-y-3 rounded-md border border-dashed border-muted-foreground/40 bg-muted/20 p-4"
+              >
+                <div
+                  class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
+                >
                   <div class="flex-1">
-                    <pre v-if="dockerComposePreview"
-                      class="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md bg-background/80 px-3 py-2 text-xs text-muted-foreground shadow-inner">{{ dockerComposePreview }}</pre>
+                    <pre
+                      v-if="dockerComposePreview"
+                      class="max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-md bg-background/80 px-3 py-2 text-xs text-muted-foreground shadow-inner"
+                      >{{ dockerComposePreview }}</pre
+                    >
                     <p v-else class="text-xs italic text-muted-foreground">
                       No Docker Compose definition yet.
                     </p>
                   </div>
                   <div class="flex shrink-0 gap-2 sm:justify-end">
-                    <Button size="sm" variant="outline" @click="isComposeEditorOpen = true">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      @click="openComposeEditor"
+                    >
                       <Icon icon="lucide:pen-square" class="mr-2 h-4 w-4" />
                       Open Editor
                     </Button>
-                    <Button v-if="formData.dockerCompose" size="sm" variant="ghost" :disabled="loading"
-                      @click="formData.dockerCompose = ''">
+                    <Button
+                      v-if="formData.dockerCompose"
+                      size="sm"
+                      variant="ghost"
+                      :disabled="loading"
+                      @click="formData.dockerCompose = ''"
+                    >
                       <Icon icon="lucide:trash-2" class="mr-2 h-4 w-4" />
                       Clear
                     </Button>
@@ -387,7 +482,9 @@ onMounted(() => {
           </div>
         </div>
 
-        <SheetFooter class="flex flex-row items-center justify-end gap-2 px-3 sm:px-5">
+        <SheetFooter
+          class="flex flex-row items-center justify-end gap-2 px-3 sm:px-5"
+        >
           <Button variant="outline" @click="handleCancel" :disabled="loading">
             Cancel
           </Button>
@@ -396,8 +493,8 @@ onMounted(() => {
               loading
                 ? "Saving..."
                 : isEditMode
-                  ? "Update Application"
-                  : "Add Application"
+                ? "Update Application"
+                : "Add Application"
             }}
           </Button>
         </SheetFooter>
@@ -405,7 +502,8 @@ onMounted(() => {
     </Sheet>
     <Dialog v-model:open="isComposeEditorOpen">
       <DialogContent
-        class="flex h-screen w-screen max-w-none flex-col bg-background p-0 sm:rounded-none sm:max-w-none lg:w-[95vw]">
+        class="flex h-screen w-screen max-w-none flex-col bg-background p-0 sm:rounded-none sm:max-w-none lg:w-[95vw]"
+      >
         <DialogHeader class="border-b px-6 py-4">
           <DialogTitle>Docker Compose Editor</DialogTitle>
           <DialogDescription>
@@ -413,14 +511,17 @@ onMounted(() => {
           </DialogDescription>
         </DialogHeader>
         <div class="flex-1 overflow-hidden">
-          <YamlEditor v-model="formData.dockerCompose" :height="'100%'" />
+          <YamlEditor v-model="composeDraft" :height="'100%'" />
         </div>
         <DialogFooter class="border-t px-6 py-4">
-          <div class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div
+            class="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+          >
             <div class="flex gap-2">
-              <Button variant="outline" @click="isComposeEditorOpen = false">
-                Close
+              <Button variant="outline" @click="cancelComposeEdit">
+                Cancel
               </Button>
+              <Button @click="confirmComposeEdit"> Confirm </Button>
             </div>
           </div>
         </DialogFooter>

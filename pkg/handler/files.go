@@ -29,7 +29,7 @@ func (h *BaseHandler) HandleFileUpload(ctx context.Context, c *app.RequestContex
 		return
 	}
 
-	savePath := filepath.Join(h.StaticDataPath(), targetPath)
+	savePath := filepath.Join(h.WorkSpaceDataPath(), targetPath)
 
 	saveDir := filepath.Dir(savePath)
 	if err := os.MkdirAll(saveDir, 0755); err != nil {

@@ -17,8 +17,8 @@ import (
 	"github.com/cloudwego/hertz/pkg/protocol/http1/resp"
 )
 
-func (h *BaseHandler) StaticDataPath() string {
-	return path.Join(h.options.DataPath(), options.STATIC_BASE_PATH)
+func (h *BaseHandler) WorkSpaceDataPath() string {
+	return path.Join(h.options.DataPath(), options.WORK_SPACE_BASE_PATH)
 }
 
 func (h *BaseHandler) Tar(ctx context.Context, c *app.RequestContext) {
@@ -54,7 +54,7 @@ func (h *BaseHandler) validateTarPath(p string) (string, error) {
 		return "", errors.New("path is required")
 	}
 
-	filePath := path.Join(h.StaticDataPath(), p)
+	filePath := path.Join(h.WorkSpaceDataPath(), p)
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		return "", errors.New("file not found")
 	}
