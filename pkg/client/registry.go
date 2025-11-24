@@ -3,8 +3,10 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
+	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/model"
 	"github.com/cloudwego/hertz/pkg/protocol"
 )
@@ -32,9 +34,19 @@ func (c *BaseClient) Registry(host string, port int, body *model.RegistryRequest
 	}
 
 	respBody := resp.Body()
-	var respModel model.RegistryResponse
+	var respModel registryRespEnvelope
 	if err := json.Unmarshal(respBody, &respModel); err != nil {
 		return nil, err
 	}
-	return &respModel, nil
+
+	if respModel.Code != 0 {
+		return nil, errors.New(respModel.Message)
+	}
+
+	return &respModel.Data, nil
+}
+
+type registryRespEnvelope struct {
+	handler.ApiResponse
+	Data model.RegistryResponse `json:"data"`
 }

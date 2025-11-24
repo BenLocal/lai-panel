@@ -35,13 +35,7 @@ func NewLocalRegistryService(baseHandler *handler.BaseHandler, baseClient *clien
 	}
 }
 
-func NewRemoteRegistryService(name string,
-	dataPath *string,
-	masterHost string,
-	masterPort int,
-	agentAddress string,
-	agentPort int,
-	baseClient *client.BaseClient) *RegistryService {
+func NewRemoteRegistryService(baseClient *client.BaseClient) *RegistryService {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &RegistryService{
 		context:    ctx,
@@ -90,6 +84,7 @@ func (s *RegistryService) tryAddLocalRegistry() error {
 		return err
 	}
 	if node != nil {
+		appCtx.GlobalServerStore.SetID(node.ID)
 		return nil
 	}
 
@@ -107,6 +102,7 @@ func (s *RegistryService) tryAddLocalRegistry() error {
 	if err := s.baseHandler.NodeRepository().Create(node); err != nil {
 		return err
 	}
+	appCtx.GlobalServerStore.SetID(node.ID)
 	return nil
 }
 
@@ -126,7 +122,7 @@ func (s *RegistryService) updateRegistry() error {
 	if err != nil {
 		return err
 	}
-	if resp.ID == 0 {
+	if resp.ID <= 0 {
 		return errors.New("registry failed")
 	}
 

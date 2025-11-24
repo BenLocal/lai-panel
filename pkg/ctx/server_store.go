@@ -1,6 +1,8 @@
 package ctx
 
 import (
+	"fmt"
+	"log"
 	"sync"
 
 	"github.com/benlocal/lai-panel/pkg/options"
@@ -21,7 +23,9 @@ func GetServerStore(opt *options.AgentOptions) *ServerStore {
 			opt.Port,
 			opt.Address,
 			&dataPath)
+		log.Println(GlobalServerStore.str())
 	})
+
 	return GlobalServerStore
 }
 
@@ -35,6 +39,7 @@ func GetServerStoreForLocal(opt *options.ServeOptions) *ServerStore {
 			opt.Port,
 			baseIP,
 			&dataPath)
+		log.Println(GlobalServerStore.str())
 	})
 	return GlobalServerStore
 }
@@ -68,6 +73,17 @@ func newServerStore(isLocal bool,
 		address:    address,
 		dataPath:   dataPath,
 	}
+}
+
+func (s *ServerStore) str() string {
+	return fmt.Sprintf(`ServerStore{isLocal: %v, masterHost: %s, masterPort: %d, name: %s, agentPort: %d, address: %s, dataPath: %v}`,
+		s.isLocal,
+		s.masterHost,
+		s.masterPort,
+		s.name,
+		s.agentPort,
+		s.address,
+		*s.dataPath)
 }
 
 func (s *ServerStore) GetID() int64 {

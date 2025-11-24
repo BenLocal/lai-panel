@@ -51,11 +51,14 @@ loop:
 
 func (s *dockerEventListenerService) handleEvent(event events.Message) {
 	id := ctx.GlobalServerStore.GetID()
+	masterHost := ctx.GlobalServerStore.GetMasterHost()
+	masterPort := ctx.GlobalServerStore.GetMasterPort()
+
+	//log.Println("docker event listener service handleEvent: ", id, masterHost, masterPort)
 	if id <= 0 {
 		return
 	}
-	masterHost := ctx.GlobalServerStore.GetMasterHost()
-	masterPort := ctx.GlobalServerStore.GetMasterPort()
+
 	dockerEvent := model.DockerEvent{
 		NodeId: id,
 		Event:  event,

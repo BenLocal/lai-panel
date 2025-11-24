@@ -7,6 +7,7 @@ import (
 	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/ctx"
 	"github.com/benlocal/lai-panel/pkg/database"
+	"github.com/benlocal/lai-panel/pkg/docker"
 	"github.com/benlocal/lai-panel/pkg/gracefulshutdown"
 	"github.com/benlocal/lai-panel/pkg/handler"
 	"github.com/benlocal/lai-panel/pkg/options"
@@ -25,6 +26,11 @@ func NewServeRuntime() *ServeRuntime {
 func (r *ServeRuntime) Start() error {
 	op := options.NewServeOptions()
 	err := database.InitDB(op.DBPath, op.MigrationsPath)
+	if err != nil {
+		return err
+	}
+
+	localDockerClient, err := docker.LocalDockerClient()
 	if err != nil {
 		return err
 	}
@@ -50,6 +56,9 @@ func (r *ServeRuntime) Start() error {
 
 	registryService := service.NewLocalRegistryService(baseHandler, baseClient)
 	g.Add(registryService)
+
+	dockerEventListenerService := service.NewdockerEventListenerService(localDockerClient, baseClient)
+	g.Add(dockerEventListenerService)
 
 	ctx := context.Background()
 	return g.Start(ctx)

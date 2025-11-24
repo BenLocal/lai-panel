@@ -59,16 +59,7 @@ func (r *AgentRuntime) Start() error {
 	)
 	g.Add(dockerEventListenerService)
 
-	dataPath := r.op.DataPath()
-	registryService := service.NewRemoteRegistryService(
-		r.op.Name,
-		&dataPath,
-		r.op.MasterHost,
-		r.op.MasterPort,
-		r.op.Address,
-		r.op.Port,
-		baseClient,
-	)
+	registryService := service.NewRemoteRegistryService(baseClient)
 	g.Add(registryService)
 
 	log.Println("start agent server on port", r.op.Port, "with name", r.op.Name)
