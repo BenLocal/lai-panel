@@ -17,6 +17,7 @@ import {
   type ApplicationQAItem,
 } from "@/api/application";
 import ApplicationQAEditor from "@/components/application/ApplicationQAEditor.vue";
+import ApplicationWorkspaceManager from "@/components/application/ApplicationWorkspaceManager.vue";
 import { Separator } from "@/components/ui/separator";
 import YamlEditor from "@/components/application/YamlEditor.vue";
 import {
@@ -27,6 +28,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ApiResponseHelper } from "@/api/base";
 import { showToast } from "@/lib/toast";
 
@@ -51,6 +58,9 @@ const loading = ref(false);
 const editingApplicationId = ref<number | null>(null);
 const isComposeEditorOpen = ref(false);
 const composeDraft = ref("");
+const isWorkspaceDialogOpen = ref(false);
+const workspaceDialogAppName = ref("");
+const workspaceDialogDisplayName = ref("");
 
 const createDefaultForm = (): ApplicationForm => ({
   display: "",
@@ -173,6 +183,17 @@ const confirmComposeEdit = () => {
   isComposeEditorOpen.value = false;
 };
 
+const openWorkspace = (app: Application) => {
+  if (!app?.name?.trim()) {
+    showToast("Workspace path unavailable", "error");
+    return;
+  }
+
+  workspaceDialogAppName.value = app.name;
+  workspaceDialogDisplayName.value = app.display || app.name;
+  isWorkspaceDialogOpen.value = true;
+};
+
 const handleCancel = () => {
   isSheetOpen.value = false;
   isEditMode.value = false;
@@ -209,6 +230,7 @@ const saveApplication = async () => {
     isEditMode.value = false;
     resetForm();
   } catch (error) {
+    console.error(error);
     showToast("Failed to save application", "error");
   } finally {
     loading.value = false;
@@ -263,9 +285,19 @@ onMounted(() => {
           </p>
 
           <div class="flex items-center justify-end">
-            <Button variant="ghost" size="sm" @click.stop>
-              <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="ghost" size="sm" @click.stop>
+                  <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-48">
+                <DropdownMenuItem @click.stop="openWorkspace(app)">
+                  <Icon icon="lucide:folder-open" class="mr-2 h-4 w-4" />
+                  Open Workspace
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -479,6 +511,10 @@ onMounted(() => {
               <div class="text-sm font-medium">QA Configuration</div>
               <ApplicationQAEditor v-model="formData.qa" />
             </div>
+            <div class="space-y-2">
+              <Separator class="my-4" />
+            </div>
+            <ApplicationWorkspaceManager :app-name="formData.name" />
           </div>
         </div>
 
@@ -524,6 +560,29 @@ onMounted(() => {
               <Button @click="confirmComposeEdit"> Confirm </Button>
             </div>
           </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog v-model:open="isWorkspaceDialogOpen">
+      <DialogContent
+        class="flex h-screen w-screen max-w-none flex-col bg-background p-0 sm:rounded-none sm:max-w-none lg:w-[95vw]"
+      >
+        <DialogHeader class="border-b px-6 py-4">
+          <DialogTitle
+            >Workspace · {{ workspaceDialogDisplayName }}</DialogTitle
+          >
+          <DialogDescription>
+            Manage files stored under the workspace directory for this
+            application.
+          </DialogDescription>
+        </DialogHeader>
+        <div class="flex-1 overflow-hidden px-6 py-4">
+          <ApplicationWorkspaceManager :app-name="workspaceDialogAppName" />
+        </div>
+        <DialogFooter class="border-t px-6 py-4">
+          <Button variant="outline" @click="isWorkspaceDialogOpen = false">
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -29,8 +29,8 @@ func init() {
 		router.POST(client.DockerEventPath, h.GetDockerEventHandler)
 
 		openApi := router.Group("/open")
-		// workspace files
-		openApi.Static("/workspace", h.WorkSpaceDataPath())
+		// static files
+		openApi.Static("/static", h.StaticDataPath())
 		// file upload
 		openApi.POST("/file/upload", h.HandleFileUpload)
 
@@ -67,6 +67,13 @@ func init() {
 		api.POST("/service/save", h.SaveServiceHandler)
 		api.POST("/service/delete", h.DeleteServiceHandler)
 		api.POST("/dashboard/stats", h.DashboardStatsHandler)
+		api.Static("/workspace", h.WorkSpaceDataPath())
+		api.POST("/workspace/upload", h.HandleWorkspaceUpload)
+		api.POST("/workspace/list", h.WorkspaceListHandler)
+		api.POST("/workspace/read", h.WorkspaceReadHandler)
+		api.POST("/workspace/save", h.WorkspaceSaveHandler)
+		api.POST("/workspace/delete", h.WorkspaceDeleteHandler)
+		api.POST("/workspace/mkdir", h.WorkspaceMkdirHandler)
 
 		// hub
 		handler := h.SignalRServer().Handler("/api/signalr")

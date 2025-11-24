@@ -9,6 +9,7 @@ const (
 	LOG_BASE_PATH        = "log"
 	WORK_SPACE_BASE_PATH = "workspace"
 	SERVICE_BASE_PATH    = "service"
+	STATIC_BASE_PATH     = "static"
 )
 
 func InitOptions(options IOptions) error {
@@ -18,7 +19,7 @@ func InitOptions(options IOptions) error {
 		return err
 	}
 
-	for _, v := range []string{LOG_BASE_PATH, WORK_SPACE_BASE_PATH, SERVICE_BASE_PATH} {
+	for _, v := range []string{LOG_BASE_PATH, WORK_SPACE_BASE_PATH, SERVICE_BASE_PATH, STATIC_BASE_PATH} {
 		p := path.Join(dataPath, v)
 		err = os.MkdirAll(p, 0755)
 		if err != nil {
