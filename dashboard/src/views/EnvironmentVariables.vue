@@ -27,154 +27,91 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   useVueTable,
   getCoreRowModel,
   getPaginationRowModel,
   type ColumnDef,
 } from "@tanstack/vue-table";
 import type { AcceptableValue } from "reka-ui";
+import { envApi, type AddOrUpdateEnvRequest, type GetEnvPageRequest } from "@/api/env";
+import { ApiResponseHelper } from "@/api/base";
 
 interface EnvironmentVariable {
   id: number;
   key: string;
   value: string;
-  scope: "global" | "node";
-  node_id?: number;
-  node_name?: string;
+  scope: string;
   description?: string;
   created_at: string;
   updated_at: string;
 }
 
-interface Node {
-  id: number;
-  name: string;
-  display_name?: string | null;
-}
-
-// Mock nodes data
-const mockNodes: Node[] = [
-  { id: 1, name: "node-01", display_name: "Node 01" },
-  { id: 2, name: "node-02", display_name: "Node 02" },
-  { id: 3, name: "node-03", display_name: "Node 03" },
-  { id: 4, name: "local-node", display_name: "Local Node" },
-];
-
-// Mock environment variables data
-const mockEnvVars: EnvironmentVariable[] = [
-  {
-    id: 1,
-    key: "DATABASE_URL",
-    value: "postgresql://user:pass@localhost:5432/db",
-    scope: "global",
-    description: "Database connection URL",
-    created_at: "2024-01-15 10:00:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-  {
-    id: 2,
-    key: "REDIS_URL",
-    value: "redis://localhost:6379",
-    scope: "global",
-    description: "Redis connection URL",
-    created_at: "2024-01-15 10:05:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-  {
-    id: 3,
-    key: "API_KEY",
-    value: "sk-1234567890abcdef",
-    scope: "global",
-    description: "API authentication key",
-    created_at: "2024-01-15 10:10:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-  {
-    id: 4,
-    key: "NODE_SPECIFIC_CONFIG",
-    value: "custom-value-1",
-    scope: "node",
-    node_id: 1,
-    node_name: "Node 01",
-    description: "Node-specific configuration",
-    created_at: "2024-01-15 10:15:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-  {
-    id: 5,
-    key: "NODE_SPECIFIC_CONFIG",
-    value: "custom-value-2",
-    scope: "node",
-    node_id: 2,
-    node_name: "Node 02",
-    description: "Node-specific configuration",
-    created_at: "2024-01-15 10:20:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-  {
-    id: 6,
-    key: "LOG_LEVEL",
-    value: "debug",
-    scope: "node",
-    node_id: 3,
-    node_name: "Node 03",
-    description: "Logging level for this node",
-    created_at: "2024-01-15 10:25:00",
-    updated_at: "2024-01-20 14:30:00",
-  },
-];
-
 const envVars = ref<EnvironmentVariable[]>([]);
 const loading = ref(false);
-const nodes = ref<Node[]>([]);
 
 // Filter
-const filterScope = ref<"all" | "global" | "node">("all");
-const selectedNodeId = ref<string>("all");
-
-const filteredEnvVars = computed(() => {
-  let filtered = envVars.value;
-
-  if (filterScope.value === "global") {
-    filtered = filtered.filter((v) => v.scope === "global");
-  } else if (filterScope.value === "node") {
-    filtered = filtered.filter((v) => v.scope === "node");
-  }
-
-  if (selectedNodeId.value !== "all") {
-    filtered = filtered.filter(
-      (v) => v.node_id?.toString() === selectedNodeId.value
-    );
-  }
-
-  return filtered;
-});
+const filterScope = ref<string>("all");
+const scopeOptions = ref<string[]>(["all"]);
 
 // Dialog state
 const isSheetOpen = ref(false);
 const isEditMode = ref(false);
 const editingEnvVar = ref<EnvironmentVariable | null>(null);
+const isDeleteDialogOpen = ref(false);
+const envVarToDelete = ref<EnvironmentVariable | null>(null);
 
 // Form data
 const formData = ref({
+  id: null as number | null,
   key: "",
   value: "",
-  scope: "global" as "global" | "node",
-  node_id: undefined as number | undefined,
+  scope: "",
   description: "",
 });
 
 // Fetch data
-const fetchEnvVars = () => {
+const fetchEnvVars = async () => {
   loading.value = true;
-  setTimeout(() => {
-    envVars.value = [...mockEnvVars];
+
+  try {
+    const request: GetEnvPageRequest = {
+      scope: filterScope.value === "all" ? "" : filterScope.value,
+      page: table.getState().pagination.pageIndex,
+      page_size: table.getState().pagination.pageSize,
+    };
+    const response = await envApi.page(request);
+    if (!ApiResponseHelper.isSuccess(response)) {
+      return;
+    }
+
+    const data = response.data;
+    envVars.value = data?.list || [];
+    table.setPageIndex(data?.current_page || 0);
+    table.setPageSize(data?.page_size || 10);
+  } finally {
     loading.value = false;
-  }, 300);
+  }
+
 };
 
-const fetchNodes = () => {
-  nodes.value = [...mockNodes];
+const fetchScopes = async () => {
+  const response = await envApi.scopes();
+  if (!ApiResponseHelper.isSuccess(response)) {
+    return;
+  }
+  const data = response.data;
+  scopeOptions.value = data || [];
+  scopeOptions.value.unshift("all");
 };
 
 // Open add dialog
@@ -182,10 +119,10 @@ const openAddDialog = () => {
   isEditMode.value = false;
   editingEnvVar.value = null;
   formData.value = {
+    id: null,
     key: "",
     value: "",
-    scope: "global",
-    node_id: undefined,
+    scope: "",
     description: "",
   };
   isSheetOpen.value = true;
@@ -196,87 +133,72 @@ const openEditDialog = (envVar: EnvironmentVariable) => {
   isEditMode.value = true;
   editingEnvVar.value = envVar;
   formData.value = {
+    id: envVar.id,
     key: envVar.key,
     value: envVar.value,
     scope: envVar.scope,
-    node_id: envVar.node_id,
     description: envVar.description || "",
   };
   isSheetOpen.value = true;
+  refresh();
+};
+
+const refresh = () => {
+  fetchEnvVars();
+  fetchScopes();
 };
 
 // Save environment variable
-const saveEnvVar = () => {
+const saveEnvVar = async () => {
   if (!formData.value.key || !formData.value.value) {
     return;
   }
 
   loading.value = true;
-  setTimeout(() => {
-    if (isEditMode.value && editingEnvVar.value) {
-      const index = envVars.value.findIndex(
-        (v) => v.id === editingEnvVar.value!.id
-      );
-      if (index !== -1) {
-        const existing = envVars.value[index]!;
-        envVars.value[index] = {
-          id: existing.id,
-          key: formData.value.key,
-          value: formData.value.value,
-          scope: formData.value.scope,
-          node_id: formData.value.node_id,
-          node_name:
-            formData.value.scope === "node" && formData.value.node_id
-              ? nodes.value.find((n) => n.id === formData.value.node_id)
-                ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
-              : undefined,
-          description: formData.value.description || undefined,
-          created_at: existing.created_at,
-          updated_at: existing.updated_at,
-        };
-      }
-    } else {
-      const newId = Math.max(...envVars.value.map((v) => v.id), 0) + 1;
-      const newNodeName =
-        formData.value.scope === "node" && formData.value.node_id
-          ? nodes.value.find((n) => n.id === formData.value.node_id)
-            ?.display_name || nodes.value.find((n) => n.id === formData.value.node_id)?.name
-          : undefined;
-      envVars.value.push({
-        id: newId,
-        key: formData.value.key,
-        value: formData.value.value,
-        scope: formData.value.scope,
-        node_id: formData.value.node_id,
-        node_name: newNodeName,
-        description: formData.value.description || undefined,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
-    }
-    isSheetOpen.value = false;
-    loading.value = false;
-  }, 300);
+  // Use "global" as default if scope is empty or only whitespace
+  const scope = formData.value.scope?.trim() || "global";
+  let request: AddOrUpdateEnvRequest = {
+    id: formData.value.id,
+    key: formData.value.key,
+    value: formData.value.value,
+    scope: scope,
+  };
+  const response = await envApi.addOrUpdate(request);
+  if (!ApiResponseHelper.isSuccess(response)) {
+    return;
+  }
+  isSheetOpen.value = false;
+  loading.value = false;
+  refresh();
 };
 
-// Delete environment variable
-const deleteEnvVar = (envVar: EnvironmentVariable) => {
-  if (
-    !confirm(
-      `Are you sure you want to delete environment variable "${envVar.key}"?`
-    )
-  ) {
+// Open delete dialog
+const openDeleteDialog = (envVar: EnvironmentVariable) => {
+  envVarToDelete.value = envVar;
+  isDeleteDialogOpen.value = true;
+};
+
+// Confirm delete environment variable
+const confirmDeleteEnvVar = async () => {
+  if (!envVarToDelete.value) {
+    return;
+  }
+
+  const id = envVarToDelete.value.id;
+  if (!id) {
     return;
   }
 
   loading.value = true;
-  setTimeout(() => {
-    const index = envVars.value.findIndex((v) => v.id === envVar.id);
-    if (index !== -1) {
-      envVars.value.splice(index, 1);
-    }
+  const response = await envApi.delete(id);
+  if (!ApiResponseHelper.isSuccess(response)) {
     loading.value = false;
-  }, 300);
+    return;
+  }
+  loading.value = false;
+  isDeleteDialogOpen.value = false;
+  envVarToDelete.value = null;
+  refresh();
 };
 
 // Define table columns
@@ -288,18 +210,10 @@ const columns: ColumnDef<EnvironmentVariable>[] = [
   {
     accessorKey: "value",
     header: "Value",
-    cell: (info) => {
-      const value = info.getValue() as string;
-      return value.length > 50 ? value.substring(0, 50) + "..." : value;
-    },
   },
   {
     accessorKey: "scope",
     header: "Scope",
-    cell: (info) => {
-      const scope = info.getValue() as string;
-      return { scope };
-    },
   },
   {
     accessorKey: "node_name",
@@ -312,16 +226,13 @@ const columns: ColumnDef<EnvironmentVariable>[] = [
   {
     id: "actions",
     header: "Actions",
-    cell: (info) => {
-      return { envVar: info.row.original };
-    },
   },
 ];
 
 // Create table instance
 const table = useVueTable({
   get data() {
-    return filteredEnvVars.value;
+    return envVars.value;
   },
   columns,
   getCoreRowModel: getCoreRowModel(),
@@ -333,18 +244,9 @@ const table = useVueTable({
   },
 });
 
-const handleNodeIdUpdate = (val: AcceptableValue) => {
-  if (val === null || val === undefined) {
-    formData.value.node_id = undefined;
-    return;
-  }
-  const stringVal = typeof val === 'string' ? val : String(val);
-  formData.value.node_id = stringVal ? parseInt(stringVal, 10) : undefined;
-};
-
 onMounted(() => {
   fetchEnvVars();
-  fetchNodes();
+  fetchScopes();
 });
 </script>
 
@@ -367,27 +269,13 @@ onMounted(() => {
     <div class="flex items-center gap-4">
       <div class="flex items-center gap-2">
         <label class="text-sm font-medium">Scope:</label>
-        <Select v-model="filterScope">
+        <Select v-model="filterScope" @update:model-value="refresh">
           <SelectTrigger class="w-[150px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="global">Global</SelectItem>
-            <SelectItem value="node">Node</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div v-if="filterScope === 'node' || filterScope === 'all'" class="flex items-center gap-2">
-        <label class="text-sm font-medium">Node:</label>
-        <Select v-model="selectedNodeId">
-          <SelectTrigger class="w-[200px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Nodes</SelectItem>
-            <SelectItem v-for="node in nodes" :key="node.id" :value="node.id.toString()">
-              {{ node.display_name || node.name }}
+            <SelectItem v-for="scope in scopeOptions" :key="scope" :value="scope">
+              {{ scope }}
             </SelectItem>
           </SelectContent>
         </Select>
@@ -400,7 +288,7 @@ onMounted(() => {
     </div>
 
     <!-- Environment Variables Table -->
-    <div v-else-if="filteredEnvVars.length > 0" class="rounded-lg border bg-card">
+    <div v-else-if="envVars.length > 0" class="rounded-lg border bg-card">
       <Table>
         <TableHeader>
           <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
@@ -421,22 +309,19 @@ onMounted(() => {
               <template v-if="cell.column.id === 'scope'">
                 <span :class="[
                   'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                  (cell.getValue() as { scope: string }).scope === 'global'
+                  (cell.getValue() as string) === 'global'
                     ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                     : 'bg-purple-500/10 text-purple-500 border-purple-500/20',
                 ]">
-                  {{ (cell.getValue() as { scope: string }).scope }}
+                  {{ cell.getValue() }}
                 </span>
               </template>
               <template v-else-if="cell.column.id === 'actions'">
                 <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm"
-                    @click="openEditDialog((cell.getValue() as { envVar: EnvironmentVariable }).envVar)"
-                    class="h-8 px-2">
+                  <Button variant="ghost" size="sm" @click="openEditDialog(row.original)" class="h-8 px-2">
                     <Icon icon="lucide:edit" class="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="sm"
-                    @click="deleteEnvVar((cell.getValue() as { envVar: EnvironmentVariable }).envVar)"
+                  <Button variant="ghost" size="sm" @click="openDeleteDialog(row.original)"
                     class="h-8 px-2 text-red-500 hover:text-red-600">
                     <Icon icon="lucide:trash-2" class="h-4 w-4" />
                   </Button>
@@ -475,10 +360,10 @@ onMounted(() => {
             Math.min(
               (table.getState().pagination.pageIndex + 1) *
               table.getState().pagination.pageSize,
-              filteredEnvVars.length
+              envVars.length
             )
           }}
-          of {{ filteredEnvVars.length }} variables
+          of {{ envVars.length }} variables
         </div>
         <div class="flex items-center gap-2">
           <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
@@ -539,30 +424,9 @@ onMounted(() => {
           </div>
 
           <div class="space-y-2">
-            <label for="env-scope" class="text-sm font-medium">Scope *</label>
-            <Select v-model="formData.scope">
-              <SelectTrigger id="env-scope">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="global">Global</SelectItem>
-                <SelectItem value="node">Node</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div v-if="formData.scope === 'node'" class="space-y-2">
-            <label for="env-node" class="text-sm font-medium">Node *</label>
-            <Select :model-value="formData.node_id?.toString()" @update:model-value="handleNodeIdUpdate">
-              <SelectTrigger id="env-node">
-                <SelectValue placeholder="Select a node" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="node in nodes" :key="node.id" :value="node.id.toString()">
-                  {{ node.display_name || node.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <label for="env-scope" class="text-sm font-medium">Scope</label>
+            <Input id="env-scope" v-model="formData.scope" placeholder="global (default)" />
+            <p class="text-xs text-muted-foreground">Leave empty to use default scope "global"</p>
           </div>
 
           <div class="space-y-2">
@@ -579,5 +443,24 @@ onMounted(() => {
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="isDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Environment Variable</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete environment variable "{{ envVarToDelete?.key }}"?
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction @click="confirmDeleteEnvVar" :disabled="loading">
+            {{ loading ? "Deleting..." : "Delete" }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

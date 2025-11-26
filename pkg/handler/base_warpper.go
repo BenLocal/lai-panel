@@ -55,6 +55,10 @@ func (h *BaseHandler) NodeManager() *node.NodeManager {
 	return h.appCtx.NodeManager()
 }
 
+func (h *BaseHandler) EnvRepository() *repository.EnvRepository {
+	return h.appCtx.EnvRepository()
+}
+
 type ApiResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`

@@ -74,6 +74,10 @@ func init() {
 		api.POST("/workspace/save", h.WorkspaceSaveHandler)
 		api.POST("/workspace/delete", h.WorkspaceDeleteHandler)
 		api.POST("/workspace/mkdir", h.WorkspaceMkdirHandler)
+		api.POST("/env/page", h.GetEnvPage)
+		api.POST("/env/scopes", h.GetEnvScopes)
+		api.POST("/env/addOrUpdate", h.AddOrUpdateEnv)
+		api.POST("/env/delete", h.DeleteEnv)
 
 		// hub
 		handler := h.SignalRServer().Handler("/api/signalr")

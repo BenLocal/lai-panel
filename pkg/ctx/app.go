@@ -18,6 +18,7 @@ type AppCtx struct {
 	nodeRepository    *repository.NodeRepository
 	appRepository     *repository.AppRepository
 	serviceRepository *repository.ServiceRepository
+	envRepository     *repository.EnvRepository
 	signalrServer     *hub.SignalRServer
 	kvRepository      *repository.KvRepository
 	serverStore       *ServerStore
@@ -36,6 +37,7 @@ func NewAppCtx(opt options.IOptions, dockerProxy *docker.DockerProxy) (*AppCtx, 
 		appRepository := repository.NewAppRepository()
 		serviceRepository := repository.NewServiceRepository()
 		kvRepository := repository.NewKvRepository()
+		envRepository := repository.NewEnvRepository()
 		h := hub.NewSimpleHub(nodeRepository, nodeManager)
 		signalrServer, _ := hub.NewSignalRServer(context.Background(), h)
 
@@ -49,6 +51,7 @@ func NewAppCtx(opt options.IOptions, dockerProxy *docker.DockerProxy) (*AppCtx, 
 			options:           opt,
 			dockerProxy:       dockerProxy,
 			serverStore:       ss,
+			envRepository:     envRepository,
 		}, nil
 	}
 
@@ -94,4 +97,8 @@ func (a *AppCtx) Options() options.IOptions {
 
 func (a *AppCtx) NodeManager() *node.NodeManager {
 	return a.nodeManager
+}
+
+func (a *AppCtx) EnvRepository() *repository.EnvRepository {
+	return a.envRepository
 }
