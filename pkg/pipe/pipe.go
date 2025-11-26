@@ -31,7 +31,9 @@ type DeployPipeline struct {
 
 func NewDeployPipeline() *DeployPipeline {
 	up := pipeline.Sequence(
-		&deploypipe.CopyInstallerPipeline{},
+		&deploypipe.CleanupWorkspacePipeline{},
+		&deploypipe.CopyWorkspacePipeline{},
+		&deploypipe.DownloadInstallerPipeline{},
 		&deploypipe.DockerComposeFileParsePipeline{},
 		&deploypipe.LoadImagePipeline{},
 		&deploypipe.DockerComposeUpPipeline{},

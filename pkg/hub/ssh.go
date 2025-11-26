@@ -203,9 +203,14 @@ func createRemoteSession(node *model.Node, cols int, rows int) (*ssh.Client, *ss
 		rows = 32
 	}
 
+	pwd, err := node.GetDecryptedSSHPassword()
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
+
 	clientConfig := &ssh.ClientConfig{
 		User:            node.SSHUser,
-		Auth:            []ssh.AuthMethod{ssh.Password(node.SSHPassword)},
+		Auth:            []ssh.AuthMethod{ssh.Password(pwd)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         10 * time.Second,
 	}

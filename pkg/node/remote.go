@@ -151,10 +151,10 @@ func (r *RemoteNodeExec) ReadFileStream(path string, writer io.Writer) error {
 	return nil
 }
 
-func (r *RemoteNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {
+func (r *RemoteNodeExec) ExecuteOutput(command string, opt *NodeExecuteCommandOptions) (string, string, error) {
 	stdout := ""
 	stderr := ""
-	err := r.ExecuteCommand(command, env, func(line string) {
+	err := r.ExecuteCommand(command, opt, func(line string) {
 		stdout += line + "\n"
 	}, func(line string) {
 		stderr += line + "\n"
@@ -164,7 +164,7 @@ func (r *RemoteNodeExec) ExecuteOutput(command string, env map[string]string) (s
 
 func (r *RemoteNodeExec) ExecuteCommand(
 	command string,
-	env map[string]string,
+	opt *NodeExecuteCommandOptions,
 	onStdout func(string),
 	onStderr func(string),
 ) error {
@@ -187,7 +187,14 @@ func (r *RemoteNodeExec) ExecuteCommand(
 		return fmt.Errorf("failed to get stderr pipe: %w", err)
 	}
 
-	fullCommand := buildRemoteCommand(command, env)
+	var env map[string]string
+	var workingDir string
+	if opt != nil {
+		env = opt.Env
+		workingDir = opt.WorkingDir
+	}
+
+	fullCommand := buildRemoteCommand(command, env, workingDir)
 	if err := session.Start(fullCommand); err != nil {
 		return fmt.Errorf("failed to start remote command: %w", err)
 	}
@@ -218,26 +225,35 @@ func (r *RemoteNodeExec) ExecuteCommand(
 	return nil
 }
 
-func buildRemoteCommand(command string, env map[string]string) string {
-	if len(env) == 0 {
-		return fmt.Sprintf("bash -lc %q", command)
-	}
-
-	keys := make([]string, 0, len(env))
-	for k := range env {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	var exports []string
-	for _, key := range keys {
-		value := env[key]
-		exports = append(exports, fmt.Sprintf("export %s='%s'", key, escapeSingleQuotes(value)))
-	}
-
+func buildRemoteCommand(command string, env map[string]string, workingDir string) string {
 	var buffer bytes.Buffer
-	buffer.WriteString(strings.Join(exports, "; "))
-	buffer.WriteString("; ")
+
+	// Set working directory if provided
+	if workingDir != "" {
+		// Escape the working directory path and add cd command
+		escapedDir := escapeSingleQuotes(workingDir)
+		buffer.WriteString(fmt.Sprintf("cd '%s'", escapedDir))
+		buffer.WriteString(" && ")
+	}
+
+	// Set environment variables if provided
+	if len(env) > 0 {
+		keys := make([]string, 0, len(env))
+		for k := range env {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		var exports []string
+		for _, key := range keys {
+			value := env[key]
+			exports = append(exports, fmt.Sprintf("export %s='%s'", key, escapeSingleQuotes(value)))
+		}
+		buffer.WriteString(strings.Join(exports, "; "))
+		buffer.WriteString("; ")
+	}
+
+	// Add the actual command
 	buffer.WriteString(command)
 
 	return fmt.Sprintf("bash -lc %q", buffer.String())

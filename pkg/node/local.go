@@ -74,10 +74,10 @@ func (l *LocalNodeExec) ReadFileStream(path string, writer io.Writer) error {
 	return nil
 }
 
-func (l *LocalNodeExec) ExecuteOutput(command string, env map[string]string) (string, string, error) {
+func (l *LocalNodeExec) ExecuteOutput(command string, opt *NodeExecuteCommandOptions) (string, string, error) {
 	stdout := ""
 	stderr := ""
-	err := l.ExecuteCommand(command, env, func(line string) {
+	err := l.ExecuteCommand(command, opt, func(line string) {
 		stdout += line + "\n"
 	}, func(line string) {
 		stderr += line + "\n"
@@ -87,11 +87,23 @@ func (l *LocalNodeExec) ExecuteOutput(command string, env map[string]string) (st
 
 func (l *LocalNodeExec) ExecuteCommand(
 	command string,
-	env map[string]string,
+	opt *NodeExecuteCommandOptions,
 	onStdout func(string),
 	onStderr func(string),
 ) error {
+	var env map[string]string
+	var workingDir string
+	if opt != nil {
+		env = opt.Env
+		workingDir = opt.WorkingDir
+	}
+
 	cmd := exec.Command("bash", "-c", command)
+
+	// Set working directory if provided
+	if workingDir != "" {
+		cmd.Dir = workingDir
+	}
 
 	if len(env) > 0 {
 		envList := os.Environ()

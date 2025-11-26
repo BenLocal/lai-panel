@@ -28,7 +28,7 @@ func (p *DockerComposeFileParsePipeline) Process(ctx context.Context, c *DeployC
 		return c, err
 	}
 
-	c.Send("info", "docker compose file parsed")
+	c.Send("info", "docker compose file parsed:")
 
 	v, err = p.editFile(v, map[string]string{
 		ManagedByLabel: "lai-panel",

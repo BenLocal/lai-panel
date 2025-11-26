@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	DockerComposeFilePath = "docker_compose_file_path"
+	DockerComposeFile = "docker-compose.yml"
 )
 
 type DockerComposeUpPipeline struct {
@@ -26,7 +26,8 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	if err != nil {
 		return c, err
 	}
-	pa := path.Join(installerPath, "docker_compose.yml")
+
+	pa := path.Join(installerPath, DockerComposeFile)
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
 		return c, err
@@ -44,9 +45,12 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	c.Send("info", "  --> deploying to node: "+c.NodeState.GetNodeInfo())
 
 	// execute docker compose up
-	cmd := fmt.Sprintf("%s -f %s up -d --build", composeCmd, pa)
+	cmd := fmt.Sprintf("%s -f %s up -d --build", composeCmd, DockerComposeFile)
 	c.Send("info", "executing command: "+cmd)
-	err = exec.ExecuteCommand(cmd, c.env, func(s string) {
+	opt := node.NewNodeExecuteCommandOptions()
+	opt.SetEnv(c.env)
+	opt.SetWorkingDir(installerPath)
+	err = exec.ExecuteCommand(cmd, opt, func(s string) {
 		c.Send("info", s)
 	}, func(s string) {
 		c.Send("error", s)
@@ -56,8 +60,6 @@ func (p *DockerComposeUpPipeline) Process(ctx context.Context, c *DeployCtx) (*D
 	}
 
 	c.Send("info", "docker compose up executed")
-	c.deployInfo[DockerComposeFilePath] = pa
-
 	return c, nil
 }
 
@@ -69,7 +71,10 @@ type DockerComposeDownPipeline struct {
 }
 
 func (p *DockerComposeDownPipeline) Process(ctx context.Context, c *DownCtx) (*DownCtx, error) {
-	pa := c.deployInfo[DockerComposeFilePath]
+	installerPath, err := c.GetServicePath()
+	if err != nil {
+		return c, err
+	}
 	env := map[string]string{}
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
@@ -79,7 +84,10 @@ func (p *DockerComposeDownPipeline) Process(ctx context.Context, c *DownCtx) (*D
 	if err != nil {
 		return c, err
 	}
-	err = exec.ExecuteCommand(fmt.Sprintf("%s -f %s down", composeCmd, pa), env, func(s string) {
+	opt := node.NewNodeExecuteCommandOptions()
+	opt.SetEnv(env)
+	opt.SetWorkingDir(installerPath)
+	err = exec.ExecuteCommand(fmt.Sprintf("%s -f %s down", composeCmd, DockerComposeFile), opt, func(s string) {
 		// do nothing
 	}, func(s string) {
 		// do nothing
@@ -95,10 +103,10 @@ func (p *DockerComposeDownPipeline) Cancel(c *DownCtx, err error) {
 }
 
 func findDockerComposeCommand(exec node.NodeExec) (string, error) {
-	if _, _, err := exec.ExecuteOutput("docker compose version", map[string]string{}); err == nil {
+	if _, _, err := exec.ExecuteOutput("docker compose version", node.NewNodeExecuteCommandOptions()); err == nil {
 		return "docker compose", nil
 	}
-	if _, _, err := exec.ExecuteOutput("docker-compose version", map[string]string{}); err == nil {
+	if _, _, err := exec.ExecuteOutput("docker-compose version", node.NewNodeExecuteCommandOptions()); err == nil {
 		return "docker-compose", nil
 	}
 	return "", errors.New("docker compose command not found (tried 'docker compose' and 'docker-compose')")

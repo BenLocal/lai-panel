@@ -15,27 +15,23 @@ import (
 	"github.com/benlocal/lai-panel/pkg/node"
 )
 
-type CopyInstallerPipeline struct {
+type DownloadInstallerPipeline struct {
 }
 
-func (p *CopyInstallerPipeline) Process(ctx context.Context, c *DeployCtx) (*DeployCtx, error) {
+func (p *DownloadInstallerPipeline) Process(ctx context.Context, c *DeployCtx) (*DeployCtx, error) {
 	staticPath := c.App.StaticPath
 	if staticPath == nil || *staticPath == "" {
 		return c, nil
 	}
 
-	installerPath, err := c.GetServicePath()
-	if err != nil {
-		return c, err
-	}
 	exec, err := c.NodeState.GetExec()
 	if err != nil {
 		return c, err
 	}
 
-	err = p.mkdir(exec, installerPath, c)
+	installerPath, err := c.GetServicePath()
 	if err != nil {
-		return c, fmt.Errorf("failed to create installer path: %w", err)
+		return c, err
 	}
 
 	filename, reader, err := p.downloadFile(exec, *staticPath, c)
@@ -63,7 +59,7 @@ func (p *CopyInstallerPipeline) Process(ctx context.Context, c *DeployCtx) (*Dep
 	return c, nil
 }
 
-func (p *CopyInstallerPipeline) downloadFile(exec node.NodeExec, path string, c *DeployCtx) (string, io.ReadCloser, error) {
+func (p *DownloadInstallerPipeline) downloadFile(exec node.NodeExec, path string, c *DeployCtx) (string, io.ReadCloser, error) {
 	var fileName string
 	var reader io.ReadCloser
 
@@ -97,16 +93,7 @@ func (p *CopyInstallerPipeline) downloadFile(exec node.NodeExec, path string, c 
 	return fileName, reader, nil
 }
 
-func (p *CopyInstallerPipeline) mkdir(exec node.NodeExec, path string, c *DeployCtx) error {
-	cmd := fmt.Sprintf("mkdir -p %s", path)
-	return exec.ExecuteCommand(cmd, c.env, func(s string) {
-		c.Send("info", s)
-	}, func(s string) {
-		c.Send("error", s)
-	})
-}
-
-func (p *CopyInstallerPipeline) extractTarGz(reader io.ReadCloser, destDir string, exec node.NodeExec, c *DeployCtx) error {
+func (p *DownloadInstallerPipeline) extractTarGz(reader io.ReadCloser, destDir string, exec node.NodeExec, c *DeployCtx) error {
 	gzReader, err := gzip.NewReader(reader)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %w", err)
@@ -130,7 +117,8 @@ func (p *CopyInstallerPipeline) extractTarGz(reader io.ReadCloser, destDir strin
 		switch header.Typeflag {
 		case tar.TypeDir:
 			cmd := fmt.Sprintf("mkdir -p %s", targetPath)
-			err = exec.ExecuteCommand(cmd, map[string]string{}, func(s string) {
+			opt := node.NewNodeExecuteCommandOptions()
+			err = exec.ExecuteCommand(cmd, opt, func(s string) {
 				c.Send("info", s)
 			}, func(s string) {
 				c.Send("error", s)
@@ -152,7 +140,8 @@ func (p *CopyInstallerPipeline) extractTarGz(reader io.ReadCloser, destDir strin
 
 			if header.Mode > 0 {
 				cmd := fmt.Sprintf("chmod %o %s", header.Mode, targetPath)
-				_ = exec.ExecuteCommand(cmd, map[string]string{}, func(s string) {
+				opt := node.NewNodeExecuteCommandOptions()
+				_ = exec.ExecuteCommand(cmd, opt, func(s string) {
 					c.Send("info", s)
 				}, func(s string) {
 					c.Send("error", s)
@@ -166,6 +155,6 @@ func (p *CopyInstallerPipeline) extractTarGz(reader io.ReadCloser, destDir strin
 	return nil
 }
 
-func (p *CopyInstallerPipeline) Cancel(c *DeployCtx, err error) {
+func (p *DownloadInstallerPipeline) Cancel(c *DeployCtx, err error) {
 	// do nothing
 }
