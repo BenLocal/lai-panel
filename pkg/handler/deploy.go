@@ -25,7 +25,7 @@ func (b *BaseHandler) HandleDockerComposeConfig(ctx context.Context, c *app.Requ
 		c.Error(err)
 		return
 	}
-	config, err := tmpl.ParseDockerCompose("test", req.DockerCompose, req.Env)
+	config, err := tmpl.ParseWithEnv("test", req.DockerCompose, req.Env)
 	if err != nil {
 		c.Error(err)
 		return

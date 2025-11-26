@@ -10,7 +10,7 @@ func TestParseDockerCompose(t *testing.T) {
 	env := map[string]string{
 		"PORT": "8080",
 	}
-	dockerCompose, err := ParseDockerCompose("test", "{{.PORT}}", env)
+	dockerCompose, err := ParseWithEnv("test", "{{.PORT}}", env)
 	if err != nil {
 		t.Fatalf("failed to parse docker compose: %v", err)
 	}
@@ -22,7 +22,7 @@ func TestParseDockerComposeWithEnv(t *testing.T) {
 		"PORT_HTTP":  "8080",
 		"PORT_HTTPS": "8443",
 	}
-	dockerCompose, err := ParseDockerCompose("test", `
+	dockerCompose, err := ParseWithEnv("test", `
 		services:
 			web:
 				ports:

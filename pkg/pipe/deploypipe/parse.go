@@ -23,7 +23,7 @@ func (p *DockerComposeFileParsePipeline) Process(ctx context.Context, c *DeployC
 		return c, errors.New("docker compose file is not found")
 	}
 
-	v, err := tmpl.ParseDockerCompose("docker compose", *tpl, c.env)
+	v, err := tmpl.ParseWithEnv("docker compose", *tpl, c.env)
 	if err != nil {
 		return c, err
 	}
