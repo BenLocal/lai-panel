@@ -33,10 +33,15 @@ func (c *BaseClient) Registry(host string, port int, body *model.RegistryRequest
 		return nil, err
 	}
 
+	if resp.StatusCode() != 200 {
+		respBody := resp.Body()
+		return nil, fmt.Errorf("registry request failed, status code: %d, response: %s", resp.StatusCode(), string(respBody))
+	}
+
 	respBody := resp.Body()
 	var respModel registryRespEnvelope
 	if err := json.Unmarshal(respBody, &respModel); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse registry response: %w, response body: %s", err, string(respBody))
 	}
 
 	if respModel.Code != 0 {
