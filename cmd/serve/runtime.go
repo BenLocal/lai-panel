@@ -60,6 +60,9 @@ func (r *ServeRuntime) Start() error {
 	dockerEventListenerService := service.NewdockerEventListenerService(localDockerClient, baseClient)
 	g.Add(dockerEventListenerService)
 
+	healthCheckService := service.NewHealthCheckService(baseClient, baseHandler)
+	g.Add(healthCheckService)
+
 	ctx := context.Background()
 	return g.Start(ctx)
 }

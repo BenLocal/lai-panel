@@ -89,7 +89,7 @@ func (r *NodeRepository) UpdateNodeStatus(id int64, status string) error {
 	query := `UPDATE nodes SET status = :status,
 	 updated_at = CURRENT_TIMESTAMP 
 	 WHERE id = :id`
-	_, err := r.db.Exec(query, map[string]interface{}{
+	_, err := r.db.NamedExec(query, map[string]interface{}{
 		"id":     id,
 		"status": status,
 	})
