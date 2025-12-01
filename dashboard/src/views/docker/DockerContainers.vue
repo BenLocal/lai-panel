@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -50,6 +51,7 @@ const router = useRouter();
 
 const containers = ref<Container[]>([]);
 const loading = ref(false);
+const searchQuery = ref("");
 const isLogDialogOpen = ref(false);
 const logContent = ref<string[]>([]);
 const logController = ref<AbortController | null>(null);
@@ -79,6 +81,21 @@ const fetchContainers = async () => {
     })) ?? [];
   loading.value = false;
 };
+
+const filteredContainers = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return containers.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return containers.value.filter(
+    (container) =>
+      container.name.toLowerCase().includes(query) ||
+      container.image.toLowerCase().includes(query) ||
+      container.status.toLowerCase().includes(query) ||
+      container.id.toLowerCase().includes(query) ||
+      container.ports.toLowerCase().includes(query)
+  );
+});
 
 const getStatusColor = (status: string) => {
   return status === "running"
@@ -215,13 +232,27 @@ watch(
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Containers</CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle>Containers</CardTitle>
+        <div class="relative w-64">
+          <Icon
+            icon="lucide:search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search containers..."
+            class="w-full pl-9"
+          />
+        </div>
+      </div>
     </CardHeader>
     <CardContent>
       <div v-if="loading" class="text-center py-8 text-muted-foreground">
         Loading...
       </div>
-      <div v-else-if="containers.length > 0">
+      <div v-else-if="filteredContainers.length > 0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -235,7 +266,7 @@ watch(
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="container in containers" :key="container.id">
+            <TableRow v-for="container in filteredContainers" :key="container.id">
               <TableCell class="font-mono text-xs">
                 {{ DockerUtils.getContainerShortId(container.id) }}
               </TableCell>
@@ -319,9 +350,13 @@ watch(
           </TableBody>
         </Table>
       </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
+      <div v-else-if="containers.length === 0" class="text-center py-8 text-muted-foreground">
         <Icon icon="lucide:box" class="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No containers found</p>
+      </div>
+      <div v-else class="text-center py-8 text-muted-foreground">
+        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No containers match your search</p>
       </div>
     </CardContent>
   </Card>

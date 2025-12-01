@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -56,6 +57,7 @@ const props = defineProps<Props>();
 
 const images = ref<Image[]>([]);
 const loading = ref(false);
+const searchQuery = ref("");
 const isPushDialogOpen = ref(false);
 const selectedImageForPush = ref<Image | null>(null);
 const targetNodeId = ref<string>("");
@@ -69,6 +71,20 @@ const availableNodes = computed(() => {
     return nodes.value;
   }
   return nodes.value.filter((n) => n.id !== currentNodeId);
+});
+
+// 过滤镜像
+const filteredImages = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return images.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return images.value.filter(
+    (image) =>
+      image.repository.toLowerCase().includes(query) ||
+      image.tag.toLowerCase().includes(query) ||
+      image.id.toLowerCase().includes(query)
+  );
 });
 
 const fetchImages = async () => {
@@ -217,13 +233,27 @@ const closePushDialog = () => {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Images</CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle>Images</CardTitle>
+        <div class="relative w-64">
+          <Icon
+            icon="lucide:search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
+          />
+          <Input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search images..."
+            class="w-full pl-9"
+          />
+        </div>
+      </div>
     </CardHeader>
     <CardContent>
       <div v-if="loading" class="text-center py-8 text-muted-foreground">
         Loading...
       </div>
-      <div v-else-if="images.length > 0">
+      <div v-else-if="filteredImages.length > 0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -236,7 +266,7 @@ const closePushDialog = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="image in images" :key="image.id">
+            <TableRow v-for="image in filteredImages" :key="image.id">
               <TableCell class="font-medium">
                 <TooltipWithCopy :text="image.repository" max-width="300px" />
               </TableCell>
@@ -302,9 +332,13 @@ const closePushDialog = () => {
           </TableBody>
         </Table>
       </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
+      <div v-else-if="images.length === 0" class="text-center py-8 text-muted-foreground">
         <Icon icon="lucide:layers" class="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No images found</p>
+      </div>
+      <div v-else class="text-center py-8 text-muted-foreground">
+        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No images match your search</p>
       </div>
     </CardContent>
   </Card>

@@ -76,7 +76,7 @@ func (p *CopyWorkspacePipeline) Process(ctx context.Context, c *DeployCtx) (*Dep
 		}
 
 		// Process content with template
-		processedContent, err := tmpl.ParseWithEnv(relPath, string(content), c.env)
+		processedContent, err := tmpl.ParseWithEnv(relPath, string(content), c.env, c.tmplFuncMap)
 		if err != nil {
 			return err
 		}

@@ -42,3 +42,11 @@ func (o *ServeOptions) DataPath() string {
 func (o *ServeOptions) Agent() bool {
 	return false
 }
+
+func (o *ServeOptions) MasterHost() string {
+	return "127.0.0.1"
+}
+
+func (o *ServeOptions) MasterPort() int {
+	return o.Port
+}

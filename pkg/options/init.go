@@ -33,6 +33,10 @@ func InitOptions(options IOptions) error {
 type IOptions interface {
 	DataPath() string
 
+	MasterHost() string
+
+	MasterPort() int
+
 	Agent() bool
 }
 

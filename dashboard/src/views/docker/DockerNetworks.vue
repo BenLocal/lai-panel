@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -40,6 +41,7 @@ const props = defineProps<Props>();
 
 const networks = ref<Network[]>([]);
 const loading = ref(false);
+const searchQuery = ref("");
 
 const fetchNetworks = async () => {
   loading.value = true;
@@ -61,6 +63,23 @@ const fetchNetworks = async () => {
     }) ?? [];
   loading.value = false;
 };
+
+// 过滤网络
+const filteredNetworks = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return networks.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return networks.value.filter(
+    (network) =>
+      network.name.toLowerCase().includes(query) ||
+      network.driver.toLowerCase().includes(query) ||
+      network.scope.toLowerCase().includes(query) ||
+      network.subnet.toLowerCase().includes(query) ||
+      network.gateway.toLowerCase().includes(query) ||
+      network.id.toLowerCase().includes(query)
+  );
+});
 
 onMounted(() => {
   fetchNetworks();
@@ -116,13 +135,20 @@ const handleNetworkAction = async (
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Networks</CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle>Networks</CardTitle>
+        <div class="relative w-64">
+          <Icon icon="lucide:search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input v-model="searchQuery" type="text" placeholder="Search networks..." class="w-full pl-9" />
+        </div>
+      </div>
     </CardHeader>
     <CardContent>
       <div v-if="loading" class="text-center py-8 text-muted-foreground">
         Loading...
       </div>
-      <div v-else-if="networks.length > 0">
+      <div v-else-if="filteredNetworks.length > 0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -136,19 +162,17 @@ const handleNetworkAction = async (
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="network in networks" :key="network.id">
+            <TableRow v-for="network in filteredNetworks" :key="network.id">
               <TableCell class="font-medium">{{ network.name }}</TableCell>
               <TableCell>
                 <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20"
-                >
+                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20">
                   {{ network.driver }}
                 </span>
               </TableCell>
               <TableCell>
                 <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20"
-                >
+                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20">
                   {{ network.scope }}
                 </span>
               </TableCell>
@@ -163,12 +187,9 @@ const handleNetworkAction = async (
               </TableCell>
               <TableCell class="sticky right-0 z-10 bg-background border-l">
                 <div class="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button variant="ghost" size="sm"
                     class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    @click="handleNetworkAction('remove', network)"
-                  >
+                    @click="handleNetworkAction('remove', network)">
                     <Icon icon="lucide:trash-2" class="h-4 w-4" />
                   </Button>
                   <DropdownMenu>
@@ -178,17 +199,12 @@ const handleNetworkAction = async (
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem
-                        @click="handleNetworkAction('inspect', network)"
-                      >
+                      <DropdownMenuItem @click="handleNetworkAction('inspect', network)">
                         <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
                         Inspect
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        @click="handleNetworkAction('remove', network)"
-                      >
+                      <DropdownMenuItem variant="destructive" @click="handleNetworkAction('remove', network)">
                         <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
                         Remove
                       </DropdownMenuItem>
@@ -200,9 +216,13 @@ const handleNetworkAction = async (
           </TableBody>
         </Table>
       </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
+      <div v-else-if="networks.length === 0" class="text-center py-8 text-muted-foreground">
         <Icon icon="lucide:network" class="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No networks found</p>
+      </div>
+      <div v-else class="text-center py-8 text-muted-foreground">
+        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No networks match your search</p>
       </div>
     </CardContent>
   </Card>

@@ -119,7 +119,7 @@ func (h *BaseHandler) DockerNetworks(ctx context.Context, c *app.RequestContext)
 		c.Error(err)
 		return
 	}
-	c.JSON(http.StatusOK, networks)
+	c.JSON(http.StatusOK, SuccessResponse(networks))
 }
 
 func (h *BaseHandler) getNodeState(_ context.Context, c *app.RequestContext) (*node.NodeState, error) {

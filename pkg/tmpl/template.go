@@ -5,8 +5,14 @@ import (
 	"text/template"
 )
 
-func ParseWithEnv(name string, tmpl string, env map[string]string) (string, error) {
-	t := template.New(name).Funcs(template.FuncMap{})
+func ParseWithEnv(name string, tmpl string, env map[string]string, funcs ...map[string]interface{}) (string, error) {
+	funcMap := template.FuncMap{}
+	for _, f := range funcs {
+		for k, v := range f {
+			funcMap[k] = v
+		}
+	}
+	t := template.New(name).Funcs(funcMap)
 
 	t, err := t.Parse(tmpl)
 	if err != nil {

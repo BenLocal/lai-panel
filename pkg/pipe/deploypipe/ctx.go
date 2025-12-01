@@ -2,6 +2,7 @@ package deploypipe
 
 import (
 	"errors"
+	"fmt"
 	"path"
 	"sync"
 
@@ -13,14 +14,15 @@ import (
 )
 
 type DeployCtx struct {
-	options   options.IOptions
-	App       *model.App
-	Service   *model.Service
-	NodeState *node.NodeState
-	appCtx    *ctx.AppCtx
-	writer    *sse.Writer
-	sendMu    sync.Mutex
-	env       map[string]string
+	options     options.IOptions
+	App         *model.App
+	Service     *model.Service
+	NodeState   *node.NodeState
+	appCtx      *ctx.AppCtx
+	writer      *sse.Writer
+	sendMu      sync.Mutex
+	env         map[string]string
+	tmplFuncMap map[string]interface{}
 
 	// out
 	dockerComposeFile *string
@@ -33,13 +35,15 @@ func NewDeployCtx(
 	env map[string]string,
 	appCtx *ctx.AppCtx,
 ) *DeployCtx {
+	tmplFuncMap := builtinFuncMap(appCtx)
 	return &DeployCtx{
-		options:    options,
-		appCtx:     appCtx,
-		writer:     writer,
-		env:        env,
-		sendMu:     sync.Mutex{},
-		deployInfo: make(map[string]string),
+		options:     options,
+		appCtx:      appCtx,
+		writer:      writer,
+		env:         env,
+		sendMu:      sync.Mutex{},
+		deployInfo:  make(map[string]string),
+		tmplFuncMap: tmplFuncMap,
 	}
 }
 
@@ -91,4 +95,48 @@ func getPath(nodeState *node.NodeState, opt options.IOptions, name string) (stri
 		return "", errors.New("data path is not set")
 	}
 	return path.Join(*dataPath, options.SERVICE_BASE_PATH, name), nil
+}
+
+func builtinFuncMap(appCtx *ctx.AppCtx) map[string]interface{} {
+	return map[string]interface{}{
+		"panel_env": func(key interface{}, defaultValue interface{}) string {
+			// Convert key to string
+			keyStr := ""
+			switch v := key.(type) {
+			case string:
+				keyStr = v
+			default:
+				keyStr = fmt.Sprintf("%v", v)
+			}
+
+			// Convert defaultValue to string
+			defaultValueStr := ""
+			switch v := defaultValue.(type) {
+			case string:
+				defaultValueStr = v
+			default:
+				defaultValueStr = fmt.Sprintf("%v", v)
+			}
+
+			e, err := appCtx.EnvRepository().GetByKey(keyStr)
+			if err != nil {
+				return defaultValueStr
+			}
+
+			if e == nil {
+				return defaultValueStr
+			}
+
+			return e.Value
+		},
+		"is_agent": func() bool {
+			return appCtx.Options().Agent()
+		},
+		"master_host": func() string {
+			return appCtx.Options().MasterHost()
+		},
+		"master_port": func() int {
+			return appCtx.Options().MasterPort()
+		},
+	}
 }

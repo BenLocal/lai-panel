@@ -17,8 +17,8 @@ func GetServerStore(opt *options.AgentOptions) *ServerStore {
 	once.Do(func() {
 		dataPath := opt.DataPath()
 		GlobalServerStore = newServerStore(false,
-			opt.MasterHost,
-			opt.MasterPort,
+			opt.MasterHost(),
+			opt.MasterPort(),
 			opt.Name,
 			opt.Port,
 			opt.Address,

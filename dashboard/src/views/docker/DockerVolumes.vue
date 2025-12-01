@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Icon } from "@iconify/vue";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -39,6 +40,7 @@ const props = defineProps<Props>();
 
 const volumes = ref<Volume[]>([]);
 const loading = ref(false);
+const searchQuery = ref("");
 
 const fetchVolumes = async () => {
   loading.value = true;
@@ -54,6 +56,20 @@ const fetchVolumes = async () => {
     })) ?? [];
   loading.value = false;
 };
+
+// 过滤卷
+const filteredVolumes = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return volumes.value;
+  }
+  const query = searchQuery.value.toLowerCase();
+  return volumes.value.filter(
+    (volume) =>
+      volume.name.toLowerCase().includes(query) ||
+      volume.driver.toLowerCase().includes(query) ||
+      volume.mountpoint.toLowerCase().includes(query)
+  );
+});
 
 onMounted(() => {
   fetchVolumes();
@@ -109,13 +125,20 @@ const handleVolumeAction = async (
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Volumes</CardTitle>
+      <div class="flex items-center justify-between">
+        <CardTitle>Volumes</CardTitle>
+        <div class="relative w-64">
+          <Icon icon="lucide:search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input v-model="searchQuery" type="text" placeholder="Search volumes..." class="w-full pl-9" />
+        </div>
+      </div>
     </CardHeader>
     <CardContent>
       <div v-if="loading" class="text-center py-8 text-muted-foreground">
         Loading...
       </div>
-      <div v-else-if="volumes.length > 0">
+      <div v-else-if="filteredVolumes.length > 0">
         <Table>
           <TableHeader>
             <TableRow>
@@ -128,7 +151,7 @@ const handleVolumeAction = async (
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="volume in volumes" :key="volume.name">
+            <TableRow v-for="volume in filteredVolumes" :key="volume.name">
               <TableCell class="font-medium">
                 <TooltipWithCopy :text="volume.name" max-width="200px" />
               </TableCell>
@@ -176,9 +199,13 @@ const handleVolumeAction = async (
           </TableBody>
         </Table>
       </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
+      <div v-else-if="volumes.length === 0" class="text-center py-8 text-muted-foreground">
         <Icon icon="lucide:database" class="h-12 w-12 mx-auto mb-4 opacity-50" />
         <p>No volumes found</p>
+      </div>
+      <div v-else class="text-center py-8 text-muted-foreground">
+        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No volumes match your search</p>
       </div>
     </CardContent>
   </Card>

@@ -9,10 +9,10 @@ import (
 )
 
 type AgentOptions struct {
+	masterHost string
+	masterPort int
 	Name       string
 	Port       int
-	MasterHost string
-	MasterPort int
 	Address    string
 	dataPath   string
 }
@@ -23,8 +23,8 @@ func NewAgentOptions(opts ...func(o *AgentOptions)) *AgentOptions {
 
 	t := &AgentOptions{
 		Port:       8081,
-		MasterHost: "127.0.0.1",
-		MasterPort: 8080,
+		masterHost: "127.0.0.1",
+		masterPort: 8080,
 		Name:       uuid,
 		dataPath:   dataPath,
 	}
@@ -44,13 +44,13 @@ func WithAgentPort(port int) func(o *AgentOptions) {
 
 func WithMasterHost(masterHost string) func(o *AgentOptions) {
 	return func(o *AgentOptions) {
-		o.MasterHost = masterHost
+		o.masterHost = masterHost
 	}
 }
 
 func WithMasterPort(masterPort int) func(o *AgentOptions) {
 	return func(o *AgentOptions) {
-		o.MasterPort = masterPort
+		o.masterPort = masterPort
 	}
 }
 
@@ -100,4 +100,12 @@ func (o *AgentOptions) DataPath() string {
 
 func (o *AgentOptions) Agent() bool {
 	return true
+}
+
+func (o *AgentOptions) MasterHost() string {
+	return o.masterHost
+}
+
+func (o *AgentOptions) MasterPort() int {
+	return o.masterPort
 }
