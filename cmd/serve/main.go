@@ -80,9 +80,11 @@ func init() {
 		api.POST("/env/delete", h.DeleteEnv)
 
 		// hub
-		handler := h.SignalRServer().Handler("/api/signalr")
-		router.Any("/api/signalr", handler)
-		router.Any("/api/signalr/*wsPath", handler)
+		sp := "/api/signalr"
+		handler := h.SignalRServer().Handler(sp)
+		router.Any(sp, handler)
+		router.Any(sp+"/*wsPath", handler)
+		// TODO: only for debug
 		router.Handle("GET", "/signalr.html", func(ctx context.Context, c *app.RequestContext) {
 			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
 			c.Response.SetBodyString(string(signalrHTML))
