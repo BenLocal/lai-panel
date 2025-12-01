@@ -25,7 +25,7 @@ func NewServeRuntime() *ServeRuntime {
 
 func (r *ServeRuntime) Start() error {
 	op := options.NewServeOptions()
-	err := database.InitDB(op.DBPath, op.MigrationsPath)
+	err := database.InitDB(op.DBPath)
 	if err != nil {
 		return err
 	}

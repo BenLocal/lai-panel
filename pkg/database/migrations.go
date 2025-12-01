@@ -1,26 +1,32 @@
 package database
 
 import (
+	"embed"
+
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
-	"github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func runMigrations(db *sqlx.DB, migrationsPath string) error {
+//go:embed migrations
+var migrationsFS embed.FS
+
+func runMigrations(db *sqlx.DB) error {
 	driver, err := sqlite3.WithInstance(db.DB, &sqlite3.Config{})
 	if err != nil {
 		return err
 	}
 
-	sourceDriver, err := (&file.File{}).Open("file://" + migrationsPath)
+	// 从 embed 的文件系统读取 migrations
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {
 		return err
 	}
 
 	m, err := migrate.NewWithInstance(
-		"file", sourceDriver,
+		"iofs", sourceDriver,
 		"sqlite3", driver,
 	)
 	if err != nil {

@@ -19,7 +19,7 @@ import (
 
 var DB *sqlx.DB
 
-func InitDB(dbPath string, migrationsPath string) error {
+func InitDB(dbPath string) error {
 	var err error
 	db, err := sqlx.Connect("sqlite3-mw", dbPath)
 	if err != nil {
@@ -29,7 +29,7 @@ func InitDB(dbPath string, migrationsPath string) error {
 	db.MustExec("PRAGMA foreign_keys = ON")
 	db.MustExec("PRAGMA journal_mode = WAL")
 
-	err = runMigrations(db, migrationsPath)
+	err = runMigrations(db)
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
 			log.Println("migrations up to date")
