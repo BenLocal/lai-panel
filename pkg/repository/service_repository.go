@@ -44,6 +44,14 @@ func (r *ServiceRepository) Update(service *model.Service) error {
 
 func (r *ServiceRepository) UpdateDeployInfo(service *model.Service) error {
 	query := `UPDATE services SET deploy_info = :deploy_info,
+	updated_at = CURRENT_TIMESTAMP 
+	WHERE id = :id`
+	_, err := r.db.NamedExec(query, service)
+	return err
+}
+
+func (r *ServiceRepository) UpdateStatusInfo(service *model.Service) error {
+	query := `UPDATE services SET deploy_info = :deploy_info,
 	status = :status,
 	updated_at = CURRENT_TIMESTAMP 
 	WHERE id = :id`
@@ -79,4 +87,11 @@ func (r *ServiceRepository) GetPage(page, pageSize int) (int, []*model.Service, 
 	offset := (page - 1) * pageSize
 	err = r.db.Select(&services, query, limit, offset)
 	return total, services, err
+}
+
+func (r *ServiceRepository) List() ([]*model.Service, error) {
+	query := `SELECT * FROM services`
+	var services []*model.Service
+	err := r.db.Select(&services, query)
+	return services, err
 }

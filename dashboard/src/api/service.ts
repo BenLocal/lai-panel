@@ -6,9 +6,9 @@ export interface Service {
   app_id: number;
   node_id: number;
   status?: string;
-  metadata?: Record<string, string>;
   app_name: string;
   node_name: string;
+  qa_values: Record<string, string>;
 }
 
 export interface ServicePageResponse {

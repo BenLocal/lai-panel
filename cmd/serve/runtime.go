@@ -63,6 +63,9 @@ func (r *ServeRuntime) Start() error {
 	healthCheckService := service.NewHealthCheckService(baseClient, baseHandler)
 	g.Add(healthCheckService)
 
+	servicesStateUpdater := service.NewServicesStateService(baseHandler)
+	g.Add(servicesStateUpdater)
+
 	ctx := context.Background()
 	return g.Start(ctx)
 }

@@ -238,7 +238,8 @@ const openEditDialog = async (service: Service) => {
     if (app.qa && app.qa.length > 0) {
       const initialValues: Record<string, string> = {};
       app.qa.forEach((item) => {
-        initialValues[item.name] = item.default_value || "";
+        // Use saved qa_values from service if available, otherwise use default_value
+        initialValues[item.name] = service.qa_values?.[item.name] || item.default_value || "";
       });
       qaValues.value = initialValues;
     }
@@ -294,8 +295,16 @@ const handleApplicationSelect = (appId: string) => {
     // Initialize QA values with default values
     if (app.qa && app.qa.length > 0) {
       const initialValues: Record<string, string> = {};
+      // If editing a service, try to preserve existing qa_values
+      let existingQaValues: Record<string, string> | undefined;
+      if (editingServiceId.value) {
+        const editingService = services.value.find(s => s.id === editingServiceId.value);
+        existingQaValues = editingService?.qa_values;
+      }
+
       app.qa.forEach((item) => {
-        initialValues[item.name] = item.default_value || "";
+        // Use existing qa_values if available (when editing), otherwise use default_value
+        initialValues[item.name] = existingQaValues?.[item.name] || item.default_value || "";
       });
       qaValues.value = initialValues;
     } else {
@@ -361,64 +370,67 @@ watch(
 const deployService = async ({
   onlySave = false,
 }: { onlySave?: boolean } = {}) => {
-  if (!selectedApplication.value || !selectedNode.value) {
-    return;
-  }
-  const saveReq: SaveServiceRequest = {
-    id: editingServiceId.value || 0,
-    name: serverName.value || selectedApplication.value.name,
-    app_id: selectedApplication.value.id,
-    node_id: selectedNode.value.id,
-    qa_values: qaValues.value,
-  };
-  const response = await serviceApi.save(saveReq);
-  if (!ApiResponseHelper.isSuccess(response)) {
-    showToast(response.message ?? "Failed to save service", "error");
-    return;
-  }
-  const serviceId = response.data?.id || editingServiceId.value || 0;
-
-  // Refresh services list after save
-  await fetchServices(currentPage.value);
-
-  if (onlySave) {
-    showToast(editingServiceId.value ? "Service updated successfully" : "Service saved successfully", "success");
-    closeDeployDialog();
-    return;
-  }
-
-  if (serviceId === 0) {
-    showToast("Failed to get service ID", "error");
-    return;
-  }
-
-  deployLoading.value = true;
-  deployOutput.value = [];
-  isDeployOutputDrawerOpen.value = true;
-  const req: DeployServiceRequest = {
-    service_id: serviceId,
-    app_id: selectedApplication.value.id,
-    node_id: selectedNode.value.id,
-    qa_values: qaValues.value,
-  };
-  await serviceApi.deployStream(
-    req,
-    (data) => {
-      deployOutput.value.push(data);
-    },
-    (error) => {
-      deployOutput.value.push(`[错误] ${error.message}`);
-      showToast("Failed to deploy service:", "error");
-      deployLoading.value = false;
-    },
-    () => {
-      // 部署完成
-      deployLoading.value = false;
-      deployOutput.value.push("Deployment completed!!!");
-      // Refresh services list after deployment
-      fetchServices(currentPage.value);
+  try {
+    if (!selectedApplication.value || !selectedNode.value) {
+      return;
     }
-  );
+    const saveReq: SaveServiceRequest = {
+      id: editingServiceId.value || 0,
+      name: serverName.value || selectedApplication.value.name,
+      app_id: selectedApplication.value.id,
+      node_id: selectedNode.value.id,
+      qa_values: qaValues.value,
+    };
+    const response = await serviceApi.save(saveReq);
+    if (!ApiResponseHelper.isSuccess(response)) {
+      showToast(response.message ?? "Failed to save service", "error");
+      return;
+    }
+    const serviceId = response.data?.id || editingServiceId.value || 0;
+
+    // Refresh services list after save
+    await fetchServices(currentPage.value);
+
+    if (onlySave) {
+      showToast(editingServiceId.value ? "Service updated successfully" : "Service saved successfully", "success");
+      return;
+    }
+
+    if (serviceId === 0) {
+      showToast("Failed to get service ID", "error");
+      return;
+    }
+    editingServiceId.value = serviceId;
+    deployLoading.value = true;
+    deployOutput.value = [];
+    isDeployOutputDrawerOpen.value = true;
+    const req: DeployServiceRequest = {
+      service_id: serviceId,
+      app_id: selectedApplication.value.id,
+      node_id: selectedNode.value.id,
+      qa_values: qaValues.value,
+    };
+    await serviceApi.deployStream(
+      req,
+      (data) => {
+        deployOutput.value.push(data);
+      },
+      (error) => {
+        deployOutput.value.push(`[错误] ${error.message}`);
+        showToast("Failed to deploy service:", "error");
+        deployLoading.value = false;
+      },
+      () => {
+        // 部署完成
+        deployLoading.value = false;
+        deployOutput.value.push("Deployment completed!!!");
+        // Refresh services list after deployment
+        fetchServices(currentPage.value);
+      }
+    );
+  } finally {
+    closeDeployDialog();
+  }
 };
 
 // Get QA value for an item

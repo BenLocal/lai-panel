@@ -59,6 +59,10 @@ func (h *BaseHandler) EnvRepository() *repository.EnvRepository {
 	return h.appCtx.EnvRepository()
 }
 
+func (h *BaseHandler) Options() options.IOptions {
+	return h.options
+}
+
 type ApiResponse struct {
 	Code    int         `json:"code"`
 	Message string      `json:"message"`

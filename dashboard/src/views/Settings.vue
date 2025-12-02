@@ -55,21 +55,19 @@ const scrollToSection = async (sectionId: string) => {
   // Wait for sheet to close and DOM to update
   await nextTick();
 
-  // Add a small delay to ensure smooth transition
+  // Add a delay to ensure sheet is fully closed and DOM is ready
   setTimeout(() => {
     const element = document.getElementById(sectionId);
     if (element) {
-      const headerOffset = 80; // Account for fixed header if any
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition =
-        elementPosition + window.pageYOffset - headerOffset;
-
-      window.scrollTo({
-        top: offsetPosition,
+      // Use scrollIntoView which automatically finds the correct scroll container
+      // The scroll-mt-20 class on the element provides offset for fixed headers
+      element.scrollIntoView({
         behavior: "smooth",
+        block: "start",
+        inline: "nearest",
       });
     }
-  }, 100);
+  }, 300);
 };
 </script>
 
@@ -81,10 +79,7 @@ const scrollToSection = async (sectionId: string) => {
     </div>
 
     <!-- Floating Navigation Button -->
-    <Button
-      class="fixed bottom-6 right-6 z-50 rounded-full h-12 w-12 shadow-lg"
-      @click="isNavOpen = true"
-    >
+    <Button class="fixed bottom-6 right-6 z-50 rounded-full h-12 w-12 shadow-lg" @click="isNavOpen = true">
       <Icon icon="lucide:menu" class="h-5 w-5" />
     </Button>
 
@@ -95,14 +90,8 @@ const scrollToSection = async (sectionId: string) => {
           <SheetTitle>Settings Navigation</SheetTitle>
         </SheetHeader>
         <div class="mt-6 space-y-2">
-          <Button
-            v-for="section in sections"
-            :key="section.id"
-            variant="ghost"
-            class="w-full justify-start"
-            :class="activeSection === section.id ? 'bg-accent' : ''"
-            @click="scrollToSection(section.id)"
-          >
+          <Button v-for="section in sections" :key="section.id" variant="ghost" class="w-full justify-start"
+            :class="activeSection === section.id ? 'bg-accent' : ''" @click="scrollToSection(section.id)">
             <Icon :icon="section.icon" class="h-4 w-4 mr-2" />
             {{ section.title }}
           </Button>
@@ -121,24 +110,12 @@ const scrollToSection = async (sectionId: string) => {
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="app-name" class="text-sm font-medium"
-              >Application Name</Label
-            >
-            <Input
-              id="app-name"
-              placeholder="Enter application name"
-              value="Lai Panel"
-            />
+            <Label for="app-name" class="text-sm font-medium">Application Name</Label>
+            <Input id="app-name" placeholder="Enter application name" value="Lai Panel" />
           </div>
           <div class="space-y-2">
-            <Label for="app-description" class="text-sm font-medium"
-              >Description</Label
-            >
-            <Input
-              id="app-description"
-              placeholder="Enter description"
-              value="Server management panel"
-            />
+            <Label for="app-description" class="text-sm font-medium">Description</Label>
+            <Input id="app-description" placeholder="Enter description" value="Server management panel" />
           </div>
           <div class="space-y-2">
             <Label for="app-version" class="text-sm font-medium">Version</Label>
@@ -161,32 +138,16 @@ const scrollToSection = async (sectionId: string) => {
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="session-timeout" class="text-sm font-medium"
-              >Session Timeout (minutes)</Label
-            >
-            <Input
-              id="session-timeout"
-              type="number"
-              placeholder="30"
-              value="30"
-            />
+            <Label for="session-timeout" class="text-sm font-medium">Session Timeout (minutes)</Label>
+            <Input id="session-timeout" type="number" placeholder="30" value="30" />
           </div>
           <div class="space-y-2">
-            <Label for="max-login-attempts" class="text-sm font-medium"
-              >Max Login Attempts</Label
-            >
-            <Input
-              id="max-login-attempts"
-              type="number"
-              placeholder="5"
-              value="5"
-            />
+            <Label for="max-login-attempts" class="text-sm font-medium">Max Login Attempts</Label>
+            <Input id="max-login-attempts" type="number" placeholder="5" value="5" />
           </div>
           <div class="flex items-center space-x-2">
             <Checkbox id="enable-2fa" v-model:checked="enable2FA" />
-            <Label for="enable-2fa" class="text-sm font-medium cursor-pointer"
-              >Enable Two-Factor Authentication</Label
-            >
+            <Label for="enable-2fa" class="text-sm font-medium cursor-pointer">Enable Two-Factor Authentication</Label>
           </div>
         </CardContent>
       </Card>
@@ -205,37 +166,16 @@ const scrollToSection = async (sectionId: string) => {
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="flex items-center space-x-2">
-            <Checkbox
-              id="email-notifications"
-              v-model:checked="emailNotifications"
-            />
-            <Label
-              for="email-notifications"
-              class="text-sm font-medium cursor-pointer"
-              >Email Notifications</Label
-            >
+            <Checkbox id="email-notifications" v-model:checked="emailNotifications" />
+            <Label for="email-notifications" class="text-sm font-medium cursor-pointer">Email Notifications</Label>
           </div>
           <div class="flex items-center space-x-2">
-            <Checkbox
-              id="sms-notifications"
-              v-model:checked="smsNotifications"
-            />
-            <Label
-              for="sms-notifications"
-              class="text-sm font-medium cursor-pointer"
-              >SMS Notifications</Label
-            >
+            <Checkbox id="sms-notifications" v-model:checked="smsNotifications" />
+            <Label for="sms-notifications" class="text-sm font-medium cursor-pointer">SMS Notifications</Label>
           </div>
           <div class="flex items-center space-x-2">
-            <Checkbox
-              id="push-notifications"
-              v-model:checked="pushNotifications"
-            />
-            <Label
-              for="push-notifications"
-              class="text-sm font-medium cursor-pointer"
-              >Push Notifications</Label
-            >
+            <Checkbox id="push-notifications" v-model:checked="pushNotifications" />
+            <Label for="push-notifications" class="text-sm font-medium cursor-pointer">Push Notifications</Label>
           </div>
         </CardContent>
       </Card>
@@ -293,9 +233,7 @@ const scrollToSection = async (sectionId: string) => {
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="api-timeout" class="text-sm font-medium"
-              >API Timeout (seconds)</Label
-            >
+            <Label for="api-timeout" class="text-sm font-medium">API Timeout (seconds)</Label>
             <Input id="api-timeout" type="number" placeholder="30" value="30" />
           </div>
           <div class="space-y-2">
@@ -314,9 +252,7 @@ const scrollToSection = async (sectionId: string) => {
           </div>
           <div class="flex items-center space-x-2">
             <Checkbox id="enable-debug" v-model:checked="enableDebug" />
-            <Label for="enable-debug" class="text-sm font-medium cursor-pointer"
-              >Enable Debug Mode</Label
-            >
+            <Label for="enable-debug" class="text-sm font-medium cursor-pointer">Enable Debug Mode</Label>
           </div>
         </CardContent>
       </Card>

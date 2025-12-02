@@ -10,6 +10,7 @@ const (
 	WORK_SPACE_BASE_PATH = "workspace"
 	SERVICE_BASE_PATH    = "service"
 	STATIC_BASE_PATH     = "static"
+	INSTALL_BASE_PATH    = "install"
 )
 
 func InitOptions(options IOptions) error {

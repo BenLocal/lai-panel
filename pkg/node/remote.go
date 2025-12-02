@@ -99,6 +99,13 @@ func (r *RemoteNodeExec) WriteFileStream(path string, reader io.Reader) error {
 		return fmt.Errorf("SFTP client not initialized")
 	}
 
+	dir := filepath.Dir(path)
+	if dir != "" && dir != "." {
+		if err := r.sftpClient.MkdirAll(dir); err != nil {
+			return fmt.Errorf("failed to create remote directory: %w", err)
+		}
+	}
+
 	file, err := r.sftpClient.Create(path)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)

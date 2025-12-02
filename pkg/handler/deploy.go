@@ -133,7 +133,6 @@ func (b *BaseHandler) updateServiceDeployInfo(service *model.Service, deployInfo
 	j := string(jsonStr)
 	db := model.Service{
 		DeployInfo: &j,
-		Status:     "running",
 		ID:         service.ID,
 	}
 

@@ -5,13 +5,9 @@ import (
 	"context"
 	"errors"
 
+	"github.com/benlocal/lai-panel/pkg/constant"
 	"github.com/benlocal/lai-panel/pkg/tmpl"
 	"gopkg.in/yaml.v3"
-)
-
-const (
-	ManagedByLabel = "com.lai-panel.managed-by"
-	OwnerLabel     = "com.lai-panel.owner"
 )
 
 type DockerComposeFileParsePipeline struct {
@@ -31,8 +27,9 @@ func (p *DockerComposeFileParsePipeline) Process(ctx context.Context, c *DeployC
 	c.Send("info", "docker compose file parsed:")
 
 	v, err = p.editFile(v, map[string]string{
-		ManagedByLabel: "lai-panel",
-		OwnerLabel:     "lai-panel",
+		constant.ManagedByLabel: constant.ProjectId,
+		constant.OwnerLabel:     constant.ProjectId,
+		constant.ServiceLabel:   c.Service.Name,
 	})
 	if err != nil {
 		return c, err

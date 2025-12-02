@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/benlocal/lai-panel/pkg/constant"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,8 +29,8 @@ func TestDockerComposeFileParsePipelineProcess(t *testing.T) {
 `
 	pipeline := &DockerComposeFileParsePipeline{}
 	res, err := pipeline.editFile(dockerCompose, map[string]string{
-		ManagedByLabel: "lai-panel",
-		OwnerLabel:     "lai-panel",
+		constant.ManagedByLabel: constant.ProjectId,
+		constant.OwnerLabel:     constant.ProjectId,
 	})
 	if err != nil {
 		t.Fatalf("editFile failed: %v", err)
