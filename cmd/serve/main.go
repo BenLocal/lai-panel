@@ -115,11 +115,13 @@ func init() {
 		handler := h.SignalRServer().Handler(sp)
 		router.Any(sp, handler)
 		router.Any(sp+"/*wsPath", handler)
-		// TODO: only for debug
-		router.Handle("GET", "/signalr.html", func(ctx context.Context, c *app.RequestContext) {
-			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-			c.Response.SetBodyString(string(signalrHTML))
-		})
+		// only for debug
+		if version.Version == "dev" {
+			router.Handle("GET", "/signalr.html", func(ctx context.Context, c *app.RequestContext) {
+				c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+				c.Response.SetBodyString(string(signalrHTML))
+			})
+		}
 	})
 
 	// CLI 命令
