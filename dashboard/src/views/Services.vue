@@ -713,12 +713,15 @@ onMounted(() => {
             <div class="mt-8 space-y-4">
               <!-- Step 1 Content: Application Selection -->
               <div v-if="currentStep === 1" class="space-y-4">
-                <div class="space-y-2">
+                <div class="space-y-2" v-if="!editingServiceId">
                   <Label for="server-name-input">Server Name</Label>
                   <Input id="server-name-input" v-model="serverName" placeholder="Enter server name (optional)" />
                   <p class="text-sm text-muted-foreground">
                     Optional: Specify a custom name for this service instance
                   </p>
+                </div>
+                <div class="space-y-2" v-if="editingServiceId">
+                  <Label for="server-name-input-edit">Server Name: {{ serverName }}</Label>
                 </div>
                 <div class="space-y-2">
                   <Label for="deploy-app-select">Application</Label>
