@@ -1,17 +1,20 @@
 .PHONY: build serve agent clean all
 
+VERSION := $(shell git describe --tags --always --dirty)
+LDFLAGS := -X 'github.com/benlocal/lai-panel/pkg/version.Version=$(VERSION)'
+
 # 编译所有
 all: serve agent
 
 # 编译 serve
 serve:
 	@echo "Building serve..."
-	@go build -o bin/serve ./cmd/serve
+	@go build -ldflags "$(LDFLAGS)" -o bin/serve ./cmd/serve
 
 # 编译 agent
 agent:
 	@echo "Building agent..."
-	@go build -o bin/agent ./cmd/agent
+	@go build -ldflags "$(LDFLAGS)" -o bin/agent ./cmd/agent
 
 # 清理编译产物
 clean:

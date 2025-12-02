@@ -3,19 +3,49 @@ package main
 import (
 	"context"
 	_ "embed"
+	"fmt"
+	"log"
+	"os"
 
 	"github.com/benlocal/lai-panel/pkg/api"
 	"github.com/benlocal/lai-panel/pkg/client"
 	"github.com/benlocal/lai-panel/pkg/handler"
+	"github.com/benlocal/lai-panel/pkg/version"
 	"github.com/cloudwego/hertz/pkg/app"
 	"github.com/cloudwego/hertz/pkg/route"
+	"github.com/spf13/cobra"
+)
+
+var (
+	rootCmd = &cobra.Command{
+		Use:   "lai-serve",
+		Short: "lai-panel server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(cmd)
+		},
+	}
+
+	runCmd = &cobra.Command{
+		Use:   "run",
+		Short: "Run lai-panel server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runServe(cmd)
+		},
+	}
+
+	versionCmd = &cobra.Command{
+		Use:   "version",
+		Short: "Print server version",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version.Version)
+		},
+	}
 )
 
 func main() {
-	runtime := NewServeRuntime()
-
-	if err := runtime.Start(); err != nil {
-		panic(err)
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
 	}
 }
 
@@ -23,6 +53,7 @@ func main() {
 var signalrHTML []byte
 
 func init() {
+	// HTTP 路由
 	api.DefaultRegistry.Add(func(h *handler.BaseHandler, router *route.Engine) {
 		router.GET("/healthz", h.HandleHealthz)
 		router.POST(client.RegistryPath, h.GetRegistryHandler)
@@ -90,4 +121,18 @@ func init() {
 			c.Response.SetBodyString(string(signalrHTML))
 		})
 	})
+
+	// CLI 命令
+	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(versionCmd)
+}
+
+func runServe(_ *cobra.Command) error {
+	log.Println("version:", version.Version)
+	runtime := NewServeRuntime()
+
+	if err := runtime.Start(); err != nil {
+		return err
+	}
+	return nil
 }
