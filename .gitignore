@@ -36,3 +36,5 @@ lai-panel.db*
 __debug_*
 
 bin/
+
+sql/
