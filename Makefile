@@ -43,7 +43,7 @@ run-agent: agent
 	@echo "Running agent..."
 	@./bin/agent
 
-test:
+test: print-vars dashboard-dist
 	@echo "Running tests..."
 	@go test -v ./...
 
