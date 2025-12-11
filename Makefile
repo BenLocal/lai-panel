@@ -1,32 +1,44 @@
-.PHONY: build serve agent clean all
+.PHONY: build serve agent clean all dashboard-dist print-vars
 
 VERSION := $(shell git describe --tags --always --dirty)
-LDFLAGS := -X 'github.com/benlocal/lai-panel/pkg/version.Version=$(VERSION)'
+DEBUG := $(shell if [ -n "$$DEBUG" ]; then echo "true"; else echo "false"; fi)
 
-# 编译所有
-all: serve agent
+ifeq ($(DEBUG), true)
+	LDFLAGS := -X 'github.com/benlocal/lai-panel/pkg/version.Version=$(VERSION)'
+else
+	LDFLAGS := -s -w -X 'github.com/benlocal/lai-panel/pkg/version.Version=$(VERSION)'
+endif
 
-# 编译 serve
-serve:
+print-vars:
+	@echo "VERSION: $(VERSION)"
+	@echo "DEBUG: $(DEBUG)"
+	@echo "LDFLAGS: $(LDFLAGS)"
+
+all: print-vars serve agent
+
+dashboard-dist:
+	@echo "Ensuring dashboard/dist exists..."
+	@mkdir -p dashboard/dist
+	@if [ -z "$$(ls -A dashboard/dist 2>/dev/null)" ]; then \
+		touch dashboard/dist/.keep; \
+	fi
+
+serve: dashboard-dist
 	@echo "Building serve..."
 	@go build -ldflags "$(LDFLAGS)" -o bin/serve ./cmd/serve
 
-# 编译 agent
 agent:
 	@echo "Building agent..."
 	@go build -ldflags "$(LDFLAGS)" -o bin/agent ./cmd/agent
 
-# 清理编译产物
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf bin/
 
-# 编译并运行 serve
 run-serve: serve
 	@echo "Running serve..."
 	@./bin/serve
 
-# 编译并运行 agent
 run-agent: agent
 	@echo "Running agent..."
 	@./bin/agent
