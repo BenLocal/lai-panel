@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/benlocal/lai-panel/migrations"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jmoiron/sqlx"
 	sqlite3 "github.com/mattn/go-sqlite3"
@@ -29,7 +30,7 @@ func InitDB(dbPath string) error {
 	db.MustExec("PRAGMA foreign_keys = ON")
 	db.MustExec("PRAGMA journal_mode = WAL")
 
-	err = runMigrations(db)
+	err = migrations.RunMigrations(db)
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
 			log.Println("migrations up to date")

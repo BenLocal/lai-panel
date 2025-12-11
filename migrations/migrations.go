@@ -1,4 +1,4 @@
-package database
+package migrations
 
 import (
 	"embed"
@@ -10,17 +10,17 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-//go:embed migrations
-var migrationsFS embed.FS
+//go:embed upgrade
+var migrationsUpgradeFS embed.FS
 
-func runMigrations(db *sqlx.DB) error {
+func RunMigrations(db *sqlx.DB) error {
 	driver, err := sqlite3.WithInstance(db.DB, &sqlite3.Config{})
 	if err != nil {
 		return err
 	}
 
-	// 从 embed 的文件系统读取 migrations
-	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	// 从 embed 的文件系统读取
+	sourceDriver, err := iofs.New(migrationsUpgradeFS, "upgrade")
 	if err != nil {
 		return err
 	}
