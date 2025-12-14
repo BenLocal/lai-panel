@@ -71,48 +71,6 @@ func init() {
 		// file upload
 		openApi.POST("/file/upload", h.HandleFileUpload)
 
-		// ui
-		uiFS := dashboard.GetDashboardFS()
-		fileServer := http.FileServer(http.FS(uiFS))
-		serveIndex := func(w http.ResponseWriter, r *http.Request) {
-			index, err := fs.ReadFile(uiFS, "index.html")
-			if err != nil {
-				http.NotFound(w, r)
-				return
-			}
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			_, _ = w.Write(index)
-		}
-		uiHandler := func(w http.ResponseWriter, r *http.Request) {
-			servePath := path.Clean(r.URL.Path)
-			servePath = strings.TrimPrefix(servePath, "/")
-			if servePath == "" || servePath == "." {
-				serveIndex(w, r)
-				return
-			}
-
-			if info, err := fs.Stat(uiFS, servePath); err == nil {
-				if info.IsDir() {
-					serveIndex(w, r)
-					return
-				}
-				r.URL.Path = "/" + servePath
-				fileServer.ServeHTTP(w, r)
-				return
-			}
-			serveIndex(w, r)
-		}
-
-		ui := adaptor.HertzHandler(http.HandlerFunc(uiHandler))
-		router.GET("/*path", ui)
-		router.HEAD("/*path", ui)
-
-		// fallback for other 404s
-		router.NoRoute(func(ctx context.Context, c *app.RequestContext) {
-			c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
-			c.Response.SetBodyString(string(signalrHTML))
-		})
-
 		api := router.Group("/api")
 		api.POST("/application/list", h.GetApplicationListHandler)
 		api.POST("/application/add", h.AddApplicationHandler)
@@ -170,6 +128,9 @@ func init() {
 				c.Response.SetBodyString(string(signalrHTML))
 			})
 		}
+
+		// ui
+		ui(h, router)
 	})
 
 	// CLI 命令
@@ -185,4 +146,47 @@ func runServe(_ *cobra.Command) error {
 		return err
 	}
 	return nil
+}
+
+func ui(h *handler.BaseHandler, router *route.Engine) {
+	uiFS := dashboard.GetDashboardFS()
+	fileServer := http.FileServer(http.FS(uiFS))
+	serveIndex := func(w http.ResponseWriter, r *http.Request) {
+		index, err := fs.ReadFile(uiFS, "index.html")
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write(index)
+	}
+	uiHandler := func(w http.ResponseWriter, r *http.Request) {
+		servePath := path.Clean(r.URL.Path)
+		servePath = strings.TrimPrefix(servePath, "/")
+		if servePath == "" || servePath == "." {
+			serveIndex(w, r)
+			return
+		}
+
+		if info, err := fs.Stat(uiFS, servePath); err == nil {
+			if info.IsDir() {
+				serveIndex(w, r)
+				return
+			}
+			r.URL.Path = "/" + servePath
+			fileServer.ServeHTTP(w, r)
+			return
+		}
+		serveIndex(w, r)
+	}
+
+	ui := adaptor.HertzHandler(http.HandlerFunc(uiHandler))
+	router.GET("/*path", ui)
+	router.HEAD("/*path", ui)
+
+	// fallback for other 404s
+	router.NoRoute(func(ctx context.Context, c *app.RequestContext) {
+		c.Response.Header.Set("Content-Type", "text/html; charset=utf-8")
+		c.Response.SetBodyString(string(signalrHTML))
+	})
 }

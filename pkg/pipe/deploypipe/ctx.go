@@ -78,6 +78,7 @@ func NewDownCtx(
 		Service:    service,
 		NodeState:  nodeState,
 		deployInfo: deployInfo,
+		options:    options,
 	}
 }
 
