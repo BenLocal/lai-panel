@@ -43,11 +43,7 @@ func (h *BaseHandler) LoginHandler(ctx context.Context, c *app.RequestContext) {
 
 	userRepository := h.UserRepository()
 	user, err := userRepository.GetByUsername(req.Username)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	if user == nil {
+	if err != nil || user == nil {
 		c.Error(errors.New("user not found"))
 		return
 	}

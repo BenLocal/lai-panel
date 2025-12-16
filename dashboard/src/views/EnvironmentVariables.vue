@@ -398,8 +398,10 @@ onMounted(() => {
 
     <!-- Add/Edit Environment Variable Dialog -->
     <Sheet v-model:open="isSheetOpen">
-      <SheetContent class="px-6 py-6">
-        <SheetHeader class="!px-0 !pt-0">
+      <SheetContent
+        class="flex h-full w-full max-w-[90vw] sm:max-w-none lg:max-w-[1200px] flex-col"
+      >
+        <SheetHeader class="px-3 sm:px-5">
           <SheetTitle>
             {{ isEditMode ? "Edit Environment Variable" : "Add Environment Variable" }}
           </SheetTitle>
@@ -412,30 +414,32 @@ onMounted(() => {
           </SheetDescription>
         </SheetHeader>
 
-        <div class="space-y-4 !px-0">
-          <div class="space-y-2">
-            <label for="env-key" class="text-sm font-medium">Key *</label>
-            <Input id="env-key" v-model="formData.key" placeholder="ENV_VARIABLE_NAME" />
-          </div>
+        <div class="overflow-y-auto">
+          <div class="space-y-4 px-3 sm:px-5">
+            <div class="space-y-2">
+              <label for="env-key" class="text-sm font-medium">Key *</label>
+              <Input id="env-key" v-model="formData.key" placeholder="ENV_VARIABLE_NAME" />
+            </div>
 
-          <div class="space-y-2">
-            <label for="env-value" class="text-sm font-medium">Value *</label>
-            <Input id="env-value" v-model="formData.value" placeholder="variable value" />
-          </div>
+            <div class="space-y-2">
+              <label for="env-value" class="text-sm font-medium">Value *</label>
+              <Input id="env-value" v-model="formData.value" placeholder="variable value" />
+            </div>
 
-          <div class="space-y-2">
-            <label for="env-scope" class="text-sm font-medium">Scope</label>
-            <Input id="env-scope" v-model="formData.scope" placeholder="global (default)" />
-            <p class="text-xs text-muted-foreground">Leave empty to use default scope "global"</p>
-          </div>
+            <div class="space-y-2">
+              <label for="env-scope" class="text-sm font-medium">Scope</label>
+              <Input id="env-scope" v-model="formData.scope" placeholder="global (default)" />
+              <p class="text-xs text-muted-foreground">Leave empty to use default scope "global"</p>
+            </div>
 
-          <div class="space-y-2">
-            <label for="env-description" class="text-sm font-medium">Description</label>
-            <Input id="env-description" v-model="formData.description" placeholder="Optional description" />
+            <div class="space-y-2">
+              <label for="env-description" class="text-sm font-medium">Description</label>
+              <Input id="env-description" v-model="formData.description" placeholder="Optional description" />
+            </div>
           </div>
         </div>
 
-        <SheetFooter class="!px-0 !pb-0">
+        <SheetFooter class="px-3 sm:px-5">
           <Button variant="outline" @click="isSheetOpen = false">Cancel</Button>
           <Button @click="saveEnvVar" :disabled="loading">
             {{ loading ? "Saving..." : isEditMode ? "Update" : "Add" }}

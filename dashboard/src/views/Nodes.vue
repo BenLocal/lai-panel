@@ -489,7 +489,9 @@ onMounted(() => {
 
     <!-- 添加/编辑节点对话框 -->
     <Sheet v-model:open="isSheetOpen">
-      <SheetContent class="flex h-screen max-h-screen flex-col overflow-hidden px-6 py-6">
+      <SheetContent
+        class="flex h-full w-full max-w-[90vw] sm:max-w-none lg:max-w-[1200px] flex-col"
+      >
         <SheetHeader class="px-3 sm:px-5">
           <SheetTitle>{{ isEditMode ? "Edit Node" : "Add Node" }}</SheetTitle>
           <SheetDescription>
@@ -501,8 +503,8 @@ onMounted(() => {
           </SheetDescription>
         </SheetHeader>
 
-        <div class="flex-1 overflow-y-auto pr-6">
-          <div class="px-3 sm:px-5">
+        <div class="overflow-y-auto">
+          <div class="space-y-4 px-3 sm:px-5">
             <div class="space-y-2">
               <label for="node-name" class="text-sm font-medium">Name *</label>
               <Input id="node-name" v-model="formData.name" placeholder="Node name" />
