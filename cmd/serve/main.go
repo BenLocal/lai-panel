@@ -72,6 +72,7 @@ func init() {
 		openApi.POST("/file/upload", h.HandleFileUpload)
 
 		api := router.Group("/api")
+		api.Use(h.AuthMiddleware)
 		api.POST("/application/list", h.GetApplicationListHandler)
 		api.POST("/application/add", h.AddApplicationHandler)
 		api.POST("/application/update", h.UpdateApplicationHandler)
@@ -115,6 +116,8 @@ func init() {
 		api.POST("/env/scopes", h.GetEnvScopes)
 		api.POST("/env/addOrUpdate", h.AddOrUpdateEnv)
 		api.POST("/env/delete", h.DeleteEnv)
+		api.POST("/auth/login", h.LoginHandler)
+		api.POST("/auth/change/password", h.ChangePasswordHandler)
 
 		// hub
 		sp := "/api/signalr"

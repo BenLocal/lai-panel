@@ -11,15 +11,31 @@ export const ApiResponseHelper = {
   },
 };
 
+import { tokenStorage } from "@/auth";
+
+// Helper function to get auth headers
+function getAuthHeaders(): Record<string, string> {
+  const token = tokenStorage.get();
+  const headers: Record<string, string> = {};
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
 export async function request<T>(
   url: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   try {
+    const authHeaders = getAuthHeaders();
     const response = await fetch(`${url}`, {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        ...authHeaders,
         ...options.headers,
       },
     });
@@ -55,8 +71,10 @@ export async function post<T>(
   data: any,
   headers: Record<string, string> = {}
 ): Promise<ApiResponse<T>> {
+  const authHeaders = getAuthHeaders();
   const h = {
     "Content-Type": "application/json",
+    ...authHeaders,
     ...headers,
   };
 
@@ -68,10 +86,12 @@ export async function post<T>(
 }
 
 export async function get<T>(url: string): Promise<ApiResponse<T>> {
+  const authHeaders = getAuthHeaders();
   return request<T>(`${url}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
     },
   });
 }
@@ -86,7 +106,6 @@ export async function stream(
 ): Promise<AbortController> {
   let currentEvent = "";
   let currentData = "";
-  let currentId = "";
 
   const processSSEEvent = () => {
     if (currentData) {
@@ -101,7 +120,6 @@ export async function stream(
     // 重置当前事件数据
     currentEvent = "";
     currentData = "";
-    currentId = "";
   };
 
   const processSSELine = (line: string) => {
@@ -126,9 +144,8 @@ export async function stream(
       } else {
         currentData = data;
       }
-    } else if (trimmed.startsWith("id: ")) {
-      currentId = trimmed.substring(4);
     }
+    // Note: id field is parsed but not used currently
   };
 
   const handleError = (error: unknown) => {
@@ -142,8 +159,10 @@ export async function stream(
   const controller = new AbortController();
   const handleStream = async () => {
     try {
+      const authHeaders = getAuthHeaders();
       const h = {
         "Content-Type": "application/json",
+        ...authHeaders,
         ...headers,
       };
       const response = await fetch(url, {

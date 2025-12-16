@@ -59,6 +59,10 @@ func (h *BaseHandler) EnvRepository() *repository.EnvRepository {
 	return h.appCtx.EnvRepository()
 }
 
+func (h *BaseHandler) UserRepository() *repository.UserRepository {
+	return h.appCtx.UserRepository()
+}
+
 func (h *BaseHandler) Options() options.IOptions {
 	return h.options
 }

@@ -7,6 +7,7 @@ require (
 	github.com/creack/pty v1.1.23
 	github.com/deliveryhero/pipeline/v2 v2.2.0
 	github.com/docker/docker v28.5.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/google/uuid v1.6.0
 	github.com/hertz-contrib/cache v0.0.1
@@ -15,6 +16,7 @@ require (
 	github.com/ngrok/sqlmw v0.0.0-20220520173518-97c9c04efc79
 	github.com/philippseith/signalr v0.8.0
 	github.com/pkg/sftp v1.13.10
+	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -63,7 +65,6 @@ require (
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.56.0 // indirect
 	github.com/quic-go/webtransport-go v0.9.0 // indirect
-	github.com/spf13/cobra v1.10.1 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/teivah/onecontext v1.3.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect

@@ -40,6 +40,10 @@ func InitDB(dbPath string) error {
 	}
 
 	DB = db
+	_, err = ensureAdminUser(db, nil)
+	if err != nil {
+		return fmt.Errorf("failed to ensure admin user: %w", err)
+	}
 	return nil
 }
 

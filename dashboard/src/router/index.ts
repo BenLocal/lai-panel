@@ -1,8 +1,18 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
 import AppLayout from "@/layouts/AppLayout.vue";
+import { auth } from "@/auth";
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/views/Login.vue"),
+    meta: {
+      title: "Login",
+      requiresAuth: false,
+    },
+  },
   {
     path: "/",
     component: AppLayout,
@@ -18,6 +28,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Dashboard",
           icon: "lucide:layout-dashboard",
+          requiresAuth: true,
         },
       },
       {
@@ -27,6 +38,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Applications",
           icon: "lucide:layers",
+          requiresAuth: true,
         },
       },
       {
@@ -36,6 +48,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Nodes",
           icon: "lucide:server",
+          requiresAuth: true,
         },
       },
       {
@@ -45,6 +58,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Docker",
           icon: "lucide:container",
+          requiresAuth: true,
         },
       },
       {
@@ -54,6 +68,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Container Terminal",
           icon: "lucide:terminal",
+          requiresAuth: true,
         },
       },
       {
@@ -63,6 +78,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Node Terminal",
           icon: "lucide:terminal",
+          requiresAuth: true,
         },
       },
       {
@@ -72,6 +88,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Services",
           icon: "lucide:rocket",
+          requiresAuth: true,
         },
       },
       {
@@ -81,6 +98,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Environment Variables",
           icon: "lucide:key",
+          requiresAuth: true,
         },
       },
       {
@@ -90,6 +108,7 @@ const routes: RouteRecordRaw[] = [
         meta: {
           title: "Settings",
           icon: "lucide:settings",
+          requiresAuth: true,
         },
       },
     ],
@@ -99,6 +118,26 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+});
+
+// Navigation guard to check authentication
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = auth.isAuthenticated();
+  const requiresAuth = to.meta.requiresAuth !== false; // Default to true if not specified
+
+  // If route requires authentication and user is not authenticated
+  if (requiresAuth && !isAuthenticated) {
+    next({ name: "Login", query: { redirect: to.fullPath } });
+    return;
+  }
+
+  // If user is authenticated and trying to access login page, redirect to dashboard
+  if (to.name === "Login" && isAuthenticated) {
+    next({ name: "Dashboard" });
+    return;
+  }
+
+  next();
 });
 
 export default router;
