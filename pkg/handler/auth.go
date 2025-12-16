@@ -18,6 +18,7 @@ import (
 )
 
 const (
+	// TODO get value from config
 	JwtSecret        = "lai-panel-jwt-secret"
 	CtxKeyUserClaims = "user_claims"
 )
@@ -66,15 +67,16 @@ func (h *BaseHandler) LoginHandler(ctx context.Context, c *app.RequestContext) {
 		"username": user.Username,
 		"role":     user.Role,
 		"name":     user.Name,
-		"exp":      time.Now().Add(time.Hour * 1).Unix(),
-		"kid":      uuid.New().String(),
-		"iat":      time.Now().Unix(),
-		"nbf":      time.Now().Unix(),
-		"iss":      "lai-panel",
-		"aud":      "lai-panel",
-		"sub":      user.ID,
-		"jti":      uuid.New().String(),
-		"email":    user.Email,
+		// TODO get value from config
+		"exp":   time.Now().Add(time.Hour * 1).Unix(),
+		"kid":   uuid.New().String(),
+		"iat":   time.Now().Unix(),
+		"nbf":   time.Now().Unix(),
+		"iss":   "lai-panel",
+		"aud":   "lai-panel",
+		"sub":   user.ID,
+		"jti":   uuid.New().String(),
+		"email": user.Email,
 	})
 
 	tokenString, err := token.SignedString([]byte(JwtSecret))
