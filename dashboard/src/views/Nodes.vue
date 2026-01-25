@@ -5,7 +5,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
 import Checkbox from 'primevue/checkbox'
-import Sidebar from 'primevue/sidebar'
+import Drawer from 'primevue/drawer'
 import Dialog from 'primevue/dialog'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -203,7 +203,7 @@ onMounted(fetchNodes);
           <template #body="{ data }">
             <div class="action-btns">
               <Button text rounded size="small" :disabled="data.status !== 'online'" @click="openTerminal(data)" v-tooltip.top="'Terminal'">
-                <i class="pi pi-terminal"></i>
+                <i class="pi pi-desktop"></i>
               </Button>
               <Button text rounded size="small" @click="openEditDialog(data)" v-tooltip.top="'Edit'">
                 <i class="pi pi-pencil"></i>
@@ -223,7 +223,7 @@ onMounted(fetchNodes);
       <Button label="Add First Node" icon="pi pi-plus" @click="openAddDialog" />
     </div>
 
-    <Sidebar v-model:visible="isSheetOpen" position="right" :style="{ width: '90vw', maxWidth: '1200px' }" class="sheet">
+    <Drawer v-model:visible="isSheetOpen" position="right" :style="{ width: '90vw', maxWidth: '1200px' }" class="sheet" dismissable>
       <div class="sheet-header">
         <h2>{{ isEditMode ? "Edit Node" : "Add Node" }}</h2>
         <p class="text-muted-foreground">{{ isEditMode ? "Update node information" : "Fill in the node information" }}</p>
@@ -262,7 +262,7 @@ onMounted(fetchNodes);
         <Button outlined @click="isSheetOpen = false">Cancel</Button>
         <Button @click="saveNode" :disabled="loading">{{ loading ? "Saving..." : isEditMode ? "Update" : "Add" }}</Button>
       </div>
-    </Sidebar>
+    </Drawer>
 
     <Dialog v-model:visible="isDeleteDialogOpen" modal header="Confirm Delete" :style="{ width: '425px' }">
       <p>Are you sure you want to delete node "{{ nodeToDelete?.name || nodeToDelete?.display_name }}"? This action cannot be undone.</p>
@@ -284,6 +284,7 @@ onMounted(fetchNodes);
 .loading-state { text-align: center; padding: 2rem; color: var(--p-text-muted-color); }
 .table-wrap { background: var(--p-surface-card); border-radius: var(--p-border-radius); overflow: hidden; }
 .action-btns { display: flex; align-items: center; gap: 0.5rem; }
+.action-btns i { font-size: 1rem; line-height: 1; display: inline-block; }
 
 .empty-state { padding: 3rem; text-align: center; background: var(--p-surface-card); border-radius: var(--p-border-radius); }
 .empty-state i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }

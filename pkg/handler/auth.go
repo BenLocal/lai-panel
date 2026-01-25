@@ -172,12 +172,14 @@ func (h *BaseHandler) AuthMiddleware(ctx context.Context, c *app.RequestContext)
 	token := string(c.GetHeader("Authorization"))
 	if token == "" {
 		c.Error(errors.New("unauthorized"))
+		c.Abort()
 		return
 	}
 
 	token = strings.TrimPrefix(token, "Bearer ")
 	if token == "" {
 		c.Error(errors.New("unauthorized"))
+		c.Abort()
 		return
 	}
 
@@ -193,31 +195,37 @@ func (h *BaseHandler) AuthMiddleware(ctx context.Context, c *app.RequestContext)
 	})
 	if err != nil {
 		c.Error(err)
+		c.Abort()
 		return
 	}
 
 	if !claims.Valid {
 		c.Error(errors.New("token is invalid"))
+		c.Abort()
 		return
 	}
 
 	exp, err := mc.GetExpirationTime()
 	if err != nil {
 		c.Error(err)
+		c.Abort()
 		return
 	}
 	if exp.Before(time.Now()) {
 		c.Error(errors.New("token is expired"))
+		c.Abort()
 		return
 	}
 
 	nbf, err := mc.GetNotBefore()
 	if err != nil {
 		c.Error(err)
+		c.Abort()
 		return
 	}
 	if nbf.After(time.Now()) {
 		c.Error(errors.New("token is not yet valid"))
+		c.Abort()
 		return
 	}
 	c.Set(CtxKeyUserClaims, mc)

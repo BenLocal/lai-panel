@@ -5,15 +5,59 @@ import (
 
 	"github.com/benlocal/lai-panel/pkg/pipe/deploypipe"
 	"github.com/benlocal/lai-panel/pkg/pipe/nodepipe"
-	"github.com/deliveryhero/pipeline/v2"
 )
 
+// Processor defines the interface for pipeline processors
+type Processor[T any] interface {
+	Process(ctx context.Context, input T) (T, error)
+	Cancel(input T, err error)
+}
+
+// sequenceProcessor chains multiple processors together
+type sequenceProcessor[T any] struct {
+	processors []Processor[T]
+}
+
+func (s *sequenceProcessor[T]) Process(ctx context.Context, input T) (T, error) {
+	var err error
+	result := input
+	for _, p := range s.processors {
+		result, err = p.Process(ctx, result)
+		if err != nil {
+			// Cancel all previous processors in reverse order
+			for i := len(s.processors) - 1; i >= 0; i-- {
+				if s.processors[i] == p {
+					break
+				}
+				s.processors[i].Cancel(result, err)
+			}
+			p.Cancel(result, err)
+			return result, err
+		}
+	}
+	return result, nil
+}
+
+func (s *sequenceProcessor[T]) Cancel(input T, err error) {
+	// Cancel all processors in reverse order
+	for i := len(s.processors) - 1; i >= 0; i-- {
+		s.processors[i].Cancel(input, err)
+	}
+}
+
+// Sequence creates a processor that executes multiple processors in sequence
+func Sequence[T any](processors ...Processor[T]) Processor[T] {
+	return &sequenceProcessor[T]{
+		processors: processors,
+	}
+}
+
 type NodePipeline struct {
-	pipeline.Processor[*nodepipe.NodeCtx, *nodepipe.NodeCtx]
+	Processor Processor[*nodepipe.NodeCtx]
 }
 
 func NewNodePipeline() *NodePipeline {
-	p := pipeline.Sequence(&nodepipe.NodeCheckPipeline{})
+	p := Sequence(&nodepipe.NodeCheckPipeline{})
 
 	return &NodePipeline{
 		Processor: p,
@@ -25,12 +69,12 @@ func (p *NodePipeline) Run(ctx context.Context, nodeCtx *nodepipe.NodeCtx) (*nod
 }
 
 type DeployPipeline struct {
-	upPipeline   pipeline.Processor[*deploypipe.DeployCtx, *deploypipe.DeployCtx]
-	downPipeline pipeline.Processor[*deploypipe.DownCtx, *deploypipe.DownCtx]
+	upPipeline   Processor[*deploypipe.DeployCtx]
+	downPipeline Processor[*deploypipe.DownCtx]
 }
 
 func NewDeployPipeline() *DeployPipeline {
-	up := pipeline.Sequence(
+	up := Sequence(
 		&deploypipe.CleanupWorkspacePipeline{},
 		&deploypipe.CopyWorkspacePipeline{},
 		&deploypipe.DownloadInstallerPipeline{},
@@ -39,7 +83,7 @@ func NewDeployPipeline() *DeployPipeline {
 		&deploypipe.DockerComposeUpPipeline{},
 	)
 
-	down := pipeline.Sequence(
+	down := Sequence(
 		&deploypipe.DockerComposeDownPipeline{},
 	)
 

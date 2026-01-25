@@ -3,9 +3,10 @@ import { ref, reactive, computed, onMounted } from "vue";
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import Sidebar from 'primevue/sidebar'
+import Drawer from 'primevue/drawer'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import Dialog from 'primevue/dialog'
-import Menu from 'primevue/menu'
 import {
   applicationApi,
   type Application,
@@ -29,45 +30,77 @@ interface ApplicationForm {
 }
 
 const applications = ref<Application[]>([]);
-const currentPage = ref(1);
-const pageSize = ref(6);
-const totalPages = ref(1);
+const loading = ref(false);
+const totalRecords = ref(0);
+const lazyParams = ref({ first: 0, rows: 10 });
 const isSheetOpen = ref(false);
 const isEditMode = ref(false);
-const loading = ref(false);
 const editingApplicationId = ref<number | null>(null);
 const isComposeEditorOpen = ref(false);
 const composeDraft = ref("");
 const isWorkspaceDialogOpen = ref(false);
 const workspaceDialogAppName = ref("");
 const workspaceDialogDisplayName = ref("");
-const menuRefs = ref<Record<number, any>>({});
 
 const createDefaultForm = (): ApplicationForm => ({
-  display: "", name: "", description: "", version: "", icon: "pi-th-large",
+  display: "", name: "", description: "", version: "", icon: "pi-star",
   qa: [], dockerCompose: "", static_path: "",
 });
 
 /** Only use icon if it's a valid PrimeIcon (pi-xxx), else fallback. */
 const validAppIcon = (icon?: string | null) => {
   const s = (icon ?? "").trim();
-  return s.startsWith("pi-") ? s : "pi-th-large";
+  // Ensure it starts with 'pi-' prefix
+  if (s.startsWith("pi-")) {
+    return `pi ${s}`;
+  }
+  return "pi pi-star";
 };
 
 const formData = reactive<ApplicationForm>(createDefaultForm());
 
-const goToPage = (p: number) => {
-  if (p >= 1 && p <= totalPages.value) currentPage.value = p;
+const fetchApplications = async () => {
+  loading.value = true;
+  const page = Math.floor(lazyParams.value.first / lazyParams.value.rows) + 1;
+  try {
+    const res = await applicationApi.page(page, lazyParams.value.rows);
+    console.log("API Response:", res);
+    
+    if (!ApiResponseHelper.isSuccess(res)) {
+      console.error("Failed to fetch applications:", res);
+      // Handle token expiration
+      if (res.code === 400 && res.message?.includes("token")) {
+        showToast("Session expired, please login again", "error");
+        // Optionally redirect to login
+        // window.location.href = "/login";
+      } else {
+        showToast(res.message || "Failed to fetch applications", "error");
+      }
+      // Don't clear existing data on error, just return
+      return;
+    }
+    
+    const d = res.data!;
+    console.log("Fetched applications data:", d);
+    console.log("Apps array before assignment:", d.apps);
+    
+    applications.value = d.apps ?? [];
+    totalRecords.value = d.total ?? 0;
+    
+    console.log("Applications array after assignment:", applications.value);
+    console.log("Applications length:", applications.value.length);
+    console.log("Total records:", totalRecords.value);
+  } catch (e) {
+    console.error("Error fetching applications:", e);
+    showToast("Failed to fetch applications", "error");
+  } finally {
+    loading.value = false;
+  }
 };
 
-const fetchApplications = async () => {
-  const res = await applicationApi.page(currentPage.value, pageSize.value);
-  if (!ApiResponseHelper.isSuccess(res)) return;
-  const d = res.data!;
-  applications.value = d.apps ?? [];
-  totalPages.value = Math.ceil((d.total ?? 0) / pageSize.value);
-  currentPage.value = d.currentPage ?? 1;
-  pageSize.value = d.pageSize ?? 6;
+const onPage = (e: { first: number; rows: number }) => {
+  lazyParams.value = { first: e.first, rows: e.rows };
+  fetchApplications();
 };
 
 const dockerComposePreview = computed(() => {
@@ -78,9 +111,6 @@ const dockerComposePreview = computed(() => {
   return lines.length > 6 ? `${s}\n...` : s;
 });
 
-const namePattern = /^[A-Za-z]*$/;
-const isNameValid = computed(() => namePattern.test(formData.name));
-
 const handleNameInput = (e: Event) => {
   const t = e.target as HTMLInputElement;
   const s = (t.value.match(/[A-Za-z]/g) ?? []).join("");
@@ -89,7 +119,7 @@ const handleNameInput = (e: Event) => {
 };
 
 const isSaveDisabled = computed(() =>
-  !formData.name.trim() || !isNameValid.value || loading.value);
+  !formData.name.trim() || loading.value);
 
 const resetForm = () => {
   Object.assign(formData, createDefaultForm());
@@ -111,7 +141,7 @@ const openEditApplicationDialog = (app: Application) => {
     name: app.name ?? "",
     description: app.description ?? "",
     version: app.version ?? "",
-    icon: app.icon ?? "pi-th-large",
+    icon: app.icon ?? "pi-star",
     display: app.display ?? "",
     qa: app.qa ? app.qa.map((i) => ({ ...i, options: i.options ? [...i.options] : undefined })) : [],
     dockerCompose: app.docker_compose ?? "",
@@ -138,7 +168,10 @@ const confirmComposeEdit = () => {
 };
 
 const openWorkspace = (app: Application) => {
-  if (!app?.name?.trim()) { showToast("Workspace path unavailable", "error"); return; }
+  if (!app?.name?.trim()) { 
+    showToast("Workspace path unavailable", "error"); 
+    return; 
+  }
   workspaceDialogAppName.value = app.name;
   workspaceDialogDisplayName.value = app.display || app.name;
   isWorkspaceDialogOpen.value = true;
@@ -194,71 +227,70 @@ onMounted(fetchApplications);
       <Button label="New Application" icon="pi pi-plus" @click="openAddApplicationDialog" />
     </div>
 
-    <div v-if="applications.length > 0">
-      <div class="app-grid">
-        <div
-          v-for="app in applications"
-          :key="app.id"
-          class="app-card"
-          @click="openEditApplicationDialog(app)"
-        >
-          <div class="app-card-head">
-            <div class="app-card-title">
-              <div class="app-card-icon">
-                <i :class="'pi ' + (validAppIcon(app.icon))"></i>
+    <div v-if="loading && applications.length === 0" class="loading-state">
+      Loading...
+    </div>
+
+    <div v-else-if="applications.length > 0" class="table-wrap">
+      <DataTable
+        :value="applications"
+        :lazy="true"
+        :paginator="true"
+        :first="lazyParams.first"
+        :rows="lazyParams.rows"
+        :totalRecords="totalRecords"
+        :loading="loading"
+        data-key="id"
+        @page="onPage"
+        size="small"
+        striped-rows
+      >
+        <Column field="id" header="ID" />
+        <Column header="Application">
+          <template #body="{ data }">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="app-icon-small">
+                <i :class="'pi ' + (data.icon || 'pi-star')"></i>
               </div>
               <div>
-                <h3>{{ app.name }}</h3>
-                <p class="text-muted-foreground">{{ app.version }}</p>
+                <div style="font-weight: 600;">{{ data.name }}</div>
+                <div class="text-muted-foreground" style="font-size: 0.75rem;">{{ data.version || '-' }}</div>
               </div>
             </div>
-          </div>
-          <p class="app-card-desc">{{ app.description }}</p>
-          <div class="app-card-actions">
-            <Menu
-              :ref="(el: any) => { if (el) menuRefs[app.id] = el }"
-              :model="[{ label: 'Open Workspace', icon: 'pi pi-folder-open', command: () => openWorkspace(app) }]"
-              popup
-            />
-            <Button text rounded size="small" @click.stop="(e) => menuRefs[app.id]?.toggle(e)">
-              <i class="pi pi-ellipsis-h"></i>
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="totalPages > 1" class="pagination-bar">
-        <span class="text-muted-foreground">
-          Showing {{ (currentPage - 1) * pageSize + 1 }}–{{ Math.min(currentPage * pageSize, applications.length) }} of {{ applications.length }}
-        </span>
-        <div class="pagination-btns">
-          <Button outlined size="small" :disabled="currentPage === 1" @click="goToPage(currentPage - 1)">
-            <i class="pi pi-chevron-left"></i>
-          </Button>
-          <Button
-            v-for="p in totalPages"
-            :key="p"
-            outlined
-            size="small"
-            :class="{ 'pagination-active': currentPage === p }"
-            @click="goToPage(p)"
-          >
-            {{ p }}
-          </Button>
-          <Button outlined size="small" :disabled="currentPage === totalPages" @click="goToPage(currentPage + 1)">
-            <i class="pi pi-chevron-right"></i>
-          </Button>
-        </div>
-      </div>
+          </template>
+        </Column>
+        <Column field="display" header="Display Name">
+          <template #body="{ data }">{{ data.display || '-' }}</template>
+        </Column>
+        <Column field="description" header="Description">
+          <template #body="{ data }">
+            <span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 2;">
+              {{ data.description || '-' }}
+            </span>
+          </template>
+        </Column>
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" @click="openEditApplicationDialog(data)" v-tooltip.top="'Edit'">
+                <i class="pi pi-pencil"></i>
+              </Button>
+              <Button text rounded size="small" @click.stop="openWorkspace(data)" v-tooltip.top="'Open Workspace'">
+                <i class="pi pi-folder-open"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
     </div>
 
     <div v-else class="empty-state">
-      <i class="pi pi-th-large"></i>
+      <i class="pi pi-star"></i>
       <p>No applications found</p>
       <Button label="Add First Application" icon="pi pi-plus" @click="openAddApplicationDialog" />
     </div>
 
-    <Sidebar v-model:visible="isSheetOpen" position="right" :style="{ width: '90vw', maxWidth: '1200px' }" class="app-sheet">
+    <Drawer v-model:visible="isSheetOpen" position="right" :style="{ width: '90vw', maxWidth: '1200px' }" class="app-sheet" dismissable>
       <div class="sheet-header">
         <h2>{{ isEditMode ? "Edit Application" : "Add Application" }}</h2>
         <p class="text-muted-foreground">
@@ -268,8 +300,7 @@ onMounted(fetchApplications);
       <div class="sheet-body">
         <div class="form-group">
           <label for="app-name">Name *</label>
-          <InputText id="app-name" v-model="formData.name" placeholder="Application name, English letters only" @input="handleNameInput" />
-          <p v-if="formData.name && !isNameValid" class="text-destructive">Only English letters (A–Z) are allowed.</p>
+          <InputText id="app-name" v-model="formData.name" placeholder="Application name" @input="handleNameInput" />
         </div>
         <div class="form-group">
           <label for="app-display">Display Name</label>
@@ -281,7 +312,7 @@ onMounted(fetchApplications);
         </div>
         <div class="form-group">
           <label for="app-icon">Icon</label>
-          <InputText id="app-icon" v-model="formData.icon" placeholder="pi-th-large" />
+          <InputText id="app-icon" v-model="formData.icon" placeholder="pi-star" />
         </div>
         <div class="form-group">
           <label for="app-description">Description</label>
@@ -327,7 +358,7 @@ onMounted(fetchApplications);
           {{ loading ? "Saving..." : isEditMode ? "Update Application" : "Add Application" }}
         </Button>
       </div>
-    </Sidebar>
+    </Drawer>
 
     <Dialog v-model:visible="isComposeEditorOpen" modal :style="{ width: '95vw', height: '100vh', maxWidth: 'none' }" :contentStyle="{ display: 'flex', flexDirection: 'column', padding: 0 }">
       <template #header>
@@ -371,55 +402,27 @@ onMounted(fetchApplications);
 .page-header-row { display: flex; align-items: center; justify-content: space-between; }
 .btn-icon-text { margin-left: 0.5rem; }
 
-.app-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
+.table-wrap { background: var(--p-surface-card); border-radius: var(--p-border-radius); }
+.action-btns { display: flex; gap: 0.5rem; align-items: center; }
+.app-icon-small {
+  width: 2rem; height: 2rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.app-icon-small i { 
+  color: var(--p-primary-color) !important; 
+  opacity: 1 !important; 
+  font-size: 1rem !important;
+  line-height: 1 !important;
+  display: inline-block !important;
 }
 
-.app-card {
-  padding: 1.25rem;
+.loading-state {
+  padding: 3rem;
+  text-align: center;
   background: var(--p-surface-card);
   border-radius: var(--p-border-radius);
-  cursor: pointer;
-  transition: box-shadow 0.2s;
 }
-.app-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-
-.app-card-head { margin-bottom: 1rem; }
-.app-card-title { display: flex; align-items: flex-start; gap: 0.75rem; }
-.app-card-icon {
-  width: 2.5rem; height: 2.5rem;
-  border-radius: var(--p-border-radius);
-  background: var(--p-primary-color);
-  opacity: 0.15;
-  display: flex; align-items: center; justify-content: center;
-}
-.app-card-icon i { color: var(--p-primary-color); opacity: 1; }
-.app-card-title h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
-.app-card-title p { font-size: 0.75rem; }
-.app-card-desc {
-  font-size: 0.875rem;
-  color: var(--p-text-muted-color);
-  margin-bottom: 1rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.app-card-actions { display: flex; justify-content: flex-end; }
-
-.pagination-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 1.5rem;
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--p-surface-border);
-  font-size: 0.875rem;
-}
-.pagination-btns { display: flex; align-items: center; gap: 0.5rem; }
-.pagination-active { background: var(--p-primary-color) !important; color: var(--p-primary-contrast-color) !important; border-color: var(--p-primary-color) !important; }
 
 .empty-state {
   padding: 3rem;

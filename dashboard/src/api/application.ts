@@ -26,8 +26,8 @@ export interface ApplicationQAItem {
 
 export interface ApplicationPageResponse {
   total: number;
-  currentPage: number;
-  pageSize: number;
+  current_page: number;
+  page_size: number;
   apps: Application[];
 }
 
