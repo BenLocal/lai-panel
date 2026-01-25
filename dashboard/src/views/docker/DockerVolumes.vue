@@ -1,25 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Menu from 'primevue/menu'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import TooltipWithCopy from "@/components/application/TooltipWithCopy.vue";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { dockerApi, DockerUtils } from "@/api/docker";
 import { showToast } from "@/lib/toast";
 import { ApiResponseHelper } from "@/api/base";
@@ -41,6 +28,7 @@ const props = defineProps<Props>();
 const volumes = ref<Volume[]>([]);
 const loading = ref(false);
 const searchQuery = ref("");
+const menuRefs = ref<Record<string, any>>({});
 
 const fetchVolumes = async () => {
   loading.value = true;
@@ -123,90 +111,65 @@ const handleVolumeAction = async (
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <CardTitle>Volumes</CardTitle>
-        <div class="relative w-64">
-          <Icon icon="lucide:search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input v-model="searchQuery" type="text" placeholder="Search volumes..." class="w-full pl-9" />
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div v-if="loading" class="text-center py-8 text-muted-foreground">
-        Loading...
-      </div>
-      <div v-else-if="filteredVolumes.length > 0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Mountpoint</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="volume in filteredVolumes" :key="volume.name">
-              <TableCell class="font-medium">
-                <TooltipWithCopy :text="volume.name" max-width="200px" />
-              </TableCell>
-              <TableCell>
-                <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20">
-                  {{ volume.driver }}
-                </span>
-              </TableCell>
-              <TableCell class="font-mono text-xs text-muted-foreground">
-                <TooltipWithCopy :text="volume.mountpoint" max-width="300px" />
-              </TableCell>
-              <TableCell>{{ volume.size }}</TableCell>
-              <TableCell class="text-muted-foreground">{{
-                volume.created
-              }}</TableCell>
-              <TableCell class="sticky right-0 z-10 bg-background border-l">
-                <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm"
-                    class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    @click="handleVolumeAction('remove', volume)">
-                    <Icon icon="lucide:trash-2" class="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm" class="h-8 px-2">
-                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem @click="handleVolumeAction('inspect', volume)">
-                        <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
-                        Inspect
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" @click="handleVolumeAction('remove', volume)">
-                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <div v-else-if="volumes.length === 0" class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:database" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No volumes found</p>
-      </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No volumes match your search</p>
-      </div>
-    </CardContent>
-  </Card>
+  <div class="docker-panel">
+    <div class="docker-toolbar">
+      <h3>Volumes</h3>
+      <InputText v-model="searchQuery" placeholder="Search..." class="search-input" />
+    </div>
+    <div v-if="loading" class="docker-loading text-muted-foreground">Loading...</div>
+    <div v-else-if="filteredVolumes.length > 0" class="table-wrap">
+      <DataTable :value="filteredVolumes" size="small" striped-rows>
+        <Column header="Name">
+          <template #body="{ data }"><TooltipWithCopy :text="data.name" max-width="200px" /></template>
+        </Column>
+        <Column header="Driver">
+          <template #body="{ data }"><Tag :value="data.driver" severity="info" /></template>
+        </Column>
+        <Column header="Mountpoint">
+          <template #body="{ data }"><TooltipWithCopy :text="data.mountpoint" max-width="300px" /></template>
+        </Column>
+        <Column field="size" header="Size" />
+        <Column field="created" header="Created">
+          <template #body="{ data }"><span class="text-muted-foreground">{{ data.created }}</span></template>
+        </Column>
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" severity="danger" @click="handleVolumeAction('remove', data)" v-tooltip.top="'Remove'">
+                <i class="pi pi-trash"></i>
+              </Button>
+              <Menu :ref="(el: any) => { if (el) menuRefs[data.name] = el }" :model="[
+                { label: 'Inspect', icon: 'pi pi-info', command: () => handleVolumeAction('inspect', data) },
+                { separator: true },
+                { label: 'Remove', icon: 'pi pi-trash', command: () => handleVolumeAction('remove', data) }
+              ]" popup />
+              <Button text rounded size="small" @click="(e) => menuRefs[data.name]?.toggle(e)">
+                <i class="pi pi-ellipsis-h"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+    <div v-else-if="!volumes.length" class="docker-empty text-muted-foreground">
+      <i class="pi pi-database"></i>
+      <p>No volumes found</p>
+    </div>
+    <div v-else class="docker-empty text-muted-foreground">
+      <i class="pi pi-search"></i>
+      <p>No volumes match your search</p>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.docker-panel { padding: 1rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-card); }
+.docker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.docker-toolbar h3 { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.search-input { width: 12rem; }
+.docker-loading { text-align: center; padding: 2rem; }
+.table-wrap { border-radius: var(--p-border-radius); overflow: hidden; }
+.action-btns { display: flex; align-items: center; gap: 0.5rem; }
+.docker-empty { text-align: center; padding: 2rem; }
+.docker-empty i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+</style>

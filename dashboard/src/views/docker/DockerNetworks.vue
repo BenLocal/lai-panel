@@ -1,24 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Menu from 'primevue/menu'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import { dockerApi, DockerUtils } from "@/api/docker";
 import { showToast } from "@/lib/toast";
 import { ApiResponseHelper } from "@/api/base";
@@ -42,6 +29,7 @@ const props = defineProps<Props>();
 const networks = ref<Network[]>([]);
 const loading = ref(false);
 const searchQuery = ref("");
+const menuRefs = ref<Record<string, any>>({});
 
 const fetchNetworks = async () => {
   loading.value = true;
@@ -133,97 +121,67 @@ const handleNetworkAction = async (
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <CardTitle>Networks</CardTitle>
-        <div class="relative w-64">
-          <Icon icon="lucide:search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input v-model="searchQuery" type="text" placeholder="Search networks..." class="w-full pl-9" />
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div v-if="loading" class="text-center py-8 text-muted-foreground">
-        Loading...
-      </div>
-      <div v-else-if="filteredNetworks.length > 0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Driver</TableHead>
-              <TableHead>Scope</TableHead>
-              <TableHead>Subnet</TableHead>
-              <TableHead>Gateway</TableHead>
-              <TableHead>Containers</TableHead>
-              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="network in filteredNetworks" :key="network.id">
-              <TableCell class="font-medium">{{ network.name }}</TableCell>
-              <TableCell>
-                <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20">
-                  {{ network.driver }}
-                </span>
-              </TableCell>
-              <TableCell>
-                <span
-                  class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-gray-500/10 text-gray-500 border-gray-500/20">
-                  {{ network.scope }}
-                </span>
-              </TableCell>
-              <TableCell class="font-mono text-xs">{{
-                network.subnet
-              }}</TableCell>
-              <TableCell class="font-mono text-xs">{{
-                network.gateway
-              }}</TableCell>
-              <TableCell>
-                <span class="font-medium">{{ network.containers }}</span>
-              </TableCell>
-              <TableCell class="sticky right-0 z-10 bg-background border-l">
-                <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm"
-                    class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    @click="handleNetworkAction('remove', network)">
-                    <Icon icon="lucide:trash-2" class="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm" class="h-8 px-2">
-                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem @click="handleNetworkAction('inspect', network)">
-                        <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
-                        Inspect
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" @click="handleNetworkAction('remove', network)">
-                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <div v-else-if="networks.length === 0" class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:network" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No networks found</p>
-      </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No networks match your search</p>
-      </div>
-    </CardContent>
-  </Card>
+  <div class="docker-panel">
+    <div class="docker-toolbar">
+      <h3>Networks</h3>
+      <InputText v-model="searchQuery" placeholder="Search..." class="search-input" />
+    </div>
+    <div v-if="loading" class="docker-loading text-muted-foreground">Loading...</div>
+    <div v-else-if="filteredNetworks.length > 0" class="table-wrap">
+      <DataTable :value="filteredNetworks" size="small" striped-rows>
+        <Column field="name" header="Name" />
+        <Column header="Driver">
+          <template #body="{ data }"><Tag :value="data.driver" severity="info" /></template>
+        </Column>
+        <Column header="Scope">
+          <template #body="{ data }"><Tag :value="data.scope" severity="contrast" /></template>
+        </Column>
+        <Column header="Subnet">
+          <template #body="{ data }"><span class="font-mono">{{ data.subnet }}</span></template>
+        </Column>
+        <Column header="Gateway">
+          <template #body="{ data }"><span class="font-mono">{{ data.gateway }}</span></template>
+        </Column>
+        <Column field="containers" header="Containers" />
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" severity="danger" @click="handleNetworkAction('remove', data)" v-tooltip.top="'Remove'">
+                <i class="pi pi-trash"></i>
+              </Button>
+              <Menu :ref="(el: any) => { if (el) menuRefs[data.id] = el }" :model="[
+                { label: 'Inspect', icon: 'pi pi-info', command: () => handleNetworkAction('inspect', data) },
+                { separator: true },
+                { label: 'Remove', icon: 'pi pi-trash', command: () => handleNetworkAction('remove', data) }
+              ]" popup />
+              <Button text rounded size="small" @click="(e) => menuRefs[data.id]?.toggle(e)">
+                <i class="pi pi-ellipsis-h"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+    <div v-else-if="!networks.length" class="docker-empty text-muted-foreground">
+      <i class="pi pi-sitemap"></i>
+      <p>No networks found</p>
+    </div>
+    <div v-else class="docker-empty text-muted-foreground">
+      <i class="pi pi-search"></i>
+      <p>No networks match your search</p>
+    </div>
+  </div>
 </template>
+
+<style scoped>
+.docker-panel { padding: 1rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-card); }
+.docker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.docker-toolbar h3 { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.search-input { width: 12rem; }
+.docker-loading { text-align: center; padding: 2rem; }
+.table-wrap { border-radius: var(--p-border-radius); overflow: hidden; }
+.action-btns { display: flex; align-items: center; gap: 0.5rem; }
+.font-mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+.docker-empty { text-align: center; padding: 2rem; }
+.docker-empty i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+</style>

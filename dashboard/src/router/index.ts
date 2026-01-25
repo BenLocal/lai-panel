@@ -27,7 +27,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Dashboard.vue"),
         meta: {
           title: "Dashboard",
-          icon: "lucide:layout-dashboard",
+          icon: "pi-chart-line",
           requiresAuth: true,
         },
       },
@@ -37,7 +37,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Applications.vue"),
         meta: {
           title: "Applications",
-          icon: "lucide:layers",
+          icon: "pi-th-large",
           requiresAuth: true,
         },
       },
@@ -47,7 +47,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Nodes.vue"),
         meta: {
           title: "Nodes",
-          icon: "lucide:server",
+          icon: "pi-server",
           requiresAuth: true,
         },
       },
@@ -57,7 +57,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Docker.vue"),
         meta: {
           title: "Docker",
-          icon: "lucide:container",
+          icon: "pi-box",
           requiresAuth: true,
         },
       },
@@ -67,7 +67,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/docker/DockerContainerTerminal.vue"),
         meta: {
           title: "Container Terminal",
-          icon: "lucide:terminal",
+          icon: "pi-terminal",
           requiresAuth: true,
         },
       },
@@ -77,7 +77,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/NodeTerminal.vue"),
         meta: {
           title: "Node Terminal",
-          icon: "lucide:terminal",
+          icon: "pi-terminal",
           requiresAuth: true,
         },
       },
@@ -87,7 +87,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Services.vue"),
         meta: {
           title: "Services",
-          icon: "lucide:rocket",
+          icon: "pi-send",
           requiresAuth: true,
         },
       },
@@ -97,7 +97,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/EnvironmentVariables.vue"),
         meta: {
           title: "Environment Variables",
-          icon: "lucide:key",
+          icon: "pi-key",
           requiresAuth: true,
         },
       },
@@ -107,7 +107,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import("@/views/Settings.vue"),
         meta: {
           title: "Settings",
-          icon: "lucide:settings",
+          icon: "pi-cog",
           requiresAuth: true,
         },
       },

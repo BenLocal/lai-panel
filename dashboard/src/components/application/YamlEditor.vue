@@ -77,41 +77,29 @@ watch(() => props.height, updateHeight);
 </script>
 
 <template>
-  <div ref="containerRef" class="space-y-3 h-full flex flex-col">
-    <div class="grid gap-4 lg:grid-cols-[minmax(0,1fr),minmax(0,1fr)] flex-1 min-h-0"
-      :class="readOnly ? 'opacity-80' : ''">
-      <div class="rounded-lg border flex flex-col overflow-hidden">
-        <MonacoEditor class="yaml-editor-container flex-1" v-model:value="yamlContent" theme="vs-dark" language="yaml"
-          :options="editorOptions" :style="{
-            height: typeof editorHeight === 'number' ? `${editorHeight}px` : editorHeight,
-            minHeight: typeof props.height === 'number' ? `${props.height}px` : props.height,
-          }" />
-      </div>
+  <div ref="containerRef" class="yaml-root" :class="{ readonly: readOnly }">
+    <div class="yaml-wrap">
+      <MonacoEditor
+        class="yaml-editor-container"
+        v-model:value="yamlContent"
+        theme="vs-dark"
+        language="yaml"
+        :options="editorOptions"
+        :style="{
+          height: typeof editorHeight === 'number' ? `${editorHeight}px` : editorHeight,
+          minHeight: typeof props.height === 'number' ? `${props.height}px` : props.height,
+        }"
+      />
     </div>
   </div>
 </template>
 
 <style scoped>
-.yaml-editor-container {
-  height: 100%;
-}
-
-.yaml-editor-container :deep(.monaco-editor) {
-  border-radius: 0 0 0.5rem 0.5rem;
-  height: 100% !important;
-}
-
-.yaml-editor-container :deep(.monaco-editor .monaco-editor-background) {
-  height: 100%;
-}
-
-.yaml-editor-container :deep(.monaco-editor .overflow-guard) {
-  height: 100%;
-}
-
-.preview-container {
-  border-top: 1px solid transparent;
-  border-radius: 0 0 0.5rem 0.5rem;
-  min-height: 220px;
-}
+.yaml-root { height: 100%; display: flex; flex-direction: column; min-height: 0; }
+.yaml-root.readonly { opacity: 0.85; }
+.yaml-wrap { flex: 1; min-height: 0; border-radius: var(--p-border-radius); border: 1px solid var(--p-surface-border); overflow: hidden; }
+.yaml-editor-container { height: 100%; }
+.yaml-editor-container :deep(.monaco-editor) { border-radius: var(--p-border-radius); height: 100% !important; }
+.yaml-editor-container :deep(.monaco-editor .monaco-editor-background) { height: 100%; }
+.yaml-editor-container :deep(.monaco-editor .overflow-guard) { height: 100%; }
 </style>

@@ -1,32 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
+import Menu from 'primevue/menu'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import TooltipWithCopy from "@/components/application/TooltipWithCopy.vue";
 import { dockerApi, DockerUtils } from "@/api/docker";
 import { showToast } from "@/lib/toast";
@@ -61,6 +42,7 @@ const isInspectDialogOpen = ref(false);
 const inspectData = ref<any>(null);
 const inspectContainerName = ref<string>("");
 const inspectContentRef = ref<HTMLDivElement | null>(null);
+const menuRefs = ref<Record<string, any>>({});
 
 const fetchContainers = async () => {
   loading.value = true;
@@ -97,11 +79,6 @@ const filteredContainers = computed(() => {
   );
 });
 
-const getStatusColor = (status: string) => {
-  return status === "running"
-    ? "bg-green-500/10 text-green-500 border-green-500/20"
-    : "bg-red-500/10 text-red-500 border-red-500/20";
-};
 
 const scrollLogToBottom = () => {
   if (logContentRef.value) {
@@ -230,175 +207,118 @@ watch(
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <CardTitle>Containers</CardTitle>
-        <div class="relative w-64">
-          <Icon
-            icon="lucide:search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search containers..."
-            class="w-full pl-9"
-          />
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div v-if="loading" class="text-center py-8 text-muted-foreground">
-        Loading...
-      </div>
-      <div v-else-if="filteredContainers.length > 0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Image</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Ports</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="container in filteredContainers" :key="container.id">
-              <TableCell class="font-mono text-xs">
-                {{ DockerUtils.getContainerShortId(container.id) }}
-              </TableCell>
-              <TableCell class="font-medium">
-                <TooltipWithCopy :text="container.name" max-width="200px" />
-              </TableCell>
-              <TableCell>
-                <TooltipWithCopy :text="container.image" max-width="300px" />
-              </TableCell>
-              <TableCell>
-                <span :class="[
-                  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                  getStatusColor(container.status),
-                ]">
-                  {{ container.status }}
-                </span>
-              </TableCell>
-              <TableCell class="font-mono text-xs">
-                <TooltipWithCopy :text="container.ports" max-width="200px" />
-              </TableCell>
-              <TableCell class="text-muted-foreground">{{
-                container.created
-                }}</TableCell>
-              <TableCell class="sticky right-0 z-10 bg-background border-l">
-                <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm"
-                    class="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950"
-                    :disabled="container.status === 'running'" @click="handleContainerAction('start', container)">
-                    <Icon icon="lucide:play" class="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm"
-                    class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    :disabled="container.status !== 'running'" @click="handleContainerAction('stop', container)">
-                    <Icon icon="lucide:square" class="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" class="h-8 px-2" :disabled="container.status !== 'running'"
-                    @click="handleContainerAction('terminal', container)">
-                    <Icon icon="lucide:terminal" class="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                  <Button variant="ghost" size="sm" class="h-8 px-2">
-                    <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                  </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem :disabled="container.status === 'running'"
-                        @click="handleContainerAction('start', container)">
-                        <Icon icon="lucide:play" class="h-4 w-4 mr-2" />
-                        Start
-                      </DropdownMenuItem>
-                      <DropdownMenuItem :disabled="container.status !== 'running'"
-                        @click="handleContainerAction('stop', container)">
-                        <Icon icon="lucide:square" class="h-4 w-4 mr-2" />
-                        Stop
-                      </DropdownMenuItem>
-                      <DropdownMenuItem :disabled="container.status !== 'running'"
-                        @click="handleContainerAction('restart', container)">
-                        <Icon icon="lucide:rotate-cw" class="h-4 w-4 mr-2" />
-                        Restart
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem @click="handleContainerAction('inspect', container)">
-                        <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
-                        Inspect
-                      </DropdownMenuItem>
-                      <DropdownMenuItem @click="handleContainerAction('log', container)">
-                        <Icon icon="lucide:file-text" class="h-4 w-4 mr-2" />
-                        Log
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" @click="handleContainerAction('remove', container)">
-                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <div v-else-if="containers.length === 0" class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:box" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No containers found</p>
-      </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No containers match your search</p>
-      </div>
-    </CardContent>
-  </Card>
+  <div class="docker-panel">
+    <div class="docker-toolbar">
+      <h3>Containers</h3>
+      <InputText v-model="searchQuery" placeholder="Search..." class="search-input" />
+    </div>
+    <div v-if="loading" class="docker-loading text-muted-foreground">Loading...</div>
+    <div v-else-if="filteredContainers.length > 0" class="table-wrap">
+      <DataTable :value="filteredContainers" size="small" striped-rows>
+        <Column header="ID">
+          <template #body="{ data }">
+            <span class="font-mono">{{ DockerUtils.getContainerShortId(data.id) }}</span>
+          </template>
+        </Column>
+        <Column header="Name">
+          <template #body="{ data }"><TooltipWithCopy :text="data.name" max-width="200px" /></template>
+        </Column>
+        <Column header="Image">
+          <template #body="{ data }"><TooltipWithCopy :text="data.image" max-width="300px" /></template>
+        </Column>
+        <Column header="Status">
+          <template #body="{ data }">
+            <Tag :value="data.status" :severity="data.status === 'running' ? 'success' : 'danger'" />
+          </template>
+        </Column>
+        <Column header="Ports">
+          <template #body="{ data }"><TooltipWithCopy :text="data.ports" max-width="200px" /></template>
+        </Column>
+        <Column header="Created">
+          <template #body="{ data }"><span class="text-muted-foreground">{{ data.created }}</span></template>
+        </Column>
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" :disabled="data.status === 'running'" @click="handleContainerAction('start', data)" v-tooltip.top="'Start'">
+                <i class="pi pi-play"></i>
+              </Button>
+              <Button text rounded size="small" :disabled="data.status !== 'running'" @click="handleContainerAction('stop', data)" v-tooltip.top="'Stop'">
+                <i class="pi pi-stop"></i>
+              </Button>
+              <Button text rounded size="small" :disabled="data.status !== 'running'" @click="handleContainerAction('terminal', data)" v-tooltip.top="'Terminal'">
+                <i class="pi pi-terminal"></i>
+              </Button>
+              <Menu :ref="(el: any) => { if (el) menuRefs[data.id] = el }" :model="[
+                { label: 'Start', icon: 'pi pi-play', command: () => handleContainerAction('start', data), disabled: data.status === 'running' },
+                { label: 'Stop', icon: 'pi pi-stop', command: () => handleContainerAction('stop', data), disabled: data.status !== 'running' },
+                { label: 'Restart', icon: 'pi pi-refresh', command: () => handleContainerAction('restart', data), disabled: data.status !== 'running' },
+                { separator: true },
+                { label: 'Inspect', icon: 'pi pi-info', command: () => handleContainerAction('inspect', data) },
+                { label: 'Log', icon: 'pi pi-file', command: () => handleContainerAction('log', data) },
+                { separator: true },
+                { label: 'Remove', icon: 'pi pi-trash', command: () => handleContainerAction('remove', data) }
+              ]" popup />
+              <Button text rounded size="small" @click="(e) => menuRefs[data.id]?.toggle(e)">
+                <i class="pi pi-ellipsis-h"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+    <div v-else-if="!containers.length" class="docker-empty text-muted-foreground">
+      <i class="pi pi-box"></i>
+      <p>No containers found</p>
+    </div>
+    <div v-else class="docker-empty text-muted-foreground">
+      <i class="pi pi-search"></i>
+      <p>No containers match your search</p>
+    </div>
 
-  <!-- Log Dialog -->
-  <Dialog v-model:open="isLogDialogOpen" @update:open="(open) => !open && closeLogDialog()">
-    <DialogContent
-      class="!max-w-none !w-screen !h-screen !max-h-screen flex flex-col p-0 gap-0 !rounded-none !translate-x-0 !translate-y-0 !top-0 !left-0 !right-0 !bottom-0">
-      <DialogHeader class="px-6 pt-6 pb-4 border-b shrink-0">
-        <DialogTitle>Container Logs - {{ logContainerName }}</DialogTitle>
-        <DialogDescription>
-          Real-time logs from the container
-        </DialogDescription>
-      </DialogHeader>
-      <div ref="logContentRef" class="flex-1 overflow-y-auto bg-muted/30 p-4 font-mono text-xs">
-        <div v-if="logContent.length === 0" class="text-center text-muted-foreground py-8">
-          Waiting for logs...
+    <Dialog v-model:visible="isLogDialogOpen" modal :style="{ width: '100vw', height: '100vh', maxWidth: 'none' }" :contentStyle="{ display: 'flex', flexDirection: 'column', padding: 0 }" @update:visible="(v: boolean) => !v && closeLogDialog()">
+      <template #header>
+        <div class="dialog-custom-header">
+          <h3>Container Logs – {{ logContainerName }}</h3>
+          <p class="text-muted-foreground">Real-time logs from the container</p>
         </div>
-        <div v-for="(line, index) in logContent" :key="index"
-          class="mb-0.5 whitespace-pre-wrap break-words leading-relaxed">
-          {{ line }}
-        </div>
+      </template>
+      <div ref="logContentRef" class="docker-log-body">
+        <div v-if="!logContent.length" class="text-muted-foreground">Waiting for logs...</div>
+        <div v-for="(line, i) in logContent" :key="i" class="docker-log-line">{{ line }}</div>
       </div>
-    </DialogContent>
-  </Dialog>
+    </Dialog>
 
-  <!-- Inspect Dialog -->
-  <Dialog v-model:open="isInspectDialogOpen">
-    <DialogContent class="!max-w-4xl !w-[90vw] !h-[90vh] flex flex-col p-0 gap-0">
-      <DialogHeader class="px-6 pt-6 pb-4 border-b shrink-0">
-        <DialogTitle>Container Inspect - {{ inspectContainerName }}</DialogTitle>
-        <DialogDescription>
-          JSON representation of the container configuration
-        </DialogDescription>
-      </DialogHeader>
-      <div ref="inspectContentRef" class="flex-1 overflow-y-auto bg-muted/30 p-4 font-mono text-xs">
-        <pre v-if="inspectData"
-          class="whitespace-pre-wrap break-words leading-relaxed text-sm">{{ JSON.stringify(inspectData, null, 2) }}</pre>
-        <div v-else class="text-center text-muted-foreground py-8">
-          Loading...
+    <Dialog v-model:visible="isInspectDialogOpen" modal :style="{ width: '90vw', height: '90vh', maxWidth: '56rem' }" :contentStyle="{ display: 'flex', flexDirection: 'column', padding: 0 }">
+      <template #header>
+        <div class="dialog-custom-header">
+          <h3>Container Inspect – {{ inspectContainerName }}</h3>
+          <p class="text-muted-foreground">JSON representation of the container configuration</p>
         </div>
+      </template>
+      <div ref="inspectContentRef" class="docker-log-body">
+        <pre v-if="inspectData" class="docker-inspect-pre">{{ JSON.stringify(inspectData, null, 2) }}</pre>
+        <div v-else class="text-muted-foreground">Loading...</div>
       </div>
-    </DialogContent>
-  </Dialog>
+    </Dialog>
+  </div>
 </template>
+
+<style scoped>
+.docker-panel { padding: 1rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-card); }
+.docker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.docker-toolbar h3 { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.search-input { width: 12rem; }
+.docker-loading { text-align: center; padding: 2rem; }
+.table-wrap { border-radius: var(--p-border-radius); overflow: hidden; }
+.action-btns { display: flex; align-items: center; gap: 0.5rem; }
+.font-mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+.docker-empty { text-align: center; padding: 2rem; }
+.docker-empty i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+.dialog-custom-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--p-surface-border); }
+.dialog-custom-header h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+.dialog-custom-header p { font-size: 0.875rem; }
+.docker-log-body { flex: 1; overflow-y: auto; padding: 1rem; background: var(--p-surface-50); font-family: ui-monospace, monospace; font-size: 0.75rem; }
+.docker-log-line { white-space: pre-wrap; word-break: break-word; margin-bottom: 0.125rem; }
+.docker-inspect-pre { white-space: pre-wrap; word-break: break-word; font-size: 0.875rem; margin: 0; }
+</style>

@@ -1,327 +1,251 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectTrigger,
-    SelectValue,
-    SelectContent,
-    SelectItem,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
+import Checkbox from 'primevue/checkbox'
 import type { ApplicationQAItem } from "@/api/application";
 
 type QAType = ApplicationQAItem["type"];
-type QAEditorEmits = (
-    event: "update:modelValue",
-    value: ApplicationQAItem[]
-) => void;
 
-const props = defineProps<{
-    modelValue: ApplicationQAItem[];
-}>();
-
-const emit = defineEmits<QAEditorEmits>();
+const props = defineProps<{ modelValue: ApplicationQAItem[] }>();
+const emit = defineEmits<{ "update:modelValue": [value: ApplicationQAItem[]] }>();
 
 const qaItems = ref<ApplicationQAItem[]>([]);
 
-const normalizeQAItem = (item: ApplicationQAItem): ApplicationQAItem => {
-    const normalized: ApplicationQAItem = {
-        name: item.name ?? "",
-        type: item.type ?? "text",
-        default_value: item.default_value ?? "",
-        options: item.options,
-        required: item.required ?? false,
-        description: item.description ?? "",
-    };
+const typeOptions: { label: string; value: QAType }[] = [
+  { label: "Text", value: "text" },
+  { label: "Number", value: "number" },
+  { label: "Boolean", value: "boolean" },
+  { label: "Select", value: "select" },
+  { label: "Textarea", value: "textarea" },
+];
 
-    if (normalized.type === "select") {
-        const options =
-            normalized.options && normalized.options.length > 0
-                ? normalized.options
-                : ["Option 1", "Option 2"];
-        normalized.options = options;
-        if (normalized.default_value && !options.includes(normalized.default_value)) {
-            normalized.default_value = options[0] ?? "";
-        }
-    } else if (normalized.type === "boolean") {
-        normalized.default_value =
-            normalized.default_value === "true" ? "true" : "false";
-        normalized.options = undefined;
-    } else {
-        normalized.options = undefined;
-    }
-
-    return normalized;
+const normalize = (item: ApplicationQAItem): ApplicationQAItem => {
+  const n = {
+    name: item.name ?? "",
+    type: (item.type ?? "text") as QAType,
+    default_value: item.default_value ?? "",
+    options: item.options,
+    required: item.required ?? false,
+    description: item.description ?? "",
+  };
+  if (n.type === "select") {
+    n.options = n.options?.length ? n.options : ["Option 1", "Option 2"];
+    if (n.default_value && n.options && !n.options.includes(n.default_value)) n.default_value = n.options[0] ?? "";
+  } else if (n.type === "boolean") {
+    n.default_value = n.default_value === "true" ? "true" : "false";
+    n.options = undefined;
+  } else n.options = undefined;
+  return n;
 };
 
 const syncFromProps = (items: ApplicationQAItem[] | undefined) => {
-    qaItems.value = (items ?? []).map((item) =>
-        normalizeQAItem({
-            ...item,
-        })
-    );
+  qaItems.value = (items ?? []).map((i) => normalize({ ...i }));
 };
 
-watch(
-    () => props.modelValue,
-    (value) => {
-        syncFromProps(value);
-    },
-    { immediate: true, deep: true }
-);
+watch(() => props.modelValue, syncFromProps, { immediate: true, deep: true });
 
 const emitChange = () => {
-    emit(
-        "update:modelValue",
-        qaItems.value.map((item) => normalizeQAItem({ ...item }))
-    );
+  emit("update:modelValue", qaItems.value.map((i) => normalize({ ...i })));
 };
 
-const createEmptyItem = (): ApplicationQAItem => ({
-    name: "",
-    type: "text",
-    default_value: "",
-    required: false,
-    description: "",
+const createEmpty = (): ApplicationQAItem => ({
+  name: "",
+  type: "text",
+  default_value: "",
+  required: false,
+  description: "",
 });
 
-const addQAItem = () => {
-    qaItems.value = [...qaItems.value, createEmptyItem()];
-    emitChange();
+const addItem = () => {
+  qaItems.value = [...qaItems.value, createEmpty()];
+  emitChange();
 };
 
-const removeQAItem = (index: number) => {
-    const next = [...qaItems.value];
-    next.splice(index, 1);
-    qaItems.value = next;
-    emitChange();
+const removeItem = (index: number) => {
+  const next = [...qaItems.value];
+  next.splice(index, 1);
+  qaItems.value = next;
+  emitChange();
 };
 
-const updateItemField = <K extends keyof ApplicationQAItem>(
-    index: number,
-    key: K,
-    value: ApplicationQAItem[K]
-) => {
-    const current = qaItems.value[index];
-    if (!current) {
-        return;
-    }
-
-    const nextItems = [...qaItems.value];
-    const nextItem = { ...current, [key]: value } as ApplicationQAItem;
-
-    if (key === "type") {
-        const newType = value as QAType;
-        nextItem.type = newType;
-        if (newType === "select") {
-            const options =
-                current.options && current.options.length > 0
-                    ? current.options
-                    : ["Option 1", "Option 2"];
-            nextItem.options = options;
-            nextItem.default_value = options[0] ?? "";
-        } else if (newType === "boolean") {
-            nextItem.options = undefined;
-            nextItem.default_value = current.default_value ?? "false";
-        } else {
-            nextItem.options = undefined;
-        }
-    }
-
-    if (key === "options") {
-        const options = (value as string[]).filter(
-            (itemOption) => itemOption.trim().length
-        );
-        nextItem.options = options;
-        if (
-            nextItem.default_value &&
-            !options.includes(nextItem.default_value ?? "")
-        ) {
-            nextItem.default_value = options[0] ?? "";
-        }
-    }
-
-    nextItems[index] = normalizeQAItem(nextItem);
-    qaItems.value = nextItems;
-    emitChange();
+const updateField = <K extends keyof ApplicationQAItem>(index: number, key: K, value: ApplicationQAItem[K]) => {
+  const cur = qaItems.value[index];
+  if (!cur) return;
+  const next = [...qaItems.value];
+  const item = { ...cur, [key]: value } as ApplicationQAItem;
+  if (key === "type") {
+    const t = value as QAType;
+    item.type = t;
+    if (t === "select") {
+      item.options = cur.options?.length ? cur.options : ["Option 1", "Option 2"];
+      item.default_value = item.options[0] ?? "";
+    } else if (t === "boolean") {
+      item.options = undefined;
+      item.default_value = cur.default_value === "true" ? "true" : "false";
+    } else item.options = undefined;
+  }
+  if (key === "options") {
+    const opts = (value as string[]).filter((s) => s.trim().length);
+    item.options = opts;
+    if (item.default_value && !opts.includes(item.default_value)) item.default_value = opts[0] ?? "";
+  }
+  next[index] = normalize(item);
+  qaItems.value = next;
+  emitChange();
 };
 
 const handleOptionsInput = (index: number, raw: string) => {
-    const normalized = raw
-        .split("\n")
-        .map((option) => option.trim())
-        .filter((option) => option.length > 0);
-    updateItemField(index, "options", normalized);
+  const opts = raw
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  updateField(index, "options", opts);
 };
 
-const typeOptions: Array<{ label: string; value: QAType }> = [
-    { label: "Text", value: "text" },
-    { label: "Number", value: "number" },
-    { label: "Boolean", value: "boolean" },
-    { label: "Select", value: "select" },
-    { label: "Textarea", value: "textarea" },
-];
-
-type QAStringField = "name" | "default_value" | "description";
-
-const handleStringFieldInput = (
-    index: number,
-    key: QAStringField,
-    value: string | number
-) => {
-    updateItemField(
-        index,
-        key,
-        String(value) as ApplicationQAItem[QAStringField]
-    );
-};
-
-const handleTypeChange = (index: number, value: unknown) => {
-    if (typeof value !== "string") {
-        return;
-    }
-    updateItemField(index, "type", value as QAType);
-};
-
-const handleSelectFieldChange = (
-    index: number,
-    key: "default_value",
-    value: unknown
-) => {
-    if (typeof value !== "string") {
-        return;
-    }
-    updateItemField(index, key, value);
+type StrKey = "name" | "default_value" | "description";
+const handleStr = (index: number, key: StrKey, v: string | number) => {
+  updateField(index, key, String(v) as ApplicationQAItem[StrKey]);
 };
 </script>
 
 <template>
-    <div class="space-y-4">
-        <div v-if="qaItems.length === 0"
-            class="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-            No QA configuration yet. Click the button below to add one.
-        </div>
-
-        <div v-for="(qa, index) in qaItems" :key="index" class="space-y-4 rounded-lg border p-4">
-            <div class="flex items-center justify-between">
-                <div class="text-sm font-medium">QA Item {{ index + 1 }}</div>
-                <Button variant="ghost" size="icon" class="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    @click="removeQAItem(index)">
-                    <Icon icon="lucide:trash" class="h-4 w-4" />
-                </Button>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-                <div class="space-y-2">
-                    <label :for="`qa-name-${index}`" class="text-sm font-medium">
-                        Field Name
-                    </label>
-                    <Input :id="`qa-name-${index}`" :model-value="qa.name" placeholder="Unique key" @update:model-value="(value) =>
-                        handleStringFieldInput(index, 'name', value ?? '')
-                    " />
-                </div>
-
-                <div class="space-y-2">
-                    <div class="text-sm font-medium">Type</div>
-                    <Select :model-value="qa.type" @update:model-value="(value) => handleTypeChange(index, value)">
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem v-for="option in typeOptions" :key="option.value" :value="option.value">
-                                {{ option.label }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2">
-                <div class="space-y-2">
-                    <div class="text-sm font-medium">Default Value</div>
-                    <Input v-if="qa.type === 'text' || qa.type === 'number'"
-                        :type="qa.type === 'number' ? 'number' : 'text'" :model-value="qa.default_value ?? ''"
-                        placeholder="Default value" @update:model-value="(value) =>
-                            handleStringFieldInput(index, 'default_value', value ?? '')
-                        " />
-                    <Select v-else-if="qa.type === 'boolean'" :model-value="qa.default_value ?? 'false'"
-                        @update:model-value="
-                            (value) => handleSelectFieldChange(index, 'default_value', value)
-                        ">
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a default value" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="true">True</SelectItem>
-                            <SelectItem value="false">False</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select v-else-if="qa.type === 'select'" :model-value="qa.default_value ?? ''" @update:model-value="
-                        (value) => handleSelectFieldChange(index, 'default_value', value)
-                    ">
-                        <SelectTrigger>
-                            <SelectValue placeholder="Select a default value" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem v-for="option in qa.options ?? []" :key="option" :value="option">
-                                {{ option }}
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <textarea v-else
-                        class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[38px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                        :value="qa.default_value ?? ''" placeholder="Default value" @input="(event: Event) =>
-                            handleStringFieldInput(
-                                index,
-                                'default_value',
-                                (event.target as HTMLTextAreaElement).value
-                            )"></textarea>
-                </div>
-
-                <div class="space-y-2">
-                    <div class="text-sm font-medium">Required</div>
-                    <div class="flex h-10 items-center space-x-3 rounded-md border px-3">
-                        <Checkbox :id="`qa-required-${index}`" :model-value="qa.required ?? false" @update:model-value="(checked) =>
-                            updateItemField(index, 'required', checked as ApplicationQAItem['required'])" />
-                        <label :for="`qa-required-${index}`" class="text-sm text-muted-foreground">
-                            Must be provided
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-2">
-                <div class="text-sm font-medium">Description</div>
-                <textarea
-                    class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                    :value="qa.description ?? ''" placeholder="Optional description" @input="(event: Event) =>
-                        handleStringFieldInput(
-                            index,
-                            'description',
-                            (event.target as HTMLTextAreaElement).value
-                        )"></textarea>
-            </div>
-
-            <div v-if="qa.type === 'select'" class="space-y-2">
-                <div class="text-sm font-medium">Options (one per line)</div>
-                <textarea
-                    class="border-input placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 min-h-[80px] w-full rounded-md border bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]"
-                    :value="(qa.options ?? []).join('\n')" placeholder="Example: Option 1" @input="(event: Event) =>
-                        handleOptionsInput(
-                            index,
-                            (event.target as HTMLTextAreaElement).value
-                        )"></textarea>
-            </div>
-        </div>
-
-        <div class="pt-2">
-            <Button variant="outline" @click="addQAItem">
-                <Icon icon="lucide:plus" class="mr-2 h-4 w-4" />
-                Add QA Item
-            </Button>
-        </div>
+  <div class="qa-editor">
+    <div v-if="!qaItems.length" class="qa-empty text-muted-foreground">
+      No QA configuration yet. Click the button below to add one.
     </div>
+
+    <div v-for="(qa, index) in qaItems" :key="index" class="qa-item">
+      <div class="qa-item-head">
+        <span class="font-medium">QA Item {{ index + 1 }}</span>
+        <Button text rounded size="small" severity="danger" @click="removeItem(index)" v-tooltip.top="'Remove'">
+          <i class="pi pi-trash"></i>
+        </Button>
+      </div>
+
+      <div class="qa-grid">
+        <div class="form-group">
+          <label :for="`qa-name-${index}`">Field Name</label>
+          <InputText
+            :id="`qa-name-${index}`"
+            :model-value="qa.name"
+            placeholder="Unique key"
+            @update:model-value="(v) => handleStr(index, 'name', v ?? '')"
+          />
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <Select
+            :model-value="qa.type"
+            :options="typeOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Select type"
+            @update:model-value="(v) => updateField(index, 'type', (v ?? 'text') as QAType)"
+          />
+        </div>
+      </div>
+
+      <div class="qa-grid">
+        <div class="form-group">
+          <label>Default Value</label>
+          <InputText
+            v-if="qa.type === 'text' || qa.type === 'number'"
+            :model-value="qa.default_value ?? ''"
+            :type="qa.type === 'number' ? 'number' : 'text'"
+            placeholder="Default value"
+            @update:model-value="(v: string | undefined) => handleStr(index, 'default_value', v ?? '')"
+          />
+          <Select
+            v-else-if="qa.type === 'boolean'"
+            :model-value="qa.default_value ?? 'false'"
+            :options="['true', 'false']"
+            placeholder="Default"
+            @update:model-value="(v) => updateField(index, 'default_value', (v ?? 'false') as string)"
+          />
+          <Select
+            v-else-if="qa.type === 'select'"
+            :model-value="qa.default_value ?? ''"
+            :options="qa.options ?? []"
+            placeholder="Default"
+            @update:model-value="(v: unknown) => updateField(index, 'default_value', (v ?? '') as string)"
+          />
+          <Textarea
+            v-else
+            :model-value="qa.default_value ?? ''"
+            placeholder="Default value"
+            rows="2"
+            @update:model-value="(v) => handleStr(index, 'default_value', v ?? '')"
+          />
+        </div>
+        <div class="form-group">
+          <label>Required</label>
+          <div class="qa-required-row">
+            <Checkbox
+              :id="`qa-required-${index}`"
+              :model-value="qa.required ?? false"
+              binary
+              @update:model-value="(c) => updateField(index, 'required', !!c)"
+            />
+            <label :for="`qa-required-${index}`" class="text-muted-foreground">Must be provided</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <Textarea
+          :model-value="qa.description ?? ''"
+          placeholder="Optional description"
+          rows="2"
+          @update:model-value="(v: string | undefined) => handleStr(index, 'description', v ?? '')"
+        />
+      </div>
+
+      <div v-if="qa.type === 'select'" class="form-group">
+        <label>Options (one per line)</label>
+        <Textarea
+          :model-value="(qa.options ?? []).join('\n')"
+          placeholder="Option 1"
+          rows="3"
+          @update:model-value="(v: string | undefined) => handleOptionsInput(index, v ?? '')"
+        />
+      </div>
+    </div>
+
+    <Button outlined @click="addItem">
+      <i class="pi pi-plus"></i>
+      <span class="btn-icon-text">Add QA Item</span>
+    </Button>
+  </div>
 </template>
+
+<style scoped>
+.qa-editor { display: flex; flex-direction: column; gap: 1rem; }
+.qa-empty {
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  background: var(--p-surface-50);
+  font-size: 0.875rem;
+}
+.qa-item {
+  padding: 1rem;
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.qa-item-head { display: flex; justify-content: space-between; align-items: center; }
+.font-medium { font-weight: 500; font-size: 0.875rem; }
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+@media (max-width: 640px) { .qa-grid { grid-template-columns: 1fr; } }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.875rem; font-weight: 500; }
+.qa-required-row { display: flex; align-items: center; gap: 0.5rem; }
+.btn-icon-text { margin-left: 0.5rem; }
+</style>

@@ -1,41 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
+import Menu from 'primevue/menu'
+import Select from 'primevue/select'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import TooltipWithCopy from "@/components/application/TooltipWithCopy.vue";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { dockerApi, DockerUtils } from "@/api/docker";
 import { nodeApi, type Node } from "@/api/node";
 import { showToast } from "@/lib/toast";
@@ -61,6 +34,7 @@ const searchQuery = ref("");
 const isPushDialogOpen = ref(false);
 const selectedImageForPush = ref<Image | null>(null);
 const targetNodeId = ref<string>("");
+const targetNode = ref<Node | null>(null);
 const nodes = ref<Node[]>([]);
 const pushLoading = ref(false);
 
@@ -171,7 +145,7 @@ const handleImageAction = async (
       case "push":
         // Open push dialog
         selectedImageForPush.value = image;
-        targetNodeId.value = "";
+        targetNode.value = null;
         isPushDialogOpen.value = true;
         break;
       default:
@@ -184,13 +158,13 @@ const handleImageAction = async (
 };
 
 const handlePushImage = async () => {
-  if (!selectedImageForPush.value || !targetNodeId.value) {
+  if (!selectedImageForPush.value || !targetNode.value) {
     showToast("Please select a target node", "error");
     return;
   }
 
   const sourceNodeId = Number(props.nodeId);
-  const targetNodeIdNum = Number(targetNodeId.value);
+  const targetNodeIdNum = targetNode.value.id;
 
   if (Number.isNaN(sourceNodeId) || Number.isNaN(targetNodeIdNum)) {
     showToast("Invalid node ID", "error");
@@ -211,7 +185,7 @@ const handlePushImage = async () => {
     //   showToast("Image pushed successfully", "success");
     //   isPushDialogOpen.value = false;
     //   selectedImageForPush.value = null;
-    //   targetNodeId.value = "";
+    //   targetNode.value = null;
     // } else {
     //   showToast(response.message ?? "Failed to push image", "error");
     // }
@@ -226,191 +200,109 @@ const handlePushImage = async () => {
 const closePushDialog = () => {
   isPushDialogOpen.value = false;
   selectedImageForPush.value = null;
-  targetNodeId.value = "";
+  targetNode.value = null;
 };
+const menuRefs = ref<Record<string, any>>({});
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex items-center justify-between">
-        <CardTitle>Images</CardTitle>
-        <div class="relative w-64">
-          <Icon
-            icon="lucide:search"
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none"
-          />
-          <Input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Search images..."
-            class="w-full pl-9"
-          />
-        </div>
-      </div>
-    </CardHeader>
-    <CardContent>
-      <div v-if="loading" class="text-center py-8 text-muted-foreground">
-        Loading...
-      </div>
-      <div v-else-if="filteredImages.length > 0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Repository</TableHead>
-              <TableHead>Tag</TableHead>
-              <TableHead>Image ID</TableHead>
-              <TableHead>Size</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead class="sticky right-0 z-10 bg-background border-l">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow v-for="image in filteredImages" :key="image.id">
-              <TableCell class="font-medium">
-                <TooltipWithCopy :text="image.repository" max-width="300px" />
-              </TableCell>
-              <TableCell>
-                <TooltipWithCopy :text="image.tag" max-width="200px">
-                <span
-                    class="inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium bg-blue-500/10 text-blue-500 border-blue-500/20 truncate max-w-full"
-                >
-                  {{ image.tag }}
-                </span>
-                </TooltipWithCopy>
-              </TableCell>
-              <TableCell class="font-mono text-xs">
-                {{ DockerUtils.getShortImageId(image.id) }}
-              </TableCell>
-              <TableCell>{{ image.size }}</TableCell>
-              <TableCell class="text-muted-foreground">{{
-                image.created
-              }}</TableCell>
-              <TableCell class="sticky right-0 z-10 bg-background border-l">
-                <div class="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-                    @click="handleImageAction('remove', image)"
-                  >
-                    <Icon icon="lucide:trash-2" class="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm" class="h-8 px-2">
-                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem
-                        @click="handleImageAction('inspect', image)"
-                      >
-                        <Icon icon="lucide:info" class="h-4 w-4 mr-2" />
-                        Inspect
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        @click="handleImageAction('push', image)"
-                      >
-                        <Icon icon="lucide:upload" class="h-4 w-4 mr-2" />
-                        Push to...
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        variant="destructive"
-                        @click="handleImageAction('remove', image)"
-                      >
-                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
-                        Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <div v-else-if="images.length === 0" class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:layers" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No images found</p>
-      </div>
-      <div v-else class="text-center py-8 text-muted-foreground">
-        <Icon icon="lucide:search" class="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No images match your search</p>
-      </div>
-    </CardContent>
-  </Card>
+  <div class="docker-panel">
+    <div class="docker-toolbar">
+      <h3>Images</h3>
+      <InputText v-model="searchQuery" placeholder="Search..." class="search-input" />
+    </div>
+    <div v-if="loading" class="docker-loading text-muted-foreground">Loading...</div>
+    <div v-else-if="filteredImages.length > 0" class="table-wrap">
+      <DataTable :value="filteredImages" size="small" striped-rows>
+        <Column header="Repository">
+          <template #body="{ data }"><TooltipWithCopy :text="data.repository" max-width="300px" /></template>
+        </Column>
+        <Column header="Tag">
+          <template #body="{ data }">
+            <TooltipWithCopy :text="data.tag" max-width="200px">
+              <Tag :value="data.tag" severity="info" />
+            </TooltipWithCopy>
+          </template>
+        </Column>
+        <Column header="Image ID">
+          <template #body="{ data }"><span class="font-mono">{{ DockerUtils.getShortImageId(data.id) }}</span></template>
+        </Column>
+        <Column field="size" header="Size" />
+        <Column field="created" header="Created">
+          <template #body="{ data }"><span class="text-muted-foreground">{{ data.created }}</span></template>
+        </Column>
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" severity="danger" @click="handleImageAction('remove', data)" v-tooltip.top="'Remove'">
+                <i class="pi pi-trash"></i>
+              </Button>
+              <Menu :ref="(el: any) => { if (el) menuRefs[data.id] = el }" :model="[
+                { label: 'Inspect', icon: 'pi pi-info', command: () => handleImageAction('inspect', data) },
+                { separator: true },
+                { label: 'Push to...', icon: 'pi pi-upload', command: () => handleImageAction('push', data) },
+                { separator: true },
+                { label: 'Remove', icon: 'pi pi-trash', command: () => handleImageAction('remove', data) }
+              ]" popup />
+              <Button text rounded size="small" @click="(e) => menuRefs[data.id]?.toggle(e)">
+                <i class="pi pi-ellipsis-h"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
+    <div v-else-if="!images.length" class="docker-empty text-muted-foreground">
+      <i class="pi pi-th-large"></i>
+      <p>No images found</p>
+    </div>
+    <div v-else class="docker-empty text-muted-foreground">
+      <i class="pi pi-search"></i>
+      <p>No images match your search</p>
+    </div>
 
-  <!-- Push Image Dialog -->
-  <Dialog
-    v-model:open="isPushDialogOpen"
-    @update:open="(open) => !open && closePushDialog()"
-  >
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Push Image to Node</DialogTitle>
-        <DialogDescription>
-          Select a target node to push the image to
-        </DialogDescription>
-      </DialogHeader>
-      <div class="space-y-4 py-4">
-        <div class="space-y-2">
-          <Label class="text-sm font-medium">Image</Label>
-          <div class="text-sm text-muted-foreground">
-            <span class="font-medium">{{
-              selectedImageForPush?.repository
-            }}</span>
-            <span class="mx-1">:</span>
-            <span class="font-medium">{{ selectedImageForPush?.tag }}</span>
-          </div>
-        </div>
-        <div class="space-y-2">
-          <Label for="target-node">Target Node</Label>
-          <Select v-model="targetNodeId">
-            <SelectTrigger id="target-node">
-              <SelectValue placeholder="Select a target node" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem
-                v-for="node in availableNodes"
-                :key="node.id"
-                :value="node.id.toString()"
-              >
-                {{ node.display_name || node.name }} ({{ node.address }})
-              </SelectItem>
-              <div
-                v-if="availableNodes.length === 0"
-                class="px-2 py-1.5 text-sm text-muted-foreground"
-              >
-                No available nodes
-              </div>
-            </SelectContent>
-          </Select>
-        </div>
+    <Dialog v-model:visible="isPushDialogOpen" modal header="Push Image to Node" :style="{ width: '425px' }" @update:visible="(v: boolean) => !v && closePushDialog()">
+      <p class="dialog-desc">Select a target node to push the image to.</p>
+      <div class="form-group">
+        <label>Image</label>
+        <p class="text-muted-foreground">{{ selectedImageForPush?.repository }}:{{ selectedImageForPush?.tag }}</p>
       </div>
-      <DialogFooter>
-        <Button
-          variant="outline"
-          @click="closePushDialog"
-          :disabled="pushLoading"
-        >
-          Cancel
+      <div class="form-group">
+        <label for="target-node">Target Node</label>
+        <Select id="target-node" v-model="targetNode" :options="availableNodes" option-label="display_name" placeholder="Select target node">
+          <template #value="slot">
+            <span v-if="slot.value">{{ slot.value.display_name || slot.value.name }} ({{ slot.value.address }})</span>
+            <span v-else>{{ slot.placeholder }}</span>
+          </template>
+          <template #option="slot">
+            {{ slot.option.display_name || slot.option.name }} ({{ slot.option.address }})
+          </template>
+          <template #empty>No available nodes</template>
+        </Select>
+      </div>
+      <template #footer>
+        <Button outlined @click="closePushDialog" :disabled="pushLoading">Cancel</Button>
+        <Button @click="handlePushImage" :disabled="pushLoading || !targetNode" :loading="pushLoading">
+          <i class="pi pi-upload"></i><span class="btn-icon-text">{{ pushLoading ? "Pushing..." : "Push" }}</span>
         </Button>
-        <Button
-          @click="handlePushImage"
-          :disabled="pushLoading || !targetNodeId"
-        >
-          <Icon
-            v-if="pushLoading"
-            icon="lucide:loader-2"
-            class="h-4 w-4 mr-2 animate-spin"
-          />
-          <Icon v-else icon="lucide:upload" class="h-4 w-4 mr-2" />
-          {{ pushLoading ? "Pushing..." : "Push" }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+      </template>
+    </Dialog>
+  </div>
 </template>
+
+<style scoped>
+.docker-panel { padding: 1rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-card); }
+.docker-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.docker-toolbar h3 { font-size: 1.125rem; font-weight: 600; margin: 0; }
+.search-input { width: 12rem; }
+.docker-loading { text-align: center; padding: 2rem; }
+.table-wrap { border-radius: var(--p-border-radius); overflow: hidden; }
+.action-btns { display: flex; align-items: center; gap: 0.5rem; }
+.font-mono { font-family: ui-monospace, monospace; font-size: 0.75rem; }
+.docker-empty { text-align: center; padding: 2rem; }
+.docker-empty i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+.dialog-desc { margin-bottom: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.form-group label { font-size: 0.875rem; font-weight: 500; }
+.btn-icon-text { margin-left: 0.5rem; }
+</style>

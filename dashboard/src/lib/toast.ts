@@ -1,4 +1,13 @@
-import { toast } from "vue-sonner";
+import { useToast } from 'primevue/usetoast'
+
+// Create a global toast instance
+// Note: This needs to be called within a component context
+// We'll initialize it in App.vue
+let toastInstance: ReturnType<typeof useToast> | null = null
+
+export const setToastService = (toast: ReturnType<typeof useToast>) => {
+  toastInstance = toast
+}
 
 export const showToast = (
   message: string,
@@ -8,38 +17,17 @@ export const showToast = (
     duration?: number;
   }
 ) => {
-  const baseOptions = {
-    duration: options?.duration ?? 3000,
-    closeButton: false,
-    ...(options?.description && { description: options.description }),
-  };
-
-  switch (type) {
-    case "success":
-      toast.success(message, baseOptions);
-      break;
-    case "error":
-      toast.error(message, {
-        ...baseOptions,
-        style: {
-          backgroundColor: "#ef4444",
-          color: "white",
-          border: "1px solid #dc2626",
-        },
-      });
-      break;
-    case "warning":
-      toast.warning(message, {
-        ...baseOptions,
-        style: {
-          backgroundColor: "#fbbf24",
-          color: "#78350f",
-          border: "1px solid #f59e0b",
-        },
-      });
-      break;
-    case "info":
-      toast.info(message, baseOptions);
-      break;
+  if (!toastInstance) {
+    console.warn('Toast service not initialized. Make sure App.vue is mounted.')
+    return
   }
-};
+  
+  const severity = type === "error" ? "error" : type === "warning" ? "warn" : type === "success" ? "success" : "info"
+  
+  toastInstance.add({
+    severity,
+    summary: message,
+    detail: options?.description,
+    life: options?.duration ?? 3000,
+  })
+}

@@ -1,53 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  useVueTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  type ColumnDef,
-} from "@tanstack/vue-table";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Checkbox from 'primevue/checkbox'
+import Sidebar from 'primevue/sidebar'
+import Dialog from 'primevue/dialog'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
 import { nodeApi } from "@/api/node";
 import { ApiResponseHelper } from "@/api/base";
 import { showToast } from "@/lib/toast";
-
-const router = useRouter();
 
 interface Node {
   id: number;
@@ -72,68 +37,56 @@ interface CreateNodeRequest {
   display_name?: string;
 }
 
-// 数据
+const router = useRouter();
 const nodes = ref<Node[]>([]);
 const loading = ref(false);
-
-// 对话框状态
 const isSheetOpen = ref(false);
 const isEditMode = ref(false);
 const editingNode = ref<Node | null>(null);
-
-// 删除确认对话框状态
 const isDeleteDialogOpen = ref(false);
 const nodeToDelete = ref<Node | null>(null);
+const totalRecords = ref(0);
+const lazyParams = ref({ first: 0, rows: 10 });
 
-// 表单数据
 const formData = ref<CreateNodeRequest>({
-  name: "",
-  address: "",
-  ssh_port: 22,
-  ssh_user: "root",
-  ssh_password: "",
-  is_local: false,
-  display_name: "",
+  name: "", address: "", ssh_port: 22, ssh_user: "root", ssh_password: "",
+  is_local: false, display_name: "",
 });
 
-// 获取节点列表
 const fetchNodes = async () => {
   loading.value = true;
-  const page = table.getState().pagination.pageIndex + 1;
-  const pageSize = table.getState().pagination.pageSize;
-  const response = await nodeApi.page(page, pageSize);
-  nodes.value = response.data?.nodes.map((node) => ({
-    id: node.id,
-    name: node.name,
-    address: node.address,
-    is_local: node.is_local,
-    display_name: node.display_name || null,
-    ssh_port: node.ssh_port,
-    agent_port: node.agent_port,
-    ssh_user: node.ssh_user,
-    ssh_password: "",
-    status: node.status || "offline",
-  })) ?? [];
+  const page = Math.floor(lazyParams.value.first / lazyParams.value.rows) + 1;
+  const res = await nodeApi.page(page, lazyParams.value.rows);
   loading.value = false;
+  if (!ApiResponseHelper.isSuccess(res)) return;
+  const d = res.data!;
+  nodes.value = (d.nodes ?? []).map((n) => ({
+    id: n.id,
+    name: n.name,
+    address: n.address,
+    is_local: n.is_local,
+    display_name: n.display_name ?? null,
+    ssh_port: n.ssh_port,
+    agent_port: n.agent_port,
+    ssh_user: n.ssh_user,
+    ssh_password: "",
+    status: n.status || "offline",
+  }));
+  totalRecords.value = d.total ?? 0;
 };
 
-// 打开添加对话框
+const onPage = (e: { first: number; rows: number }) => {
+  lazyParams.value = { first: e.first, rows: e.rows };
+  fetchNodes();
+};
+
 const openAddDialog = () => {
   isEditMode.value = false;
   editingNode.value = null;
-  formData.value = {
-    name: "",
-    address: "",
-    ssh_port: 22,
-    ssh_user: "root",
-    ssh_password: "",
-    is_local: false,
-    display_name: "",
-  };
+  formData.value = { name: "", address: "", ssh_port: 22, ssh_user: "root", ssh_password: "", is_local: false, display_name: "" };
   isSheetOpen.value = true;
 };
 
-// 打Separator开编辑对话框
 const openEditDialog = (node: Node) => {
   isEditMode.value = true;
   editingNode.value = node;
@@ -144,432 +97,204 @@ const openEditDialog = (node: Node) => {
     ssh_user: node.ssh_user,
     ssh_password: node.ssh_password,
     is_local: node.is_local,
-    display_name: node.display_name || "",
+    display_name: node.display_name ?? "",
   };
   isSheetOpen.value = true;
 };
 
-// 保存节点（添加或更新）
 const saveNode = async () => {
   if (!formData.value.name || !formData.value.address) {
     showToast("Name and address are required", "error");
     return;
   }
-
   loading.value = true;
-
-  if (isEditMode.value && editingNode.value) {
-    const response = await nodeApi.update({
-      id: editingNode.value.id,
-      name: formData.value.name,
-      address: formData.value.address,
-      ssh_port: formData.value.ssh_port,
-      ssh_user: formData.value.ssh_user,
-      ssh_password: formData.value.ssh_password,
-      is_local: formData.value.is_local,
-      display_name: formData.value.display_name || "",
-    });
-    if (ApiResponseHelper.isSuccess(response)) {
-      isSheetOpen.value = false;
-      fetchNodes();
+  try {
+    if (isEditMode.value && editingNode.value) {
+      const res = await nodeApi.update({
+        id: editingNode.value.id,
+        ...formData.value,
+        display_name: formData.value.display_name || "",
+      });
+      if (ApiResponseHelper.isSuccess(res)) {
+        isSheetOpen.value = false;
+        fetchNodes();
+      } else showToast(res.message ?? "Failed to update node", "error");
     } else {
-      showToast(response.message ?? "Failed to update node", "error");
+      const res = await nodeApi.create(formData.value);
+      if (ApiResponseHelper.isSuccess(res)) {
+        isSheetOpen.value = false;
+        fetchNodes();
+      } else showToast(res.message ?? "Failed to add node", "error");
     }
-    loading.value = false;
-  } else {
-    const response = await nodeApi.create(formData.value);
-    if (ApiResponseHelper.isSuccess(response)) {
-      isSheetOpen.value = false;
-      fetchNodes();
-    } else {
-      showToast(response.message ?? "Failed to create node", "error");
-    }
+  } finally {
     loading.value = false;
   }
-
 };
 
-// 打开删除确认对话框
 const openDeleteDialog = (node: Node) => {
   nodeToDelete.value = node;
   isDeleteDialogOpen.value = true;
 };
 
-// 确认删除节点
 const confirmDeleteNode = async () => {
-  if (!nodeToDelete.value) {
-    return;
-  }
-
+  if (!nodeToDelete.value) return;
   loading.value = true;
-
-  const response = await nodeApi.delete(nodeToDelete.value.id);
-  if (ApiResponseHelper.isSuccess(response)) {
-    fetchNodes();
-  } else {
-    showToast(response.message ?? "Failed to delete node", "error");
-  }
+  const res = await nodeApi.delete(nodeToDelete.value.id);
   loading.value = false;
+  if (ApiResponseHelper.isSuccess(res)) fetchNodes();
+  else showToast(res.message ?? "Failed to delete node", "error");
   isDeleteDialogOpen.value = false;
   nodeToDelete.value = null;
 };
 
-// 打开终端
 const openTerminal = (node: Node) => {
-  router.push({
-    name: "NodeTerminal",
-    query: {
-      nodeId: node.id.toString(),
-      nodeName: node.display_name || node.name,
-    },
-  });
+  router.push({ name: "NodeTerminal", query: { nodeId: String(node.id), nodeName: node.display_name || node.name } });
 };
 
-const getStatusColor = (status?: string) => {
-  const colors: Record<string, string> = {
-    online: "text-green-500 bg-green-500/10 border-green-500/20",
-    offline: "text-red-500 bg-red-500/10 border-red-500/20",
-    maintenance: "text-yellow-500 bg-yellow-500/10 border-yellow-500/20",
-  };
-  return colors[status || "offline"] || colors.offline;
-};
-
-const getStatusDot = (status?: string) => {
-  const colors: Record<string, string> = {
-    online: "bg-green-500",
-    offline: "bg-red-500",
-    maintenance: "bg-yellow-500",
-  };
-  return colors[status || "offline"] || colors.offline;
-};
-
-// 定义表格列
-const columns: ColumnDef<Node>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-    cell: (info) => info.getValue(),
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    cell: (info) => {
-      const node = info.row.original;
-      return node.display_name || node.name;
-    },
-  },
-  {
-    accessorKey: "address",
-    header: "Address",
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-  },
-  {
-    accessorKey: "is_local",
-    header: "Type",
-  },
-  {
-    accessorKey: "ssh_port",
-    header: "SSH Port",
-  },
-  {
-    accessorKey: "agent_port",
-    header: "Agent Port",
-  },
-  {
-    accessorKey: "ssh_user",
-    header: "SSH User",
-  },
-
-  {
-    id: "actions",
-    header: "Actions",
-  },
-];
-
-// 创建表格实例
-const table = useVueTable({
-  get data() {
-    return nodes.value;
-  },
-  columns,
-  getCoreRowModel: getCoreRowModel(),
-  getPaginationRowModel: getPaginationRowModel(),
-  initialState: {
-    pagination: {
-      pageSize: 10,
-    },
-  },
-});
-
-// 初始化
-onMounted(() => {
-  fetchNodes();
-});
+onMounted(fetchNodes);
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="page-root">
+    <div class="page-header page-header-row">
       <div>
-        <h1 class="text-3xl font-bold">Nodes</h1>
-        <p class="text-muted-foreground mt-1">
-          Manage and monitor your server nodes
-        </p>
+        <h1>Nodes</h1>
+        <p class="text-muted-foreground">Manage and monitor your server nodes</p>
       </div>
-      <Button @click="openAddDialog">
-        <Icon icon="lucide:plus" class="h-4 w-4 mr-2" />
-        Add Node
-      </Button>
+      <Button label="Add Node" icon="pi pi-plus" @click="openAddDialog" />
     </div>
 
-    <!-- 加载状态 -->
-    <div v-if="loading && nodes.length === 0" class="text-center py-8 text-muted-foreground">
+    <div v-if="loading && nodes.length === 0" class="loading-state">
       Loading...
     </div>
 
-    <!-- 节点表格 -->
-    <div v-else-if="nodes.length > 0" class="rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-            <TableHead v-for="header in headerGroup.headers" :key="header.id" :class="[
-              'px-6',
-              header.column.id === 'actions' ? 'sticky right-0 z-10 bg-background border-l' : '',
-            ]">
-              <div v-if="!header.isPlaceholder">
-                {{
-                  typeof header.column.columnDef.header === "string"
-                    ? header.column.columnDef.header
-                    : header.column.id
-                }}
-              </div>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="row in table.getRowModel().rows" :key="row.id">
-            <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id" :class="[
-              'px-6',
-              cell.column.id === 'actions' ? 'sticky right-0 z-10 bg-background border-l' : '',
-            ]">
-              <template v-if="cell.column.id === 'is_local'">
-                <span :class="[
-                  'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
-                  (cell.getValue() as boolean)
-                    ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
-                    : 'bg-gray-500/10 text-gray-500 border-gray-500/20',
-                ]">
-                  {{
-                    (cell.getValue() as boolean)
-                      ? "Local"
-                      : "Remote"
-                  }}
-                </span>
-              </template>
-              <template v-else-if="cell.column.id === 'status'">
-                <span :class="[
-                  'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                  getStatusColor(cell.getValue() as string),
-                ]">
-                  <span :class="[
-                    'h-1.5 w-1.5 rounded-full',
-                    getStatusDot(cell.getValue() as string),
-                  ]"></span>
-                  {{ cell.getValue() }}
-                </span>
-              </template>
-              <template v-else-if="cell.column.id === 'actions'">
-                <div class="flex items-center gap-2">
-                  <Button variant="ghost" size="sm" @click="
-                    openTerminal(cell.row.original as Node)
-                    " class="h-8 px-2" :disabled="(cell.row.original as Node).status !== 'online'">
-                    <Icon icon="lucide:terminal" class="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" @click="
-                    openEditDialog(cell.row.original as Node)
-                    " class="h-8 px-2">
-                    <Icon icon="lucide:edit" class="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" @click="
-                    openDeleteDialog(cell.row.original as Node)
-                    " class="h-8 px-2 text-red-500 hover:text-red-600">
-                    <Icon icon="lucide:trash-2" class="h-4 w-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button variant="ghost" size="sm" class="h-8 px-2">
-                        <Icon icon="lucide:more-horizontal" class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem :disabled="(cell.row.original as Node).status !== 'online'"
-                        @click="openTerminal(cell.row.original as Node)">
-                        <Icon icon="lucide:terminal" class="h-4 w-4 mr-2" />
-                        Terminal
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem @click="openEditDialog(cell.row.original as Node)">
-                        <Icon icon="lucide:edit" class="h-4 w-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" @click="openDeleteDialog(cell.row.original as Node)">
-                        <Icon icon="lucide:trash-2" class="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </template>
-              <template v-else>
-                <span v-if="cell.column.id === 'name'" class="font-medium">
-                  {{ cell.getValue() }}
-                </span>
-                <span v-else>
-                  {{ cell.getValue() }}
-                </span>
-              </template>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+    <div v-else-if="nodes.length > 0" class="table-wrap">
+      <DataTable
+        :value="nodes"
+        :lazy="true"
+        :paginator="true"
+        :first="lazyParams.first"
+        :rows="lazyParams.rows"
+        :totalRecords="totalRecords"
+        :loading="loading"
+        data-key="id"
+        @page="onPage"
+        size="small"
+      >
+        <Column field="id" header="ID" />
+        <Column field="name" header="Name">
+          <template #body="{ data }">{{ data.display_name || data.name }}</template>
+        </Column>
+        <Column field="address" header="Address" />
+        <Column field="status" header="Status">
+          <template #body="{ data }">
+            <Tag :value="data.status || 'offline'" :severity="data.status === 'online' ? 'success' : 'danger'" />
+          </template>
+        </Column>
+        <Column field="is_local" header="Type">
+          <template #body="{ data }">
+            <Tag :value="data.is_local ? 'Local' : 'Remote'" :severity="data.is_local ? 'info' : 'contrast'" />
+          </template>
+        </Column>
+        <Column field="ssh_port" header="SSH Port" />
+        <Column field="agent_port" header="Agent Port" />
+        <Column field="ssh_user" header="SSH User" />
+        <Column header="Actions">
+          <template #body="{ data }">
+            <div class="action-btns">
+              <Button text rounded size="small" :disabled="data.status !== 'online'" @click="openTerminal(data)" v-tooltip.top="'Terminal'">
+                <i class="pi pi-terminal"></i>
+              </Button>
+              <Button text rounded size="small" @click="openEditDialog(data)" v-tooltip.top="'Edit'">
+                <i class="pi pi-pencil"></i>
+              </Button>
+              <Button text rounded size="small" severity="danger" @click="openDeleteDialog(data)" v-tooltip.top="'Delete'">
+                <i class="pi pi-trash"></i>
+              </Button>
+            </div>
+          </template>
+        </Column>
+      </DataTable>
+    </div>
 
-      <!-- 分页控件 -->
-      <div v-if="table.getPageCount() > 1" class="flex items-center justify-between border-t px-6 py-4">
-        <div class="text-sm text-muted-foreground">
-          Showing
-          {{
-            table.getState().pagination.pageIndex *
-            table.getState().pagination.pageSize +
-            1
-          }}
-          -
-          {{
-            Math.min(
-              (table.getState().pagination.pageIndex + 1) *
-              table.getState().pagination.pageSize,
-              nodes.length
-            )
-          }}
-          of {{ nodes.length }} nodes
+    <div v-else class="empty-state">
+      <i class="pi pi-server"></i>
+      <p>No nodes found</p>
+      <Button label="Add First Node" icon="pi pi-plus" @click="openAddDialog" />
+    </div>
+
+    <Sidebar v-model:visible="isSheetOpen" position="right" :style="{ width: '90vw', maxWidth: '1200px' }" class="sheet">
+      <div class="sheet-header">
+        <h2>{{ isEditMode ? "Edit Node" : "Add Node" }}</h2>
+        <p class="text-muted-foreground">{{ isEditMode ? "Update node information" : "Fill in the node information" }}</p>
+      </div>
+      <div class="sheet-body">
+        <div class="form-group">
+          <label for="node-name">Name *</label>
+          <InputText id="node-name" v-model="formData.name" placeholder="Node name" />
         </div>
-        <div class="flex items-center gap-2">
-          <Button variant="outline" size="sm" :disabled="!table.getCanPreviousPage()" @click="table.previousPage()">
-            <Icon icon="lucide:chevron-left" class="h-4 w-4" />
-          </Button>
-          <div class="flex items-center gap-1">
-            <Button v-for="page in table.getPageCount()" :key="page" variant="outline" size="sm" :class="[
-              'min-w-[40px]',
-              table.getState().pagination.pageIndex + 1 === page
-                ? 'bg-primary text-primary-foreground'
-                : '',
-            ]" @click="table.setPageIndex(page - 1)">
-              {{ page }}
-            </Button>
-          </div>
-          <Button variant="outline" size="sm" :disabled="!table.getCanNextPage()" @click="table.nextPage()">
-            <Icon icon="lucide:chevron-right" class="h-4 w-4" />
-          </Button>
+        <div class="form-group">
+          <label for="node-display-name">Display Name</label>
+          <InputText id="node-display-name" v-model="formData.display_name" placeholder="Display name (optional)" />
+        </div>
+        <div class="form-group">
+          <label for="node-address">Address *</label>
+          <InputText id="node-address" v-model="formData.address" placeholder="192.168.1.1" />
+        </div>
+        <div class="form-group">
+          <label for="node-ssh-port">SSH Port</label>
+          <InputNumber id="node-ssh-port" v-model="formData.ssh_port" placeholder="22" />
+        </div>
+        <div class="form-group">
+          <label for="node-ssh-user">SSH User</label>
+          <InputText id="node-ssh-user" v-model="formData.ssh_user" placeholder="root" />
+        </div>
+        <div class="form-group">
+          <label for="node-ssh-password">SSH Password</label>
+          <InputText id="node-ssh-password" v-model="formData.ssh_password" type="password" placeholder="SSH password" />
+        </div>
+        <div class="form-group flex-row">
+          <Checkbox v-model="formData.is_local" binary inputId="is_local" />
+          <label for="is_local">Local Node</label>
         </div>
       </div>
-    </div>
+      <div class="sheet-footer">
+        <Button outlined @click="isSheetOpen = false">Cancel</Button>
+        <Button @click="saveNode" :disabled="loading">{{ loading ? "Saving..." : isEditMode ? "Update" : "Add" }}</Button>
+      </div>
+    </Sidebar>
 
-    <!-- 空状态 -->
-    <div v-else class="rounded-lg border bg-card p-12 text-center">
-      <Icon icon="lucide:server" class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-      <p class="text-muted-foreground">No nodes found</p>
-      <Button class="mt-4" @click="openAddDialog">
-        <Icon icon="lucide:plus" class="h-4 w-4 mr-2" />
-        Add First Node
-      </Button>
-    </div>
-
-    <!-- 添加/编辑节点对话框 -->
-    <Sheet v-model:open="isSheetOpen">
-      <SheetContent
-        class="flex h-full w-full max-w-[90vw] sm:max-w-none lg:max-w-[1200px] flex-col"
-      >
-        <SheetHeader class="px-3 sm:px-5">
-          <SheetTitle>{{ isEditMode ? "Edit Node" : "Add Node" }}</SheetTitle>
-          <SheetDescription>
-            {{
-              isEditMode
-                ? "Update node information"
-                : "Fill in the node information to add a new node"
-            }}
-          </SheetDescription>
-        </SheetHeader>
-
-        <div class="overflow-y-auto">
-          <div class="space-y-4 px-3 sm:px-5">
-            <div class="space-y-2">
-              <label for="node-name" class="text-sm font-medium">Name *</label>
-              <Input id="node-name" v-model="formData.name" placeholder="Node name" />
-            </div>
-
-            <div class="space-y-2">
-              <label for="node-display-name" class="text-sm font-medium">Display Name</label>
-              <Input id="node-display-name" v-model="formData.display_name" placeholder="Display name (optional)" />
-            </div>
-
-            <div class="space-y-2">
-              <label for="node-address" class="text-sm font-medium">Address *</label>
-              <Input id="node-address" v-model="formData.address" placeholder="192.168.1.1" />
-            </div>
-
-            <div class="space-y-2">
-              <label for="node-ssh-port" class="text-sm font-medium">SSH Port</label>
-              <Input id="node-ssh-port" v-model.number="formData.ssh_port" type="number" placeholder="22" />
-            </div>
-
-            <div class="space-y-2">
-              <label for="node-ssh-user" class="text-sm font-medium">SSH User</label>
-              <Input id="node-ssh-user" v-model="formData.ssh_user" placeholder="root" />
-            </div>
-
-            <div class="space-y-2">
-              <label for="node-ssh-password" class="text-sm font-medium">SSH Password</label>
-              <Input id="node-ssh-password" v-model="formData.ssh_password" type="password"
-                placeholder="SSH password" />
-            </div>
-
-            <div class="flex items-center space-x-2">
-              <input id="is_local" v-model="formData.is_local" type="checkbox"
-                class="h-4 w-4 rounded border-gray-300" />
-              <label for="is_local" class="text-sm font-medium">Local Node</label>
-            </div>
-          </div>
-        </div>
-
-        <SheetFooter class="flex flex-row items-center justify-end gap-2 px-3 sm:px-5">
-          <Button variant="outline" @click="isSheetOpen = false">Cancel</Button>
-          <Button @click="saveNode" :disabled="loading">
-            {{ loading ? "Saving..." : isEditMode ? "Update" : "Add" }}
-          </Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
-
-    <!-- Delete Confirmation Dialog -->
-    <AlertDialog v-model:open="isDeleteDialogOpen">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
-          <AlertDialogDescription>
-            Are you sure you want to delete node "{{ nodeToDelete?.name || nodeToDelete?.display_name }}"?
-            This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmDeleteNode" :disabled="loading">
-            {{ loading ? "Deleting..." : "Delete" }}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <Dialog v-model:visible="isDeleteDialogOpen" modal header="Confirm Delete" :style="{ width: '425px' }">
+      <p>Are you sure you want to delete node "{{ nodeToDelete?.name || nodeToDelete?.display_name }}"? This action cannot be undone.</p>
+      <template #footer>
+        <Button outlined @click="isDeleteDialogOpen = false">Cancel</Button>
+        <Button severity="danger" @click="confirmDeleteNode" :disabled="loading">{{ loading ? "Deleting..." : "Delete" }}</Button>
+      </template>
+    </Dialog>
   </div>
 </template>
+
+<style scoped>
+.page-root { display: flex; flex-direction: column; gap: 1.5rem; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.page-header p { font-size: 0.875rem; }
+.page-header-row { display: flex; align-items: center; justify-content: space-between; }
+.btn-icon-text { margin-left: 0.5rem; }
+
+.loading-state { text-align: center; padding: 2rem; color: var(--p-text-muted-color); }
+.table-wrap { background: var(--p-surface-card); border-radius: var(--p-border-radius); overflow: hidden; }
+.action-btns { display: flex; align-items: center; gap: 0.5rem; }
+
+.empty-state { padding: 3rem; text-align: center; background: var(--p-surface-card); border-radius: var(--p-border-radius); }
+.empty-state i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+.empty-state .p-button { margin-top: 1rem; }
+
+.sheet { display: flex; flex-direction: column; }
+.sheet-header { padding: 0 1rem 1rem; }
+.sheet-header h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+.sheet-body { flex: 1; overflow-y: auto; padding: 0 1rem; display: flex; flex-direction: column; gap: 1rem; }
+.sheet-footer { display: flex; justify-content: flex-end; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--p-surface-border); }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.875rem; font-weight: 500; }
+.form-group.flex-row { flex-direction: row; align-items: center; gap: 0.5rem; }
+</style>

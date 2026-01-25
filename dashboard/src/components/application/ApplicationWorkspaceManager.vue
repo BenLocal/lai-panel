@@ -1,16 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import Dialog from 'primevue/dialog'
 import { ApiResponseHelper } from "@/api/base";
 import {
   workspaceApi,
@@ -366,132 +358,75 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col gap-4 rounded-lg border p-4">
-    <div
-      class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
-    >
+  <div class="workspace-root">
+    <div class="workspace-header">
       <div>
-        <p class="text-sm font-medium">Workspace Files</p>
-        <p class="text-xs text-muted-foreground">
-          Manage files stored under the workspace directory for this
-          application.
-        </p>
+        <p class="workspace-title">Workspace Files</p>
+        <p class="text-muted-foreground">Manage files under the workspace for this application.</p>
       </div>
-      <div class="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="!hasWorkspace || isUploading"
-          @click="triggerUpload"
-        >
-          <Icon icon="lucide:upload" class="mr-2 h-4 w-4" />
-          Upload
+      <div class="workspace-actions">
+        <Button outlined size="small" :disabled="!hasWorkspace || isUploading" @click="triggerUpload">
+          <i class="pi pi-upload"></i><span class="btn-icon-text">Upload</span>
         </Button>
-        <Button variant="outline" size="sm" @click="openCreateFileDialog">
-          <Icon icon="lucide:file-plus-2" class="mr-2 h-4 w-4" />
-          New File
+        <Button outlined size="small" @click="openCreateFileDialog">
+          <i class="pi pi-file-plus"></i><span class="btn-icon-text">New File</span>
         </Button>
-        <Button variant="outline" size="sm" @click="openCreateDirDialog">
-          <Icon icon="lucide:folder-plus" class="mr-2 h-4 w-4" />
-          New Folder
+        <Button outlined size="small" @click="openCreateDirDialog">
+          <i class="pi pi-folder-plus"></i><span class="btn-icon-text">New Folder</span>
         </Button>
       </div>
     </div>
 
-    <input
-      ref="fileInputRef"
-      type="file"
-      class="hidden"
-      @change="handleFileInputChange"
-    />
+    <input ref="fileInputRef" type="file" class="hidden" @change="handleFileInputChange" />
 
-    <div
-      v-if="!hasWorkspace"
-      class="flex flex-1 items-center justify-center rounded-md border border-dashed p-4 text-sm text-muted-foreground"
-    >
+    <div v-if="!hasWorkspace" class="workspace-empty text-muted-foreground">
       Set an application name to access its workspace folder.
     </div>
 
-    <div v-else class="grid flex-1 gap-4 lg:grid-cols-2">
-      <div class="flex min-h-0 flex-col space-y-3 rounded-md border p-3">
-        <div
-          class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-        >
+    <div v-else class="workspace-grid">
+      <div class="workspace-panel">
+        <div class="breadcrumbs">
           <button
             v-for="crumb in breadcrumbs"
             :key="crumb.path || 'root'"
-            class="inline-flex items-center gap-1 rounded px-2 py-1 transition hover:bg-muted"
+            class="breadcrumb-btn"
             @click="handleBreadcrumbClick(crumb.path)"
           >
-            <Icon icon="lucide:folder" class="h-3 w-3" />
-            {{ crumb.label || "/" }}
+            <i class="pi pi-folder"></i> {{ crumb.label || "/" }}
           </button>
         </div>
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-muted-foreground">
-            {{ currentPath ? `/${currentPath}` : "/" }}
-          </span>
-          <div class="flex items-center gap-2">
-            <Button variant="ghost" size="sm" @click="refreshEntries">
-              Refresh
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              :disabled="!selectedEntry || isDeleting"
-              @click="requestDeleteSelection"
-            >
-              Delete
-            </Button>
+        <div class="workspace-toolbar">
+          <span class="text-muted-foreground">{{ currentPath ? `/${currentPath}` : "/" }}</span>
+          <div class="workspace-toolbar-actions">
+            <Button text size="small" @click="refreshEntries">Refresh</Button>
+            <Button text size="small" :disabled="!selectedEntry || isDeleting" @click="requestDeleteSelection">Delete</Button>
           </div>
         </div>
-        <div class="flex flex-1 flex-col rounded-md border bg-muted/20">
-          <div v-if="loading" class="p-4 text-sm text-muted-foreground">
-            Loading...
-          </div>
-          <div
-            v-else-if="entries.length === 0"
-            class="p-4 text-sm text-muted-foreground"
-          >
-            Folder is empty.
-          </div>
-          <ul v-else class="flex-1 divide-y overflow-auto">
+        <div class="workspace-list-wrap">
+          <div v-if="loading" class="workspace-list-msg text-muted-foreground">Loading...</div>
+          <div v-else-if="!entries.length" class="workspace-list-msg text-muted-foreground">Folder is empty.</div>
+          <ul v-else class="workspace-list">
             <li
               v-for="entry in entries"
               :key="entry.path || entry.name"
-              class="flex items-center justify-between px-3 py-2 transition hover:bg-muted"
-              :class="selectedEntry?.path === entry.path ? 'bg-muted' : ''"
+              class="workspace-item"
+              :class="{ selected: selectedEntry?.path === entry.path }"
               @click="selectEntry(entry)"
               @dblclick.prevent="enterEntry(entry)"
             >
-              <div class="flex items-center gap-3">
-                <div
-                  class="flex h-8 w-8 items-center justify-center rounded bg-primary/10"
-                >
-                  <Icon
-                    :icon="entry.is_dir ? 'lucide:folder' : 'lucide:file'"
-                    class="h-4 w-4 text-primary"
-                  />
+              <div class="workspace-item-main">
+                <div class="workspace-item-icon">
+                  <i :class="entry.is_dir ? 'pi pi-folder' : 'pi pi-file'"></i>
                 </div>
                 <div>
-                  <p class="text-sm font-medium">{{ entry.name }}</p>
-                  <p class="text-xs text-muted-foreground">
-                    {{ entry.is_dir ? "Folder" : formatBytes(entry.size) }}
-                  </p>
+                  <p class="workspace-item-name">{{ entry.name }}</p>
+                  <p class="text-muted-foreground">{{ entry.is_dir ? "Folder" : formatBytes(entry.size) }}</p>
                 </div>
               </div>
-              <div
-                class="flex items-center gap-2 text-xs text-muted-foreground"
-              >
+              <div class="workspace-item-meta">
                 <span>{{ new Date(entry.mod_time).toLocaleString() }}</span>
-                <Button
-                  v-if="entry.is_dir"
-                  variant="ghost"
-                  size="icon"
-                  class="h-6 w-6 text-muted-foreground hover:text-foreground"
-                  @click.stop="enterEntry(entry)"
-                >
-                  <Icon icon="lucide:corner-down-right" class="h-3.5 w-3.5" />
+                <Button v-if="entry.is_dir" text rounded size="small" @click.stop="enterEntry(entry)">
+                  <i class="pi pi-arrow-down-right"></i>
                 </Button>
               </div>
             </li>
@@ -499,34 +434,21 @@ onMounted(() => {
         </div>
       </div>
 
-      <div class="flex min-h-0 flex-col space-y-3 rounded-md border p-3">
-        <div class="flex items-center justify-between">
+      <div class="workspace-panel">
+        <div class="editor-header">
           <div>
-            <p class="text-sm font-medium">Editor</p>
-            <p class="text-xs text-muted-foreground">
-              {{
-                editorPath ? editorPath : "Select a file to preview and edit"
-              }}
-            </p>
+            <p class="workspace-title">Editor</p>
+            <p class="text-muted-foreground">{{ editorPath || "Select a file to preview and edit" }}</p>
           </div>
-          <Button
-            size="sm"
-            :disabled="!isFileSelected || isSaving"
-            @click="saveFile"
-          >
-            Save
-          </Button>
+          <Button size="small" :disabled="!isFileSelected || isSaving" @click="saveFile">Save</Button>
         </div>
-        <div class="flex flex-1 flex-col rounded-md border bg-background">
-          <div
-            v-if="!isFileSelected"
-            class="flex flex-1 items-center justify-center px-4 py-6 text-center text-sm text-muted-foreground"
-          >
+        <div class="workspace-editor-wrap">
+          <div v-if="!isFileSelected" class="workspace-editor-placeholder text-muted-foreground">
             Select a file from the list to start editing.
           </div>
           <MonacoEditor
             v-else
-            class="h-full min-h-[280px]"
+            class="workspace-monaco"
             v-model:value="editorContent"
             theme="vs-dark"
             :language="editorLanguage"
@@ -536,99 +458,70 @@ onMounted(() => {
       </div>
     </div>
   </div>
-  <Dialog v-model:open="isCreateFileDialogOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Create New File</DialogTitle>
-        <DialogDescription>
-          Enter a file name to create it inside the current workspace directory.
-        </DialogDescription>
-      </DialogHeader>
-      <div class="space-y-2">
-        <label class="text-sm font-medium" for="workspace-new-file">
-          File Name
-        </label>
-        <Input
-          id="workspace-new-file"
-          v-model="newFileName"
-          placeholder="e.g. config.yaml"
-          :disabled="isCreatingFile"
-        />
-      </div>
-      <DialogFooter>
-        <Button
-          variant="outline"
-          @click="isCreateFileDialogOpen = false"
-          :disabled="isCreatingFile"
-        >
-          Cancel
-        </Button>
-        <Button @click="confirmCreateFile" :disabled="isCreatingFile">
-          {{ isCreatingFile ? "Creating..." : "Create" }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+  <Dialog v-model:visible="isCreateFileDialogOpen" modal header="Create New File" :style="{ width: '425px' }">
+    <p class="dialog-desc">Enter a file name to create it inside the current workspace directory.</p>
+    <div class="form-group">
+      <label for="workspace-new-file">File Name</label>
+      <InputText id="workspace-new-file" v-model="newFileName" placeholder="e.g. config.yaml" :disabled="isCreatingFile" />
+    </div>
+    <template #footer>
+      <Button outlined @click="isCreateFileDialogOpen = false" :disabled="isCreatingFile">Cancel</Button>
+      <Button @click="confirmCreateFile" :disabled="isCreatingFile">{{ isCreatingFile ? "Creating..." : "Create" }}</Button>
+    </template>
   </Dialog>
-  <Dialog v-model:open="isCreateDirDialogOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Create New Folder</DialogTitle>
-        <DialogDescription>
-          Enter a folder name to create it inside the current workspace
-          directory.
-        </DialogDescription>
-      </DialogHeader>
-      <div class="space-y-2">
-        <label class="text-sm font-medium" for="workspace-new-dir">
-          Folder Name
-        </label>
-        <Input
-          id="workspace-new-dir"
-          v-model="newDirName"
-          placeholder="e.g. configs"
-          :disabled="isCreatingDir"
-        />
-      </div>
-      <DialogFooter>
-        <Button
-          variant="outline"
-          @click="isCreateDirDialogOpen = false"
-          :disabled="isCreatingDir"
-        >
-          Cancel
-        </Button>
-        <Button @click="confirmCreateDir" :disabled="isCreatingDir">
-          {{ isCreatingDir ? "Creating..." : "Create" }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+  <Dialog v-model:visible="isCreateDirDialogOpen" modal header="Create New Folder" :style="{ width: '425px' }">
+    <p class="dialog-desc">Enter a folder name to create it inside the current workspace directory.</p>
+    <div class="form-group">
+      <label for="workspace-new-dir">Folder Name</label>
+      <InputText id="workspace-new-dir" v-model="newDirName" placeholder="e.g. configs" :disabled="isCreatingDir" />
+    </div>
+    <template #footer>
+      <Button outlined @click="isCreateDirDialogOpen = false" :disabled="isCreatingDir">Cancel</Button>
+      <Button @click="confirmCreateDir" :disabled="isCreatingDir">{{ isCreatingDir ? "Creating..." : "Create" }}</Button>
+    </template>
   </Dialog>
-  <Dialog v-model:open="isDeleteDialogOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Delete Entry</DialogTitle>
-        <DialogDescription>
-          This action will permanently remove
-          <span class="font-medium">{{ selectedEntry?.name }}</span>
-          from the workspace.
-        </DialogDescription>
-      </DialogHeader>
-      <DialogFooter>
-        <Button
-          variant="outline"
-          @click="isDeleteDialogOpen = false"
-          :disabled="isDeleting"
-        >
-          Cancel
-        </Button>
-        <Button
-          variant="destructive"
-          @click="deleteSelection"
-          :disabled="isDeleting"
-        >
-          {{ isDeleting ? "Deleting..." : "Delete" }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
+  <Dialog v-model:visible="isDeleteDialogOpen" modal header="Delete Entry" :style="{ width: '425px' }">
+    <p>Permanently remove <span class="font-medium">{{ selectedEntry?.name }}</span> from the workspace?</p>
+    <template #footer>
+      <Button outlined @click="isDeleteDialogOpen = false" :disabled="isDeleting">Cancel</Button>
+      <Button severity="danger" @click="deleteSelection" :disabled="isDeleting">{{ isDeleting ? "Deleting..." : "Delete" }}</Button>
+    </template>
   </Dialog>
 </template>
+
+<style scoped>
+.workspace-root { display: flex; flex-direction: column; gap: 1rem; height: 100%; padding: 1rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); }
+.workspace-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.workspace-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem; }
+.workspace-actions { display: flex; gap: 0.5rem; }
+.btn-icon-text { margin-left: 0.5rem; }
+.workspace-empty { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem; border: 1px dashed var(--p-surface-border); border-radius: var(--p-border-radius); font-size: 0.875rem; }
+.workspace-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1; min-height: 0; }
+@media (max-width: 1024px) { .workspace-grid { grid-template-columns: 1fr; } }
+.workspace-panel { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; padding: 0.75rem; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; font-size: 0.75rem; }
+.breadcrumb-btn { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; border-radius: var(--p-border-radius); background: transparent; border: none; cursor: pointer; color: var(--p-text-muted-color); }
+.breadcrumb-btn:hover { background: var(--p-surface-hover); color: var(--p-text-color); }
+.workspace-toolbar { display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; }
+.workspace-toolbar-actions { display: flex; gap: 0.5rem; }
+.workspace-list-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-50); }
+.workspace-list-msg { padding: 1rem; font-size: 0.875rem; }
+.workspace-list { flex: 1; overflow: auto; list-style: none; margin: 0; padding: 0; }
+.workspace-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; cursor: pointer; transition: background 0.2s; }
+.workspace-item:hover { background: var(--p-surface-hover); }
+.workspace-item.selected { background: var(--p-surface-100); }
+.workspace-item-main { display: flex; align-items: center; gap: 0.75rem; }
+.workspace-item-icon { width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; border-radius: var(--p-border-radius); background: var(--p-primary-color); opacity: 0.15; }
+.workspace-item-icon i { color: var(--p-primary-color); opacity: 1; }
+.workspace-item-name { font-size: 0.875rem; font-weight: 500; }
+.workspace-item-meta { display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; }
+.editor-header { display: flex; align-items: center; justify-content: space-between; }
+.workspace-editor-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--p-surface-border); border-radius: var(--p-border-radius); background: var(--p-surface-0); }
+.workspace-editor-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; font-size: 0.875rem; }
+.workspace-monaco { height: 100%; min-height: 280px; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.875rem; font-weight: 500; }
+.dialog-desc { margin-bottom: 1rem; }
+.font-medium { font-weight: 500; }
+.hidden { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+</style>

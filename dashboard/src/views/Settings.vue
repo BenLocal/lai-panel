@@ -1,36 +1,14 @@
 <script setup lang="ts">
 import { ref, nextTick } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
+import Checkbox from 'primevue/checkbox'
+import Select from 'primevue/select'
+import Sidebar from 'primevue/sidebar'
 
 const isNavOpen = ref(false);
 const activeSection = ref("general");
-
-// Form data
 const theme = ref("light");
 const language = ref("en");
 const logLevel = ref("info");
@@ -39,223 +17,210 @@ const emailNotifications = ref(true);
 const smsNotifications = ref(false);
 const pushNotifications = ref(true);
 const enableDebug = ref(false);
+const appName = ref("Lai Panel");
+const appDesc = ref("Server management panel");
+const appVer = ref("1.0.0");
+const sessionTimeout = ref(30);
+const maxAttempts = ref(5);
+const apiTimeout = ref(30);
 
-const sections = [
-  { id: "general", title: "General Settings", icon: "lucide:settings" },
-  { id: "security", title: "Security", icon: "lucide:shield" },
-  { id: "notifications", title: "Notifications", icon: "lucide:bell" },
-  { id: "appearance", title: "Appearance", icon: "lucide:palette" },
-  { id: "advanced", title: "Advanced", icon: "lucide:sliders" },
+const themeOptions = [
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+  { label: 'System', value: 'system' }
 ];
 
-const scrollToSection = async (sectionId: string) => {
-  activeSection.value = sectionId;
+const languageOptions = [
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'zh' }
+];
+
+const logLevelOptions = [
+  { label: 'Debug', value: 'debug' },
+  { label: 'Info', value: 'info' },
+  { label: 'Warning', value: 'warn' },
+  { label: 'Error', value: 'error' }
+];
+
+const sections = [
+  { id: "general", title: "General", icon: "pi-cog" },
+  { id: "security", title: "Security", icon: "pi-shield" },
+  { id: "notifications", title: "Notifications", icon: "pi-bell" },
+  { id: "appearance", title: "Appearance", icon: "pi-palette" },
+  { id: "advanced", title: "Advanced", icon: "pi-sliders-h" },
+];
+
+const scrollToSection = async (id: string) => {
+  activeSection.value = id;
   isNavOpen.value = false;
-
-  // Wait for sheet to close and DOM to update
   await nextTick();
-
-  // Add a delay to ensure sheet is fully closed and DOM is ready
   setTimeout(() => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      // Use scrollIntoView which automatically finds the correct scroll container
-      // The scroll-mt-20 class on the element provides offset for fixed headers
-      element.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-        inline: "nearest",
-      });
-    }
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, 300);
 };
 </script>
 
 <template>
-  <div class="space-y-6 relative">
-    <div>
-      <h1 class="text-3xl font-bold">Settings</h1>
-      <p class="text-muted-foreground mt-1">Manage your application settings</p>
+  <div class="page-root">
+    <div class="page-header">
+      <h1>Settings</h1>
+      <p class="text-muted-foreground">Manage your application settings</p>
     </div>
 
-    <!-- Floating Navigation Button -->
-    <Button class="fixed bottom-6 right-6 z-50 rounded-full h-12 w-12 shadow-lg" @click="isNavOpen = true">
-      <Icon icon="lucide:menu" class="h-5 w-5" />
+    <Button class="nav-fab" rounded @click="isNavOpen = true" v-tooltip.left="'Navigation'">
+      <i class="pi pi-bars"></i>
     </Button>
 
-    <!-- Navigation Sheet -->
-    <Sheet v-model:open="isNavOpen">
-      <SheetContent side="right" class="w-[300px]">
-        <SheetHeader>
-          <SheetTitle>Settings Navigation</SheetTitle>
-        </SheetHeader>
-        <div class="mt-6 space-y-2">
-          <Button v-for="section in sections" :key="section.id" variant="ghost" class="w-full justify-start"
-            :class="activeSection === section.id ? 'bg-accent' : ''" @click="scrollToSection(section.id)">
-            <Icon :icon="section.icon" class="h-4 w-4 mr-2" />
-            {{ section.title }}
-          </Button>
+    <Sidebar v-model:visible="isNavOpen" position="right" :style="{ width: '300px' }">
+      <h2 class="sidebar-title">Settings</h2>
+      <div class="nav-list">
+        <Button
+          v-for="s in sections"
+          :key="s.id"
+          text
+          class="nav-item"
+          :class="{ 'nav-item-active': activeSection === s.id }"
+          @click="scrollToSection(s.id)"
+        >
+          <i :class="'pi ' + s.icon"></i>
+          <span>{{ s.title }}</span>
+        </Button>
+      </div>
+    </Sidebar>
+
+    <section id="general" class="settings-section">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>General</h3>
+          <p class="text-muted-foreground">Configure general application settings</p>
         </div>
-      </SheetContent>
-    </Sheet>
+        <div class="form-list">
+          <div class="form-group">
+            <label for="app-name">Application Name</label>
+            <InputText id="app-name" v-model="appName" placeholder="Enter name" />
+          </div>
+          <div class="form-group">
+            <label for="app-desc">Description</label>
+            <InputText id="app-desc" v-model="appDesc" placeholder="Enter description" />
+          </div>
+          <div class="form-group">
+            <label for="app-ver">Version</label>
+            <InputText id="app-ver" v-model="appVer" placeholder="1.0.0" />
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- General Settings -->
-    <div id="general" class="scroll-mt-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>General Settings</CardTitle>
-          <CardDescription>
-            Configure general application settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label for="app-name" class="text-sm font-medium">Application Name</Label>
-            <Input id="app-name" placeholder="Enter application name" value="Lai Panel" />
+    <section id="security" class="settings-section">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Security</h3>
+          <p class="text-muted-foreground">Authentication and security</p>
+        </div>
+        <div class="form-list">
+          <div class="form-group">
+            <label for="session-timeout">Session Timeout (min)</label>
+            <InputNumber id="session-timeout" v-model="sessionTimeout" placeholder="30" />
           </div>
-          <div class="space-y-2">
-            <Label for="app-description" class="text-sm font-medium">Description</Label>
-            <Input id="app-description" placeholder="Enter description" value="Server management panel" />
+          <div class="form-group">
+            <label for="max-attempts">Max Login Attempts</label>
+            <InputNumber id="max-attempts" v-model="maxAttempts" placeholder="5" />
           </div>
-          <div class="space-y-2">
-            <Label for="app-version" class="text-sm font-medium">Version</Label>
-            <Input id="app-version" placeholder="1.0.0" value="1.0.0" />
+          <div class="form-group flex-row">
+            <Checkbox v-model="enable2FA" binary inputId="enable-2fa" />
+            <label for="enable-2fa">Two-Factor Authentication</label>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </section>
 
-    <Separator />
+    <section id="notifications" class="settings-section">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Notifications</h3>
+          <p class="text-muted-foreground">Notification preferences</p>
+        </div>
+        <div class="form-list">
+          <div class="form-group flex-row">
+            <Checkbox v-model="emailNotifications" binary inputId="email-notify" />
+            <label for="email-notify">Email</label>
+          </div>
+          <div class="form-group flex-row">
+            <Checkbox v-model="smsNotifications" binary inputId="sms-notify" />
+            <label for="sms-notify">SMS</label>
+          </div>
+          <div class="form-group flex-row">
+            <Checkbox v-model="pushNotifications" binary inputId="push-notify" />
+            <label for="push-notify">Push</label>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <!-- Security Settings -->
-    <div id="security" class="scroll-mt-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>Security</CardTitle>
-          <CardDescription>
-            Manage security and authentication settings
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label for="session-timeout" class="text-sm font-medium">Session Timeout (minutes)</Label>
-            <Input id="session-timeout" type="number" placeholder="30" value="30" />
+    <section id="appearance" class="settings-section">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Appearance</h3>
+          <p class="text-muted-foreground">Theme and language</p>
+        </div>
+        <div class="form-list">
+          <div class="form-group">
+            <label for="theme">Theme</label>
+            <Select v-model="theme" :options="themeOptions" option-label="label" option-value="value" placeholder="Select" />
           </div>
-          <div class="space-y-2">
-            <Label for="max-login-attempts" class="text-sm font-medium">Max Login Attempts</Label>
-            <Input id="max-login-attempts" type="number" placeholder="5" value="5" />
+          <div class="form-group">
+            <label for="lang">Language</label>
+            <Select v-model="language" :options="languageOptions" option-label="label" option-value="value" placeholder="Select" />
           </div>
-          <div class="flex items-center space-x-2">
-            <Checkbox id="enable-2fa" v-model:checked="enable2FA" />
-            <Label for="enable-2fa" class="text-sm font-medium cursor-pointer">Enable Two-Factor Authentication</Label>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </section>
 
-    <Separator />
-
-    <!-- Notifications Settings -->
-    <div id="notifications" class="scroll-mt-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>Notifications</CardTitle>
-          <CardDescription>
-            Configure notification preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="flex items-center space-x-2">
-            <Checkbox id="email-notifications" v-model:checked="emailNotifications" />
-            <Label for="email-notifications" class="text-sm font-medium cursor-pointer">Email Notifications</Label>
+    <section id="advanced" class="settings-section">
+      <div class="panel-card">
+        <div class="panel-header">
+          <h3>Advanced</h3>
+          <p class="text-muted-foreground">Advanced configuration</p>
+        </div>
+        <div class="form-list">
+          <div class="form-group">
+            <label for="api-timeout">API Timeout (s)</label>
+            <InputNumber id="api-timeout" v-model="apiTimeout" placeholder="30" />
           </div>
-          <div class="flex items-center space-x-2">
-            <Checkbox id="sms-notifications" v-model:checked="smsNotifications" />
-            <Label for="sms-notifications" class="text-sm font-medium cursor-pointer">SMS Notifications</Label>
+          <div class="form-group">
+            <label for="log-level">Log Level</label>
+            <Select v-model="logLevel" :options="logLevelOptions" option-label="label" option-value="value" placeholder="Select" />
           </div>
-          <div class="flex items-center space-x-2">
-            <Checkbox id="push-notifications" v-model:checked="pushNotifications" />
-            <Label for="push-notifications" class="text-sm font-medium cursor-pointer">Push Notifications</Label>
+          <div class="form-group flex-row">
+            <Checkbox v-model="enableDebug" binary inputId="enable-debug" />
+            <label for="enable-debug">Debug Mode</label>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <Separator />
-
-    <!-- Appearance Settings -->
-    <div id="appearance" class="scroll-mt-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>Appearance</CardTitle>
-          <CardDescription>
-            Customize the appearance of the application
-          </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label for="theme" class="text-sm font-medium">Theme</Label>
-            <Select v-model="theme">
-              <SelectTrigger id="theme">
-                <SelectValue placeholder="Select theme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
-                <SelectItem value="system">System</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div class="space-y-2">
-            <Label for="language" class="text-sm font-medium">Language</Label>
-            <Select v-model="language">
-              <SelectTrigger id="language">
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="zh">中文</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-
-    <Separator />
-
-    <!-- Advanced Settings -->
-    <div id="advanced" class="scroll-mt-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>Advanced</CardTitle>
-          <CardDescription> Advanced configuration options </CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-2">
-            <Label for="api-timeout" class="text-sm font-medium">API Timeout (seconds)</Label>
-            <Input id="api-timeout" type="number" placeholder="30" value="30" />
-          </div>
-          <div class="space-y-2">
-            <Label for="log-level" class="text-sm font-medium">Log Level</Label>
-            <Select v-model="logLevel">
-              <SelectTrigger id="log-level">
-                <SelectValue placeholder="Select log level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="debug">Debug</SelectItem>
-                <SelectItem value="info">Info</SelectItem>
-                <SelectItem value="warn">Warning</SelectItem>
-                <SelectItem value="error">Error</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div class="flex items-center space-x-2">
-            <Checkbox id="enable-debug" v-model:checked="enableDebug" />
-            <Label for="enable-debug" class="text-sm font-medium cursor-pointer">Enable Debug Mode</Label>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
+
+<style scoped>
+.page-root { display: flex; flex-direction: column; gap: 1.5rem; position: relative; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.page-header p { font-size: 0.875rem; }
+
+.nav-fab { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 50; width: 3rem; height: 3rem; box-shadow: var(--p-overlay-shadow); }
+
+.sidebar-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 1.5rem; }
+.nav-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.nav-item { justify-content: flex-start; width: 100%; }
+.nav-item i { margin-right: 0.5rem; }
+.nav-item-active { background: var(--p-surface-hover); }
+
+.settings-section { scroll-margin-top: 2rem; }
+.panel-card { padding: 1.5rem; background: var(--p-surface-card); border-radius: var(--p-border-radius); }
+.panel-header { margin-bottom: 1rem; }
+.panel-header h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+.panel-header p { font-size: 0.875rem; }
+.form-list { display: flex; flex-direction: column; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.875rem; font-weight: 500; }
+.form-group.flex-row { flex-direction: row; align-items: center; gap: 0.5rem; }
+</style>

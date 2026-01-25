@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 interface MetadataProperty {
   key: string;
   value: string;
@@ -167,134 +166,104 @@ const updatePropertyValue = (
   value: string | number
 ) => {
   const current = editableMetadata.value[metadataIndex];
-  if (!current) {
-    return;
-  }
+  if (!current) return;
   const properties = [...current.properties];
   const property = properties[propertyIndex];
-  if (!property) {
-    return;
-  }
-  properties[propertyIndex] = {
-    ...property,
-    value: String(value),
-  };
+  if (!property) return;
+  properties[propertyIndex] = { ...property, value: String(value) };
   const next = [...editableMetadata.value];
-  next[metadataIndex] = {
-    ...current,
-    properties,
-  };
+  next[metadataIndex] = { ...current, properties };
   editableMetadata.value = next;
   emitChange();
 };
 </script>
 
+<style scoped>
+.metadata-editor { display: flex; flex-direction: column; gap: 1rem; }
+.metadata-empty {
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px dashed var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  background: var(--p-surface-50);
+  font-size: 0.875rem;
+}
+.metadata-item {
+  padding: 1rem;
+  border: 1px solid var(--p-surface-border);
+  border-radius: var(--p-border-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.metadata-head { display: flex; justify-content: space-between; align-items: center; }
+.font-medium { font-weight: 500; font-size: 0.875rem; }
+.metadata-props { display: flex; flex-direction: column; gap: 0.75rem; }
+.text-uppercase { font-size: 0.75rem; font-weight: 500; }
+.prop-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end; }
+@media (max-width: 768px) { .prop-row { grid-template-columns: 1fr; } }
+.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.form-group label { font-size: 0.75rem; font-weight: 500; }
+.btn-icon-text { margin-left: 0.5rem; }
+</style>
+
 <template>
-  <div class="space-y-4">
-    <div
-      v-if="editableMetadata.length === 0"
-      class="rounded-lg border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground"
-    >
+  <div class="metadata-editor">
+    <div v-if="!editableMetadata.length" class="metadata-empty text-muted-foreground">
       No metadata defined yet. Click the button below to add one.
     </div>
 
-    <div
-      v-for="(metadata, metadataIndex) in editableMetadata"
-      :key="metadataIndex"
-      class="space-y-4 rounded-lg border p-4"
-    >
-      <div class="flex items-center justify-between">
-        <div class="text-sm font-medium">Metadata {{ metadataIndex + 1 }}</div>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-8 w-8 text-muted-foreground hover:text-destructive"
-          @click="removeMetadataItem(metadataIndex)"
-        >
-          <Icon icon="lucide:trash" class="h-4 w-4" />
+    <div v-for="(metadata, mi) in editableMetadata" :key="mi" class="metadata-item">
+      <div class="metadata-head">
+        <span class="font-medium">Metadata {{ mi + 1 }}</span>
+        <Button text rounded size="small" severity="danger" @click="removeMetadataItem(mi)" v-tooltip.top="'Remove'">
+          <i class="pi pi-trash"></i>
         </Button>
       </div>
 
-      <div class="space-y-2">
-        <label
-          :for="`metadata-name-${metadataIndex}`"
-          class="text-sm font-medium"
-          >Name</label
-        >
-        <Input
-          :id="`metadata-name-${metadataIndex}`"
+      <div class="form-group">
+        <label :for="`metadata-name-${mi}`">Name</label>
+        <InputText
+          :id="`metadata-name-${mi}`"
           :model-value="metadata.name"
           placeholder="Example: database"
-          @update:model-value="
-            (value) => updateMetadataName(metadataIndex, value ?? '')
-          "
+          @update:model-value="(v) => updateMetadataName(mi, v ?? '')"
         />
       </div>
 
-      <div class="space-y-3">
-        <div class="text-xs font-medium uppercase text-muted-foreground">
-          Properties
-        </div>
-
-        <div
-          v-for="(property, propertyIndex) in metadata.properties"
-          :key="`${metadataIndex}-${propertyIndex}`"
-          class="rounded-md border p-3"
-        >
-          <div class="grid gap-3 md:grid-cols-[1fr,1fr,auto] md:items-center">
-            <div class="space-y-2">
-              <div class="text-xs font-medium text-muted-foreground">Key</div>
-              <Input
-                :model-value="property.key"
-                placeholder="Example: host"
-                @update:model-value="
-                  (value) =>
-                    updatePropertyKey(metadataIndex, propertyIndex, value ?? '')
-                "
-              />
-            </div>
-
-            <div class="space-y-2">
-              <div class="text-xs font-medium text-muted-foreground">Value</div>
-              <Input
-                :model-value="property.value"
-                placeholder="Example: 127.0.0.1"
-                @update:model-value="
-                  (value) =>
-                    updatePropertyValue(
-                      metadataIndex,
-                      propertyIndex,
-                      value ?? ''
-                    )
-                "
-              />
-            </div>
-
-            <div class="flex items-end justify-end">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 text-muted-foreground hover:text-destructive"
-                @click="removeProperty(metadataIndex, propertyIndex)"
-              >
-                <Icon icon="lucide:minus" class="h-4 w-4" />
-              </Button>
-            </div>
+      <div class="metadata-props">
+        <div class="text-muted-foreground text-uppercase">Properties</div>
+        <div v-for="(prop, pi) in metadata.properties" :key="`${mi}-${pi}`" class="prop-row">
+          <div class="form-group">
+            <label class="text-muted-foreground">Key</label>
+            <InputText
+              :model-value="prop.key"
+              placeholder="Example: host"
+              @update:model-value="(v) => updatePropertyKey(mi, pi, v ?? '')"
+            />
           </div>
+          <div class="form-group">
+            <label class="text-muted-foreground">Value</label>
+            <InputText
+              :model-value="prop.value"
+              placeholder="Example: 127.0.0.1"
+              @update:model-value="(v) => updatePropertyValue(mi, pi, v ?? '')"
+            />
+          </div>
+          <Button text rounded size="small" severity="danger" @click="removeProperty(mi, pi)" v-tooltip.top="'Remove'">
+            <i class="pi pi-minus"></i>
+          </Button>
         </div>
-
-        <Button variant="outline" size="sm" @click="addProperty(metadataIndex)">
-          <Icon icon="lucide:plus" class="mr-2 h-4 w-4" />
-          Add Property
+        <Button outlined size="small" @click="addProperty(mi)">
+          <i class="pi pi-plus"></i>
+          <span class="btn-icon-text">Add Property</span>
         </Button>
       </div>
     </div>
 
-    <div class="pt-2">
-      <Button variant="outline" @click="addMetadataItem">
-        <Icon icon="lucide:plus" class="mr-2 h-4 w-4" />
-        Add Metadata
-      </Button>
-    </div>
+    <Button outlined @click="addMetadataItem">
+      <i class="pi pi-plus"></i>
+      <span class="btn-icon-text">Add Metadata</span>
+    </Button>
   </div>
 </template>

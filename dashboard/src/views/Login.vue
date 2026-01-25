@@ -1,17 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
 import { authApi } from "@/api/auth";
 import { showToast } from "@/lib/toast";
 import { auth } from "@/auth";
@@ -23,12 +14,9 @@ const username = ref("");
 const password = ref("");
 const isLoading = ref(false);
 
-// Check if user is already logged in
 onMounted(() => {
   if (auth.isAuthenticated()) {
-    // If already logged in, redirect to dashboard or the redirect path
-    const redirect = (route.query.redirect as string) || "/dashboard";
-    router.push(redirect);
+    router.push((route.query.redirect as string) || "/dashboard");
   }
 });
 
@@ -37,83 +25,124 @@ const handleLogin = async () => {
     showToast("Please enter username and password", "error");
     return;
   }
-
   isLoading.value = true;
-
   try {
-    const base64Password = btoa(password.value);
     const response = await authApi.login({
       username: username.value,
-      password: base64Password,
+      password: btoa(password.value),
     });
-
-    if (response.code === 0 && response.data) {
+    if (response.code === 0 && response.data?.token) {
       showToast("Login successful", "success");
-      // Save token and user information
-      if (response.data.token) {
-        const userInfo = {
-          user_id: response.data.user_id!,
-          username: response.data.username!,
-          role: response.data.role!,
-          name: response.data.name!,
-        };
-        auth.setAuth(response.data.token, userInfo);
-      }
-      // Redirect to dashboard or the original target page
-      const redirect = (route.query.redirect as string) || "/dashboard";
-      router.push(redirect);
+      auth.setAuth(response.data.token, {
+        user_id: response.data.user_id!,
+        username: response.data.username!,
+        role: response.data.role!,
+        name: response.data.name!,
+      });
+      router.push((route.query.redirect as string) || "/dashboard");
     } else {
-      showToast(response.message || "Login failed, please check your username and password", "error");
+      showToast(response.message || "Login failed", "error");
     }
-  } catch (error) {
+  } catch (e) {
     showToast("Login failed, please try again later", "error");
-    console.error("Login error:", error);
+    console.error("Login error:", e);
   } finally {
     isLoading.value = false;
   }
 };
 
-const handleKeyPress = (event: KeyboardEvent) => {
-  if (event.key === "Enter") {
-    handleLogin();
-  }
+const onKeyPress = (e: KeyboardEvent) => {
+  if (e.key === "Enter") handleLogin();
 };
 </script>
 
 <template>
-  <div
-    class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
-    <Card class="w-full max-w-md shadow-lg">
-      <CardHeader class="space-y-1 text-center">
-        <div class="flex justify-center mb-4">
-          <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Icon icon="lucide:layers" class="h-6 w-6" />
-          </div>
+  <div class="login-page">
+    <div class="login-card">
+      <div class="login-header">
+        <div class="login-logo"><i class="pi pi-th-large"></i></div>
+        <h2>Welcome</h2>
+        <p class="text-muted-foreground">Enter your username and password to continue</p>
+      </div>
+      <div class="login-form">
+        <div class="login-field">
+          <label for="username">Username</label>
+          <InputText id="username" v-model="username" placeholder="Enter username"
+            :disabled="isLoading" @keypress="onKeyPress" class="w-full" />
         </div>
-        <CardTitle class="text-2xl font-bold">Welcome</CardTitle>
-        <CardDescription>
-          Please enter your username and password to continue
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-2">
-          <Label for="username">Username</Label>
-          <Input id="username" v-model="username" type="text" placeholder="Enter username" :disabled="isLoading"
-            @keypress="handleKeyPress" class="h-11" />
+        <div class="login-field">
+          <label for="password">Password</label>
+          <InputText id="password" v-model="password" type="password" placeholder="Enter password"
+            :disabled="isLoading" @keypress="onKeyPress" class="w-full" />
         </div>
-        <div class="space-y-2">
-          <Label for="password">Password</Label>
-          <Input id="password" v-model="password" type="password" placeholder="Enter password" :disabled="isLoading"
-            @keypress="handleKeyPress" class="h-11" />
-        </div>
-        <Button class="w-full h-11" :disabled="isLoading" @click="handleLogin">
-          <span v-if="!isLoading">Login</span>
-          <span v-else class="flex items-center gap-2">
-            <Icon icon="lucide:loader-2" class="h-4 w-4 animate-spin" />
-            Logging in...
-          </span>
-        </Button>
-      </CardContent>
-    </Card>
+        <Button label="Login" :loading="isLoading" :disabled="isLoading" @click="handleLogin" class="w-full" />
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--p-surface-ground);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 24rem;
+  padding: 1.5rem;
+  background: var(--p-surface-card);
+  border-radius: var(--p-border-radius);
+  box-shadow: var(--p-overlay-shadow);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-logo {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  border-radius: var(--p-border-radius);
+  background: var(--p-primary-color);
+  color: var(--p-primary-contrast-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-logo i {
+  font-size: 1.5rem;
+}
+
+.login-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.login-field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.w-full { width: 100%; }
+</style>

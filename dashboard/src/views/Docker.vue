@@ -1,14 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Icon } from "@iconify/vue";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Select from 'primevue/select'
+import TabView from 'primevue/tabview'
+import TabPanel from 'primevue/tabpanel'
+import Tag from 'primevue/tag'
 import DockerContainers from "./docker/DockerContainers.vue";
 import DockerImages from "./docker/DockerImages.vue";
 import DockerVolumes from "./docker/DockerVolumes.vue";
@@ -27,118 +22,106 @@ const nodes = ref<Node[]>([]);
 const selectedNodeId = ref<string>("");
 const selectedNode = ref<Node | null>(null);
 
-// Watch for selected node changes
-const onNodeChange = (value: string | number | bigint | Record<string, any> | null) => {
-  if (value === null || value === undefined) {
+const onNodeChange = (value: Node | null | undefined) => {
+  if (value == null) {
     selectedNodeId.value = "";
     selectedNode.value = null;
     return;
   }
-  const stringValue = typeof value === 'string' ? value : String(value);
-  selectedNodeId.value = stringValue;
-  selectedNode.value =
-    nodes.value.find((n) => n.id.toString() === stringValue) || null;
+  selectedNodeId.value = value.id.toString();
+  selectedNode.value = value;
 };
 
-// Fetch nodes
 const fetchNodes = async () => {
-  const response = await nodeApi.list();
-
-  nodes.value = response.data ?? [];
-  if (nodes.value.length > 0 && nodes.value[0]) {
-    onNodeChange(nodes.value[0].id.toString());
-  }
+  const res = await nodeApi.list();
+  nodes.value = res.data ?? [];
+  if (nodes.value.length > 0) onNodeChange(nodes.value[0]);
 };
 
-onMounted(() => {
-  fetchNodes();
-});
+onMounted(fetchNodes);
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold">Docker</h1>
-        <p class="text-muted-foreground mt-1">
-          Manage Docker containers and images
-        </p>
-      </div>
+  <div class="page-root">
+    <div class="page-header">
+      <h1>Docker</h1>
+      <p class="text-muted-foreground">Manage Docker containers and images</p>
     </div>
 
-    <!-- Node Selector -->
-    <div class="flex items-center gap-4">
-      <label class="text-sm font-medium">Select Node:</label>
-      <Select :model-value="selectedNodeId" @update:model-value="onNodeChange">
-        <SelectTrigger class="w-[250px]">
-          <SelectValue placeholder="Select a node" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="node in nodes" :key="node.id" :value="node.id.toString()">
-            {{ node.display_name || node.name }} ({{ node.address }})
-          </SelectItem>
-        </SelectContent>
+    <div class="docker-toolbar">
+      <label for="docker-node-select">Select Node:</label>
+      <Select
+        v-model="selectedNode"
+        :options="nodes"
+        option-label="name"
+        placeholder="Select a node"
+        class="node-select"
+        input-id="docker-node-select"
+        @update:model-value="onNodeChange"
+      >
+        <template #value="slot">
+          <span v-if="slot.value">{{ slot.value.display_name || slot.value.name }} ({{ slot.value.address }})</span>
+          <span v-else>{{ slot.placeholder }}</span>
+        </template>
       </Select>
-      <div v-if="selectedNode" class="text-sm text-muted-foreground">
-        <span :class="[
-          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-          selectedNode.status === 'online'
-            ? 'bg-green-500/10 text-green-500 border-green-500/20'
-            : 'bg-red-500/10 text-red-500 border-red-500/20',
-        ]">
-          <span :class="[
-            'h-1.5 w-1.5 rounded-full',
-            selectedNode.status === 'online' ? 'bg-green-500' : 'bg-red-500',
-          ]"></span>
-          {{ selectedNode.status || "offline" }}
-        </span>
-      </div>
+      <Tag v-if="selectedNode" :value="selectedNode.status || 'offline'"
+        :severity="selectedNode.status === 'online' ? 'success' : 'danger'" />
     </div>
 
-    <!-- Tabs Content -->
-    <div v-if="selectedNode">
-      <Tabs default-value="containers" class="w-full">
-        <TabsList class="grid w-full grid-cols-4">
-          <TabsTrigger value="containers">
-            <Icon icon="lucide:box" class="h-4 w-4 mr-2" />
-            Containers
-          </TabsTrigger>
-          <TabsTrigger value="images">
-            <Icon icon="lucide:layers" class="h-4 w-4 mr-2" />
-            Images
-          </TabsTrigger>
-          <TabsTrigger value="volumes">
-            <Icon icon="lucide:database" class="h-4 w-4 mr-2" />
-            Volumes
-          </TabsTrigger>
-          <TabsTrigger value="networks">
-            <Icon icon="lucide:network" class="h-4 w-4 mr-2" />
-            Networks
-          </TabsTrigger>
-        </TabsList>
+    <TabView v-if="selectedNode">
+      <TabPanel value="containers">
+        <template #header>
+          <span class="tab-header-inner"><i class="pi pi-box tab-icon"></i>Containers</span>
+        </template>
+        <DockerContainers :node-id="selectedNodeId" />
+      </TabPanel>
+      <TabPanel value="images">
+        <template #header>
+          <span class="tab-header-inner"><i class="pi pi-th-large tab-icon"></i>Images</span>
+        </template>
+        <DockerImages :node-id="selectedNodeId" />
+      </TabPanel>
+      <TabPanel value="volumes">
+        <template #header>
+          <span class="tab-header-inner"><i class="pi pi-database tab-icon"></i>Volumes</span>
+        </template>
+        <DockerVolumes :node-id="selectedNodeId" />
+      </TabPanel>
+      <TabPanel value="networks">
+        <template #header>
+          <span class="tab-header-inner"><i class="pi pi-sitemap tab-icon"></i>Networks</span>
+        </template>
+        <DockerNetworks :node-id="selectedNodeId" />
+      </TabPanel>
+    </TabView>
 
-        <TabsContent value="containers" class="mt-6">
-          <DockerContainers :node-id="selectedNodeId" />
-        </TabsContent>
-
-        <TabsContent value="images" class="mt-6">
-          <DockerImages :node-id="selectedNodeId" />
-        </TabsContent>
-
-        <TabsContent value="volumes" class="mt-6">
-          <DockerVolumes :node-id="selectedNodeId" />
-        </TabsContent>
-
-        <TabsContent value="networks" class="mt-6">
-          <DockerNetworks :node-id="selectedNodeId" />
-        </TabsContent>
-      </Tabs>
-    </div>
-
-    <!-- No Node Selected -->
-    <div v-else class="rounded-lg border bg-card p-12 text-center">
-      <Icon icon="lucide:server" class="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-      <p class="text-muted-foreground">Please select a node to view Docker information</p>
+    <div v-else class="empty-state">
+      <i class="pi pi-server"></i>
+      <p>Please select a node to view Docker information</p>
     </div>
   </div>
 </template>
+
+<style scoped>
+.page-root { display: flex; flex-direction: column; gap: 1.5rem; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem; }
+.page-header p { font-size: 0.875rem; }
+
+.docker-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.docker-toolbar label { font-size: 0.875rem; font-weight: 500; }
+.node-select { width: 250px; }
+.tab-header-inner { display: inline-flex; align-items: center; }
+.tab-icon { margin-right: 0.5rem; flex-shrink: 0; }
+
+.empty-state {
+  padding: 3rem;
+  text-align: center;
+  background: var(--p-surface-card);
+  border-radius: var(--p-border-radius);
+}
+.empty-state i { font-size: 3rem; opacity: 0.5; display: block; margin-bottom: 1rem; }
+</style>

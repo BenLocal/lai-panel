@@ -1,18 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Icon } from "@iconify/vue";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import Button from 'primevue/button'
+import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import Tag from 'primevue/tag'
 import XTermTerminal from "@/components/application/XTermTerminal.vue";
 import { showToast } from "@/lib/toast";
 import { HubConnectionBuilder, HubConnectionState } from "@microsoft/signalr";
@@ -37,6 +29,11 @@ const connectionStatus = ref<
 >("disconnected");
 const selectedShell = ref<"sh" | "bash" | "custom">("sh");
 const customShell = ref<string>("");
+const shellOptions = [
+  { label: 'sh', value: 'sh' },
+  { label: 'bash', value: 'bash' },
+  { label: 'Custom', value: 'custom' }
+];
 
 // 初始化 SignalR 连接
 const initConnection = () => {
@@ -273,136 +270,83 @@ watch(
 </script>
 
 <template>
-  <div class="h-screen flex flex-col">
-    <!-- Header -->
-    <Card class="rounded-none border-b shrink-0">
-      <CardHeader class="pb-3">
-        <div class="flex items-center justify-between gap-4 flex-wrap">
-          <div class="flex items-center gap-4 flex-wrap">
-            <Button variant="ghost" size="sm" @click="back">
-              <Icon icon="lucide:arrow-left" class="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <CardTitle>Container Terminal - {{ containerName }}</CardTitle>
-              <p class="text-sm text-muted-foreground mt-1">
-                Node ID: {{ nodeId }} | Container:
-                {{ containerId.substring(0, 12) }}
-              </p>
-            </div>
-            <div class="flex items-center gap-2">
-              <Label for="shell-select" class="text-sm text-muted-foreground">
-                Shell:
-              </Label>
-              <Select
-                v-model="selectedShell"
-                :disabled="isConnected || isConnecting"
-              >
-                <SelectTrigger id="shell-select" class="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sh">sh</SelectItem>
-                  <SelectItem value="bash">bash</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                v-if="selectedShell === 'custom'"
-                v-model="customShell"
-                placeholder="Enter shell command"
-                class="w-[150px]"
-                :disabled="isConnected || isConnecting"
-              />
-            </div>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <span
-              :class="[
-                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium',
-                connectionStatus === 'connected'
-                  ? 'bg-green-500/10 text-green-500 border-green-500/20'
-                  : connectionStatus === 'connecting' ||
-                    connectionStatus === 'reconnecting'
-                  ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                  : 'bg-red-500/10 text-red-500 border-red-500/20',
-              ]"
-            >
-              <span
-                :class="[
-                  'h-1.5 w-1.5 rounded-full',
-                  connectionStatus === 'connected'
-                    ? 'bg-green-500'
-                    : connectionStatus === 'connecting' ||
-                      connectionStatus === 'reconnecting'
-                    ? 'bg-yellow-500 animate-pulse'
-                    : 'bg-red-500',
-                ]"
-              ></span>
-              {{
-                connectionStatus === "connected"
-                  ? "Connected"
-                  : connectionStatus === "connecting"
-                  ? "Connecting..."
-                  : connectionStatus === "reconnecting"
-                  ? "Reconnecting..."
-                  : "Disconnected"
-              }}
-            </span>
-            <Button
-              v-if="!isConnected && !isConnecting"
-              @click="connect"
-              :disabled="!nodeId || !containerId"
-            >
-              <Icon icon="lucide:plug" class="h-4 w-4 mr-2" />
-              Connect
-            </Button>
-            <Button
-              v-else-if="isConnected"
-              variant="destructive"
-              @click="disconnect"
-            >
-              <Icon icon="lucide:plug-zap" class="h-4 w-4 mr-2" />
-              Disconnect
-            </Button>
-            <Button
-              v-else
-              variant="outline"
-              @click="disconnect"
-              :disabled="true"
-            >
-              <Icon icon="lucide:loader-2" class="h-4 w-4 mr-2 animate-spin" />
-              Connecting...
-            </Button>
-            <Button v-if="isConnected" variant="outline" @click="reconnect">
-              <Icon icon="lucide:refresh-cw" class="h-4 w-4 mr-2" />
-              Reconnect
-            </Button>
-          </div>
+  <div class="terminal-page">
+    <div class="terminal-header">
+      <div class="terminal-header-main">
+        <Button text rounded @click="back">
+          <i class="pi pi-arrow-left"></i>
+          <span class="btn-icon-text">Back</span>
+        </Button>
+        <div>
+          <h2>Container Terminal – {{ containerName }}</h2>
+          <p class="text-muted-foreground">Node ID: {{ nodeId }} | Container: {{ containerId.substring(0, 12) }}</p>
         </div>
-      </CardHeader>
-    </Card>
-
-    <!-- Terminal -->
-    <CardContent class="flex-1 p-0 overflow-hidden flex flex-col">
-      <div class="flex-1 min-h-0 w-full" style="background-color: #1e1e1e">
-        <XTermTerminal
-          ref="terminalRef"
-          :auto-fit="true"
-          :font-size="13"
-          :readonly="false"
-          @data="handleTerminalData"
-          @ready="handleTerminalReady"
-          @resize="handleTerminalResize"
-        />
+        <div class="shell-row">
+          <label for="shell-select" class="text-muted-foreground">Shell:</label>
+          <Select
+            id="shell-select"
+            v-model="selectedShell"
+            :options="shellOptions"
+            option-label="label"
+            option-value="value"
+            :disabled="isConnected || isConnecting"
+            class="shell-select"
+          />
+          <InputText
+            v-if="selectedShell === 'custom'"
+            v-model="customShell"
+            placeholder="Shell command"
+            class="shell-input"
+            :disabled="isConnected || isConnecting"
+          />
+        </div>
       </div>
-    </CardContent>
+      <div class="terminal-header-actions">
+        <Tag
+          :value="connectionStatus === 'connected' ? 'Connected' : connectionStatus === 'connecting' ? 'Connecting...' : connectionStatus === 'reconnecting' ? 'Reconnecting...' : 'Disconnected'"
+          :severity="connectionStatus === 'connected' ? 'success' : connectionStatus === 'connecting' || connectionStatus === 'reconnecting' ? 'warn' : 'danger'"
+        />
+        <Button v-if="!isConnected && !isConnecting" @click="connect" :disabled="!nodeId || !containerId">
+          <i class="pi pi-link"></i>
+          <span class="btn-icon-text">Connect</span>
+        </Button>
+        <Button v-else-if="isConnected" severity="danger" @click="disconnect">
+          <i class="pi pi-bolt"></i>
+          <span class="btn-icon-text">Disconnect</span>
+        </Button>
+        <Button v-else outlined :disabled="true" :loading="true">Connecting...</Button>
+        <Button v-if="isConnected" outlined @click="reconnect">
+          <i class="pi pi-refresh"></i>
+          <span class="btn-icon-text">Reconnect</span>
+        </Button>
+      </div>
+    </div>
+    <div class="terminal-body">
+      <XTermTerminal
+        ref="terminalRef"
+        :auto-fit="true"
+        :font-size="13"
+        :readonly="false"
+        @data="handleTerminalData"
+        @ready="handleTerminalReady"
+        @resize="handleTerminalResize"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
-:deep(.xterm-terminal-container) {
-  height: 100%;
-  min-height: 200px;
-}
+.terminal-page { height: 100vh; display: flex; flex-direction: column; }
+.terminal-header { border-bottom: 1px solid var(--p-surface-border); padding: 1.5rem; flex-shrink: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+.terminal-header-main { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
+.terminal-header-main h2 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.25rem; }
+.terminal-header-main p { font-size: 0.875rem; }
+.shell-row { display: flex; align-items: center; gap: 0.5rem; }
+.shell-row label { font-size: 0.875rem; }
+.shell-select { width: 6rem; }
+.shell-input { width: 9rem; }
+.terminal-header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.btn-icon-text { margin-left: 0.5rem; }
+.terminal-body { flex: 1; overflow: hidden; background: #1e1e1e; }
+:deep(.xterm-terminal-container) { height: 100%; min-height: 200px; }
 </style>
